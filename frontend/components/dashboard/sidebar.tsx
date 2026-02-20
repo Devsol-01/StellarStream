@@ -48,8 +48,9 @@ export function Sidebar() {
       >
         {/* Header + toggle */}
         <div className="mb-6 flex items-center justify-between">
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          <Link
+            href="/"
+            className={`overflow-hidden transition-all duration-300 ease-in-out hover:opacity-80 ${
               collapsed ? "w-0 opacity-0" : "w-auto opacity-100"
             }`}
           >
@@ -59,7 +60,7 @@ export function Sidebar() {
             <p className="font-body text-xs text-white/60 whitespace-nowrap">
               Navigation Blade
             </p>
-          </div>
+          </Link>
 
           <button
             onClick={() => setCollapsed((c) => !c)}
