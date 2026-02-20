@@ -1,6 +1,7 @@
 #![no_std]
 
 pub mod math;
+mod test;
 mod types;
 
 use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env};
