@@ -262,7 +262,7 @@ impl StellarStream {
         let now = env.ledger().timestamp();
 
         // Use precision-safe calculation that handles final withdrawal correctly
-        let withdrawable_amount = math::calculate_withdrawable(
+        let withdrawable_principal = math::calculate_withdrawable(
             stream.amount,
             stream.withdrawn_amount,
             stream.start_time,
@@ -270,8 +270,6 @@ impl StellarStream {
             stream.end_time,
             now,
         );
-
-        let withdrawable_principal = total_unlocked - stream.withdrawn_amount;
 
         if withdrawable_principal <= 0 {
             panic!("No funds available to withdraw at this time");
