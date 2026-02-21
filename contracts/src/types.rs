@@ -8,6 +8,7 @@ pub struct Stream {
     pub token: Address,
     pub amount: i128,
     pub start_time: u64,
+    pub cliff_time: u64,
     pub end_time: u64,
     pub withdrawn_amount: i128,
 }

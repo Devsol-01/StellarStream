@@ -22,12 +22,16 @@ impl StellarStream {
         token: Address,
         amount: i128,
         start_time: u64,
+        cliff_time: u64,
         end_time: u64,
     ) -> u64 {
         sender.require_auth();
 
         if end_time <= start_time {
             panic!("End time must be after start time");
+        }
+        if cliff_time < start_time || cliff_time >= end_time {
+            panic!("Cliff time must be between start and end time");
         }
         if amount <= 0 {
             panic!("Amount must be greater than zero");
@@ -51,6 +55,7 @@ impl StellarStream {
             token,
             amount,
             start_time,
+            cliff_time,
             end_time,
             withdrawn_amount: 0,
         };
@@ -82,8 +87,13 @@ impl StellarStream {
         }
 
         let now = env.ledger().timestamp();
-        let total_unlocked =
-            math::calculate_unlocked(stream.amount, stream.start_time, stream.end_time, now);
+        let total_unlocked = math::calculate_unlocked(
+            stream.amount,
+            stream.start_time,
+            stream.cliff_time,
+            stream.end_time,
+            now,
+        );
 
         let withdrawable_amount = total_unlocked - stream.withdrawn_amount;
 
@@ -128,8 +138,13 @@ impl StellarStream {
             panic!("Stream has already completed and cannot be cancelled");
         }
 
-        let total_unlocked =
-            math::calculate_unlocked(stream.amount, stream.start_time, stream.end_time, now);
+        let total_unlocked = math::calculate_unlocked(
+            stream.amount,
+            stream.start_time,
+            stream.cliff_time,
+            stream.end_time,
+            now,
+        );
 
         let withdrawable_to_receiver = total_unlocked - stream.withdrawn_amount;
         let refund_to_sender = stream.amount - total_unlocked;
