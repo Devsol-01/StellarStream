@@ -151,6 +151,24 @@ body {
     inset 0 0 20px rgba(0, 245, 255, 0.1);
 }
 
+/* Cyan Pulse Border Animation for Active Streams */
+@keyframes pulse-border {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 245, 255, 0.4),
+                0 0 15px rgba(0, 245, 255, 0.2),
+                inset 0 0 10px rgba(0, 245, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.6),
+                0 0 25px rgba(0, 245, 255, 0.4),
+                inset 0 0 15px rgba(0, 245, 255, 0.15);
+  }
+}
+
+.animate-pulse-border {
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
 /* Custom scrollbar for Stellar Glass aesthetic */
 ::-webkit-scrollbar {
   width: 8px;
