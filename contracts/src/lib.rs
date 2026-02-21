@@ -12,6 +12,32 @@ pub struct StellarStream;
 
 #[contractimpl]
 impl StellarStream {
+    pub fn initialize_fee(env: Env, admin: Address, fee_bps: u32, treasury: Address) {
+        admin.require_auth();
+        if fee_bps > 1000 {
+            panic!("Fee cannot exceed 10%");
+        }
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().set(&DataKey::FeeBps, &fee_bps);
+        env.storage().instance().set(&DataKey::Treasury, &treasury);
+    }
+
+    pub fn update_fee(env: Env, admin: Address, fee_bps: u32) {
+        admin.require_auth();
+        let stored_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Admin not set");
+        if admin != stored_admin {
+            panic!("Unauthorized: Only admin can update fee");
+        }
+        if fee_bps > 1000 {
+            panic!("Fee cannot exceed 10%");
+        }
+        env.storage().instance().set(&DataKey::FeeBps, &fee_bps);
+    }
+
     pub fn create_stream(
         env: Env,
         sender: Address,
@@ -21,10 +47,8 @@ impl StellarStream {
         start_time: u64,
         end_time: u64,
     ) -> u64 {
-        // 1. Auth: Ensure the sender is the one signing this transaction
         sender.require_auth();
 
-        // 2. Validation: Basic sanity checks
         if end_time <= start_time {
             panic!("End time must be after start time");
         }
@@ -32,12 +56,22 @@ impl StellarStream {
             panic!("Amount must be greater than zero");
         }
 
-        // 3. Asset Transfer: Pull tokens into contract custody
         let token_client = token::Client::new(&env, &token);
-        token_client.transfer(&sender, &env.current_contract_address(), &amount);
+        let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0);
+        let fee_amount = (amount * fee_bps as i128) / 10000;
+        let principal = amount - fee_amount;
 
-        // 4. Counter Logic: We need a key to track the next ID
-        // Note: You'll need to add 'StreamId' to your DataKey enum (see below)
+        token_client.transfer(&sender, &env.current_contract_address(), &principal);
+
+        if fee_amount > 0 {
+            let treasury: Address = env
+                .storage()
+                .instance()
+                .get(&DataKey::Treasury)
+                .expect("Treasury not set");
+            token_client.transfer(&sender, &treasury, &fee_amount);
+        }
+
         let mut stream_id: u64 = env
             .storage()
             .instance()
@@ -51,18 +85,16 @@ impl StellarStream {
             sender: sender.clone(),
             receiver,
             token,
-            amount,
+            amount: principal,
             start_time,
             end_time,
-            withdrawn_amount: 0, // Initialized at zero per the issue
+            withdrawn_amount: 0,
         };
 
-        // Save to Persistent storage so it doesn't expire quickly
         env.storage()
             .persistent()
             .set(&DataKey::Stream(stream_id), &stream);
 
-        // 6. Events: Inform indexers/frontends of the new stream
         env.events()
             .publish((symbol_short!("create"), sender), stream_id);
 
