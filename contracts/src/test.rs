@@ -59,6 +59,9 @@ fn test_full_stream_cycle() {
         &start_time,
         &cliff_time,
         &end_time,
+        &2,
+        &None,
+        &None,
     );
 
     // v22 Change: ledger().with_mut() -> ledger().set()
@@ -89,9 +92,18 @@ fn test_unauthorized_withdrawal() {
     let thief = Address::generate(&ctx.env);
 
     ctx.token.mint(&sender, &100);
-    let stream_id =
-        ctx.client
-            .create_stream(&sender, &receiver, &ctx.token_id, &100, &0, &50, &100);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &100,
+        &0,
+        &50,
+        &100,
+        &2,
+           &None,
+           &None,
+    );
 
     ctx.client.withdraw(&stream_id, &thief);
 }
@@ -104,9 +116,18 @@ fn test_cancellation_split() {
     let amount = 1000_i128;
 
     ctx.token.mint(&sender, &amount);
-    let stream_id =
-        ctx.client
-            .create_stream(&sender, &receiver, &ctx.token_id, &amount, &0, &100, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &amount,
+        &0,
+        &100,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
 
     // Jump to 25% (250 seconds in)
     ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
@@ -140,9 +161,18 @@ fn test_protocol_fee() {
     ctx.client.initialize_fee(&admin, &100, &treasury);
 
     ctx.token.mint(&sender, &1000);
-    let stream_id =
-        ctx.client
-            .create_stream(&sender, &receiver, &ctx.token_id, &1000, &0, &100, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &2,
+        &None,
+        &None,
+    );
 
     assert_eq!(stream_id, 1);
 
@@ -167,6 +197,9 @@ fn test_transfer_receiver() {
         &0,
         &100,
         &1000,
+        &2,
+           &None,
+           &None,
     );
 
     ctx.client.transfer_receiver(&stream_id, &new_receiver);
@@ -206,6 +239,9 @@ fn test_old_receiver_cannot_withdraw_after_transfer() {
         &0,
         &100,
         &1000,
+        &2,
+           &None,
+           &None,
     );
 
     ctx.client.transfer_receiver(&stream_id, &new_receiver);
@@ -242,6 +278,9 @@ fn test_batch_stream_creation() {
         start_time: 0,
         cliff_time: 100,
         end_time: 1000,
+        interest_strategy: 2,
+        vault_address: None,
+        metadata: None,
     });
     requests.push_back(StreamRequest {
         receiver: receiver2.clone(),
@@ -249,6 +288,9 @@ fn test_batch_stream_creation() {
         start_time: 0,
         cliff_time: 100,
         end_time: 1000,
+        interest_strategy: 2,
+        vault_address: None,
+        metadata: None,
     });
     requests.push_back(StreamRequest {
         receiver: receiver3.clone(),
@@ -256,6 +298,9 @@ fn test_batch_stream_creation() {
         start_time: 0,
         cliff_time: 100,
         end_time: 1000,
+        interest_strategy: 2,
+        vault_address: None,
+        metadata: None,
     });
 
     let stream_ids = ctx
@@ -283,8 +328,18 @@ fn test_pause_blocks_create_stream() {
     ctx.client.set_pause(&admin, &true);
 
     ctx.token.mint(&sender, &1000);
-    ctx.client
-        .create_stream(&sender, &receiver, &ctx.token_id, &1000, &0, &100, &1000);
+    ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
 }
 
 #[test]
@@ -297,9 +352,18 @@ fn test_pause_blocks_withdraw() {
 
     ctx.client.initialize(&admin);
     ctx.token.mint(&sender, &1000);
-    let stream_id =
-        ctx.client
-            .create_stream(&sender, &receiver, &ctx.token_id, &1000, &0, &100, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
 
     ctx.client.set_pause(&admin, &true);
 
@@ -349,9 +413,18 @@ fn test_cliff_blocks_withdrawal() {
     let receiver = Address::generate(&ctx.env);
 
     ctx.token.mint(&sender, &1000);
-    let stream_id =
-        ctx.client
-            .create_stream(&sender, &receiver, &ctx.token_id, &1000, &0, &500, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &500,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
 
     ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
         timestamp: 250,
@@ -374,9 +447,18 @@ fn test_cliff_unlocks_at_cliff_time() {
     let receiver = Address::generate(&ctx.env);
 
     ctx.token.mint(&sender, &1000);
-    let stream_id =
-        ctx.client
-            .create_stream(&sender, &receiver, &ctx.token_id, &1000, &0, &500, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &500,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
 
     ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
         timestamp: 500,
@@ -404,9 +486,18 @@ fn test_unpause_allows_operations() {
     ctx.client.set_pause(&admin, &false);
 
     ctx.token.mint(&sender, &1000);
-    let stream_id =
-        ctx.client
-            .create_stream(&sender, &receiver, &ctx.token_id, &1000, &0, &100, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &2,
+        &None,
+        &None,
+    );
 
     ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
         timestamp: 500,
@@ -432,6 +523,16 @@ fn test_invalid_cliff_time() {
     let receiver = Address::generate(&ctx.env);
 
     ctx.token.mint(&sender, &1000);
-    ctx.client
-        .create_stream(&sender, &receiver, &ctx.token_id, &1000, &100, &50, &200);
+    ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &100,
+        &50,
+        &200,
+        &2,
+           &None,
+           &None,
+    );
 }

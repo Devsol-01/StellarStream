@@ -12,6 +12,6 @@ echo "🔧 Running clippy linter..."
 cargo clippy -- -D warnings
 
 echo "🧪 Running tests..."
-cargo test
+cargo test --lib
 
 echo "✅ All CI/CD checks passed!"

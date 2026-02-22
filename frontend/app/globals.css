@@ -204,3 +204,281 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--stellar-secondary);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Stellar Glass Toast Notifications
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Toast Container */
+[data-sonner-toaster] {
+  font-family: "Poppins", var(--font-poppins), sans-serif;
+}
+
+[data-sonner-toaster][data-y-position="bottom"] {
+  bottom: 24px;
+}
+
+[data-sonner-toaster][data-x-position="right"] {
+  right: 24px;
+}
+
+/* Base Toast Styles - Glass Morphism */
+.stellar-toast {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 360px;
+  max-width: 420px;
+  padding: 16px 18px 20px;
+  background: rgba(10, 10, 20, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 0 20px rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+  animation: toast-slide-in 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Glass Sheen Effect */
+.stellar-toast::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 20% 20%,
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Toast Icon Container */
+.stellar-toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Toast Content */
+.stellar-toast-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.stellar-toast-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.stellar-toast-description {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(232, 234, 246, 0.7);
+  line-height: 1.5;
+}
+
+/* Stellar.Expert Link */
+.stellar-toast-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 6px 10px;
+  background: rgba(0, 245, 255, 0.08);
+  border: 1px solid rgba(0, 245, 255, 0.2);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #00f5ff;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+
+.stellar-toast-link:hover {
+  background: rgba(0, 245, 255, 0.15);
+  border-color: rgba(0, 245, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 245, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.stellar-toast-link:active {
+  transform: translateY(0);
+}
+
+/* Progress Bar - Hyper Violet */
+.stellar-toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(138, 0, 255, 0.15);
+  overflow: hidden;
+}
+
+.stellar-toast-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #8a00ff, #b84dff);
+  box-shadow: 0 0 8px rgba(138, 0, 255, 0.6);
+  animation: toast-progress var(--duration, 5000ms) linear forwards;
+}
+
+@keyframes toast-progress {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Toast Variants
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Success Toast */
+.stellar-toast-success {
+  border-color: rgba(0, 245, 255, 0.25);
+}
+
+.stellar-toast-success::before {
+  background: radial-gradient(
+    ellipse at 20% 20%,
+    rgba(0, 245, 255, 0.12) 0%,
+    transparent 60%
+  );
+}
+
+.stellar-toast-success .stellar-toast-icon {
+  background: rgba(0, 245, 255, 0.12);
+  border: 1px solid rgba(0, 245, 255, 0.3);
+  color: #00f5ff;
+  box-shadow: 0 0 16px rgba(0, 245, 255, 0.2);
+}
+
+/* Error Toast */
+.stellar-toast-error {
+  border-color: rgba(255, 59, 92, 0.25);
+}
+
+.stellar-toast-error::before {
+  background: radial-gradient(
+    ellipse at 20% 20%,
+    rgba(255, 59, 92, 0.1) 0%,
+    transparent 60%
+  );
+}
+
+.stellar-toast-error .stellar-toast-icon {
+  background: rgba(255, 59, 92, 0.12);
+  border: 1px solid rgba(255, 59, 92, 0.3);
+  color: #ff3b5c;
+  box-shadow: 0 0 16px rgba(255, 59, 92, 0.2);
+}
+
+/* Warning Toast */
+.stellar-toast-warning {
+  border-color: rgba(255, 179, 0, 0.25);
+}
+
+.stellar-toast-warning::before {
+  background: radial-gradient(
+    ellipse at 20% 20%,
+    rgba(255, 179, 0, 0.1) 0%,
+    transparent 60%
+  );
+}
+
+.stellar-toast-warning .stellar-toast-icon {
+  background: rgba(255, 179, 0, 0.12);
+  border: 1px solid rgba(255, 179, 0, 0.3);
+  color: #ffb300;
+  box-shadow: 0 0 16px rgba(255, 179, 0, 0.2);
+}
+
+/* Info Toast */
+.stellar-toast-info {
+  border-color: rgba(138, 0, 255, 0.25);
+}
+
+.stellar-toast-info::before {
+  background: radial-gradient(
+    ellipse at 20% 20%,
+    rgba(138, 0, 255, 0.12) 0%,
+    transparent 60%
+  );
+}
+
+.stellar-toast-info .stellar-toast-icon {
+  background: rgba(138, 0, 255, 0.12);
+  border: 1px solid rgba(138, 0, 255, 0.3);
+  color: #8a00ff;
+  box-shadow: 0 0 16px rgba(138, 0, 255, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Responsive Adjustments
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+  [data-sonner-toaster][data-x-position="right"] {
+    right: 16px;
+    left: 16px;
+  }
+
+  .stellar-toast {
+    min-width: unset;
+    max-width: unset;
+    width: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Accessibility
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .stellar-toast {
+    animation: none;
+  }
+
+  .stellar-toast-progress::after {
+    animation: none;
+  }
+}

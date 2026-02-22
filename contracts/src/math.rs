@@ -1,3 +1,5 @@
+/// Calculate unlocked amount with precision-safe rounding
+/// Always rounds DOWN to favor contract solvency
 #[allow(dead_code)]
 pub fn calculate_unlocked_amount(
     total_amount: i128,
@@ -16,18 +18,30 @@ pub fn calculate_unlocked_amount(
     let elapsed_time = (current_time - start_time) as i128;
     let total_duration = (end_time - start_time) as i128;
 
+    // Integer division automatically rounds down (floor division)
+    // This ensures we never unlock more than we should
     (total_amount * elapsed_time) / total_duration
 }
 
+/// Calculate withdrawable amount
+/// For final withdrawal, caller should use total_amount - withdrawn_amount
+/// to avoid precision loss
 #[allow(dead_code)]
 pub fn calculate_withdrawable_amount(unlocked_amount: i128, withdrawn_amount: i128) -> i128 {
     unlocked_amount - withdrawn_amount
 }
 
+/// Calculate unlocked amount with cliff support
+/// Rounds DOWN to favor contract solvency
+/// IMPORTANT: For final withdrawal (now >= end), always use total_amount directly
+/// to avoid accumulation of rounding errors
 pub fn calculate_unlocked(total_amount: i128, start: u64, cliff: u64, end: u64, now: u64) -> i128 {
+    // Before cliff: nothing unlocked
     if now < cliff {
         return 0;
     }
+
+    // At or after end: return exact total to prevent dust
     if now >= end {
         return total_amount;
     }
@@ -35,7 +49,41 @@ pub fn calculate_unlocked(total_amount: i128, start: u64, cliff: u64, end: u64, 
     let elapsed = (now - start) as i128;
     let total_duration = (end - start) as i128;
 
+    // Integer division rounds down (floor), favoring contract solvency
+    // This prevents over-withdrawal due to rounding errors
     (total_amount * elapsed) / total_duration
+}
+
+/// Calculate withdrawable amount with precision protection
+/// For streams at or past end time, returns exact remaining balance
+/// to prevent dust from rounding errors
+pub fn calculate_withdrawable(
+    total_amount: i128,
+    withdrawn_amount: i128,
+    start: u64,
+    cliff: u64,
+    end: u64,
+    now: u64,
+) -> i128 {
+    // If stream has ended, return exact remaining balance
+    // This prevents dust from accumulating due to rounding
+    if now >= end {
+        return total_amount - withdrawn_amount;
+    }
+
+    // Otherwise, calculate based on time
+    let total_unlocked = calculate_unlocked(total_amount, start, cliff, end, now);
+    total_unlocked - withdrawn_amount
+}
+
+/// Calculate fee based on basis points (bps)
+/// fee_bps is in hundredths of a percent (100 bps = 1%)
+pub fn calculate_fee(amount: i128, fee_bps: u32) -> i128 {
+    if fee_bps == 0 || amount <= 0 {
+        return 0;
+    }
+    // fee_bps uses 10_000 as denominator (i.e., 10000 bps = 100%)
+    (amount * (fee_bps as i128)) / 10_000
 }
 
 #[cfg(test)]
