@@ -169,7 +169,7 @@ mod tests {
         let vault = MockVaultClient::new(&_env, &vault_id);
 
         // Deposit
-        let balance = vault.deposit(&user, &token_address, &1000);
+        let balance = vault.deposit(&user, &token_address, &1000).unwrap();
         assert_eq!(balance, 1000);
 
         // Check balance
@@ -188,7 +188,7 @@ mod tests {
         let vault = MockVaultClient::new(&_env, &vault_id);
 
         // Deposit
-        vault.deposit(&user, &token_address, &1000);
+        vault.deposit(&user, &token_address, &1000).unwrap();
 
         // Pause withdrawals
         let result = vault.pause_withdrawals(&admin);
@@ -206,7 +206,7 @@ mod tests {
         let vault = MockVaultClient::new(&_env, &vault_id);
 
         // Deposit
-        vault.deposit(&user, &token_address, &1000);
+        vault.deposit(&user, &token_address, &1000).unwrap();
 
         // Set 10% yield (1000 basis points)
         vault.set_yield_rate(&admin, &1000).unwrap();
