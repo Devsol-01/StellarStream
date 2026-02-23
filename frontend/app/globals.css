@@ -470,6 +470,25 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   Stellar Ledger Loader
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 3D Transform utilities */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Ledger loader backdrop blur */
+.ledger-loader-backdrop {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    Accessibility
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -480,5 +499,12 @@ body {
 
   .stellar-toast-progress::after {
     animation: none;
+  }
+
+  /* Disable complex animations for ledger loader */
+  [data-ledger-loader] * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
