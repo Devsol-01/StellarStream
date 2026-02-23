@@ -3,6 +3,7 @@
 
 mod errors;
 mod flash_loan;
+mod interest;
 mod math;
 mod oracle;
 mod storage;
@@ -10,6 +11,15 @@ mod types;
 
 #[cfg(test)]
 mod soulbound_test;
+
+#[cfg(test)]
+mod interest_test;
+
+#[cfg(test)]
+mod mock_vault;
+
+#[cfg(test)]
+mod vault_integration_test;
 
 use errors::Error;
 use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Vec};
@@ -1085,6 +1095,100 @@ impl StellarStreamContract {
 
     pub fn get_request(env: Env, request_id: u64) -> Option<ContributorRequest> {
         env.storage().instance().get(&RequestKey::Request(request_id))
+    }
+
+    // ========== OFAC Compliance Functions ==========
+
+    /// Restrict an address (Admin only)
+    pub fn restrict_address(env: Env, admin: Address, address: Address) {
+        admin.require_auth();
+
+        if !Self::has_role(&env, &admin, Role::Admin) {
+            panic!("{}", Error::Unauthorized as u32);
+        }
+
+        let mut restricted: Vec<Address> = env
+            .storage()
+            .persistent()
+            .get(&RESTRICTED_ADDRESSES)
+            .unwrap_or(Vec::new(&env));
+
+        // Check if already restricted (idempotent)
+        for addr in restricted.iter() {
+            if addr == address {
+                return;
+            }
+        }
+
+        restricted.push_back(address.clone());
+        env.storage()
+            .persistent()
+            .set(&RESTRICTED_ADDRESSES, &restricted);
+
+        env.events()
+            .publish((symbol_short!("restrict"), address), true);
+    }
+
+    /// Unrestrict an address (Admin only)
+    pub fn unrestrict_address(env: Env, admin: Address, address: Address) {
+        admin.require_auth();
+
+        if !Self::has_role(&env, &admin, Role::Admin) {
+            panic!("{}", Error::Unauthorized as u32);
+        }
+
+        let mut restricted: Vec<Address> = env
+            .storage()
+            .persistent()
+            .get(&RESTRICTED_ADDRESSES)
+            .unwrap_or(Vec::new(&env));
+
+        // Find and remove the address
+        let mut new_restricted = Vec::new(&env);
+        for addr in restricted.iter() {
+            if addr != address {
+                new_restricted.push_back(addr);
+            }
+        }
+
+        env.storage()
+            .persistent()
+            .set(&RESTRICTED_ADDRESSES, &new_restricted);
+
+        env.events()
+            .publish((symbol_short!("unrestrict"), address), true);
+    }
+
+    /// Check if an address is restricted
+    pub fn is_address_restricted(env: Env, address: Address) -> bool {
+        let restricted: Vec<Address> = env
+            .storage()
+            .persistent()
+            .get(&RESTRICTED_ADDRESSES)
+            .unwrap_or(Vec::new(&env));
+
+        for addr in restricted.iter() {
+            if addr == address {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Get all restricted addresses
+    pub fn get_restricted_addresses(env: Env) -> Vec<Address> {
+        env.storage()
+            .persistent()
+            .get(&RESTRICTED_ADDRESSES)
+            .unwrap_or(Vec::new(&env))
+    }
+
+    /// Internal helper to validate receiver is not restricted
+    fn validate_receiver(env: &Env, receiver: &Address) -> Result<(), Error> {
+        if Self::is_address_restricted(env.clone(), receiver.clone()) {
+            return Err(Error::Unauthorized);
+        }
+        Ok(())
     }
 }
 
