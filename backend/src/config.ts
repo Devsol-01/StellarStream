@@ -1,54 +1,63 @@
-import { z } from 'zod';
+/**
+ * Configuration loader with validation
+ */
 
-// ─── Environment Variable Schema ─────────────────────────────────────────────
-const envSchema = z.object({
-  DATABASE_URL: z.string().url({
-    message:
-      'DATABASE_URL must be a valid URL (e.g. postgresql://user:pass@host:5432/stellarstream)',
-  }),
+import { config as loadEnv } from "dotenv";
+import { EventWatcherConfig } from "./types";
 
-  STELLAR_RPC_URL: z.string().url({
-    message:
-      'STELLAR_RPC_URL must be a valid URL (e.g. https://soroban-testnet.stellar.org)',
-  }),
-
-  CONTRACT_ID: z
-    .string()
-    .min(1, { message: 'CONTRACT_ID is required' })
-    .regex(/^C[A-Z2-7]{55}$/, {
-      message:
-        'CONTRACT_ID must be a valid Stellar contract address (56 chars, starting with "C")',
-    }),
-
-  NETWORK_PASSPHRASE: z
-    .string()
-    .min(1, { message: 'NETWORK_PASSPHRASE is required' }),
-});
-
-// ─── Validate at startup ──────────────────────────────────────────────────────
-const result = envSchema.safeParse(process.env);
-
-if (!result.success) {
-  const errors = result.error.issues
-    .map((issue) => `  ✗ ${String(issue.path[0])}: ${issue.message}`)
-    .join('\n');
-
-  console.error('\n❌ Missing or invalid environment variables:\n');
-  console.error(errors);
-  console.error('\n💡 Copy backend/.env.example to backend/.env and fill in the values.\n');
-  process.exit(1);
-}
-
-// ─── Exports ─────────────────────────────────────────────────────────────────
+// Load environment variables
+loadEnv();
 
 /**
- * Validated, type-safe environment config.
- * Import this throughout the backend instead of accessing process.env directly.
- *
- * @example
- * import { env } from './config.js';
- * const client = new StellarSdk.SorobanRpc.Server(env.STELLAR_RPC_URL);
+ * Validates required environment variables
  */
-export const env = result.data;
+function validateEnv(): void {
+  const required = ["STELLAR_RPC_URL", "CONTRACT_ID"];
+  const missing = required.filter((key) => process.env[key] === undefined || process.env[key] === "");
 
-export type Env = z.infer<typeof envSchema>;
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missing.join(", ")}\n` +
+      "Please copy .env.example to .env and configure it."
+    );
+  }
+
+  // Validate CONTRACT_ID format (should be 56 character hex string starting with C)
+  const contractId = process.env.CONTRACT_ID!;
+  if (!/^C[A-Z0-9]{55}$/.test(contractId)) {
+    console.warn(
+      `Warning: CONTRACT_ID format looks unusual: ${contractId}\n` +
+      "Expected format: C followed by 55 alphanumeric characters"
+    );
+  }
+}
+
+/**
+ * Load and validate configuration
+ */
+export function loadConfig(): EventWatcherConfig {
+  validateEnv();
+
+  return {
+    rpcUrl: process.env.STELLAR_RPC_URL!,
+    networkPassphrase:
+      process.env.STELLAR_NETWORK_PASSPHRASE ??
+      "Test SDF Network ; September 2015",
+    contractId: process.env.CONTRACT_ID!,
+    pollIntervalMs: parseInt(process.env.POLL_INTERVAL_MS ?? "5000", 10),
+    maxRetries: parseInt(process.env.MAX_RETRIES ?? "3", 10),
+    retryDelayMs: parseInt(process.env.RETRY_DELAY_MS ?? "2000", 10),
+  };
+}
+
+/**
+ * Get configuration singleton
+ */
+let cachedConfig: EventWatcherConfig | null = null;
+
+export function getConfig(): EventWatcherConfig {
+  if (!cachedConfig) {
+    cachedConfig = loadConfig();
+  }
+  return cachedConfig;
+}

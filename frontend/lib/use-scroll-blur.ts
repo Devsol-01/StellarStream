@@ -18,9 +18,9 @@ interface UseScrollBlurOptions {
  */
 export function useScrollBlur(
   options: UseScrollBlurOptions = {}
-): [ScrollBlurState, RefObject<HTMLDivElement>] {
+) {
   const { threshold = 10, maxScroll = 200 } = options;
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollState, setScrollState] = useState<ScrollBlurState>({
     isScrolled: false,
@@ -36,10 +36,10 @@ export function useScrollBlur(
     const handleScroll = () => {
       const scrollTop = scrollElement.scrollTop;
       const isScrolled = scrollTop > threshold;
-      
+
       // Calculate scroll progress (0 to 1)
       const progress = Math.min(scrollTop / maxScroll, 1);
-      
+
       // Map progress to blur intensity
       let blurIntensity: "md" | "lg" | "xl" | "2xl";
       if (progress < 0.25) {
@@ -51,7 +51,7 @@ export function useScrollBlur(
       } else {
         blurIntensity = "2xl";
       }
-      
+
       // Map progress to background opacity (0.05 to 0.15)
       const bgOpacity = 0.05 + (progress * 0.1);
 
@@ -64,7 +64,7 @@ export function useScrollBlur(
     };
 
     scrollElement.addEventListener("scroll", handleScroll, { passive: true });
-    
+
     // Initial check
     handleScroll();
 
@@ -73,5 +73,5 @@ export function useScrollBlur(
     };
   }, [threshold, maxScroll]);
 
-  return [scrollState, scrollRef];
+  return [scrollState, scrollRef] as const;
 }

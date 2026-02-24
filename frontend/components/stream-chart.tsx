@@ -11,12 +11,12 @@ interface StreamChartProps {
 export default function StreamChart({ totalAmount, startTime, endTime }: StreamChartProps) {
   const duration = endTime - startTime;
   const points = 50;
-  
+
   const data = Array.from({ length: points }, (_, i) => {
     const progress = i / (points - 1);
     const time = startTime + duration * progress;
     const unlocked = totalAmount * progress;
-    
+
     return {
       time,
       unlocked,
@@ -34,9 +34,9 @@ export default function StreamChart({ totalAmount, startTime, endTime }: StreamC
               <stop offset="100%" stopColor="#00f5ff" stopOpacity={0} />
             </linearGradient>
           </defs>
-          
-          <XAxis 
-            dataKey="label" 
+
+          <XAxis
+            dataKey="label"
             stroke="#00f5ff"
             strokeWidth={1}
             style={{ filter: "drop-shadow(0 0 4px rgba(0, 245, 255, 0.6))" }}
@@ -44,8 +44,8 @@ export default function StreamChart({ totalAmount, startTime, endTime }: StreamC
             axisLine={{ strokeWidth: 1 }}
             tickLine={false}
           />
-          
-          <YAxis 
+
+          <YAxis
             stroke="#00f5ff"
             strokeWidth={1}
             style={{ filter: "drop-shadow(0 0 4px rgba(0, 245, 255, 0.6))" }}
@@ -54,8 +54,8 @@ export default function StreamChart({ totalAmount, startTime, endTime }: StreamC
             tickLine={false}
             tickFormatter={(value) => formatAmount(value)}
           />
-          
-          <Tooltip 
+
+          <Tooltip
             contentStyle={{
               backgroundColor: "rgba(0, 0, 0, 0.9)",
               border: "1px solid rgba(0, 245, 255, 0.3)",
@@ -65,11 +65,11 @@ export default function StreamChart({ totalAmount, startTime, endTime }: StreamC
             formatter={(value) => [formatAmount(typeof value === 'number' ? value : 0), "Unlocked"]}
             labelFormatter={(label) => `Time: ${label}`}
           />
-          
-          <Area 
-            type="linear" 
-            dataKey="unlocked" 
-            stroke="#00f5ff" 
+
+          <Area
+            type="linear"
+            dataKey="unlocked"
+            stroke="#00f5ff"
             strokeWidth={2}
             fill="url(#cyanGradient)"
             style={{ filter: "drop-shadow(0 0 6px rgba(0, 245, 255, 0.8))" }}
@@ -83,7 +83,7 @@ export default function StreamChart({ totalAmount, startTime, endTime }: StreamC
 function formatTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const days = Math.floor(hours / 24);
-  
+
   if (days > 0) return `${days}d`;
   if (hours > 0) return `${hours}h`;
   return `${Math.floor(seconds / 60)}m`;
