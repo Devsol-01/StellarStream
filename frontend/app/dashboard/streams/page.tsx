@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import StreamingBalanceCard from "@/components/streamingbalance/streamingbalance";
 import { ArrowUpRight, ArrowDownLeft, ChevronDown } from "lucide-react";
+import { useScrollBlur } from "@/lib/use-scroll-blur";
 
 type Stream = {
   id: string;
@@ -141,6 +142,10 @@ function StreamCard({ stream, type }: { stream: Stream; type: "outgoing" | "inco
 export default function StreamsPage() {
   const [outgoingSort, setOutgoingSort] = useState<SortOption>("endDate");
   const [incomingSort, setIncomingSort] = useState<SortOption>("endDate");
+  
+  // Scroll blur hooks for adaptive lucency
+  const [outgoingScrollState, outgoingScrollRef] = useScrollBlur({ threshold: 10, maxScroll: 200 });
+  const [incomingScrollState, incomingScrollRef] = useScrollBlur({ threshold: 10, maxScroll: 200 });
 
   const sortStreams = (streams: Stream[], sortBy: SortOption) => {
     return [...streams].sort((a, b) => {
@@ -203,27 +208,42 @@ export default function StreamsPage() {
       </section>
 
       {/* Column 2: Outgoing Streams */}
-      <section className="col-span-full lg:col-span-4 rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 md:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="font-body text-xs tracking-[0.12em] text-white/60 uppercase">
-              Outgoing
-            </p>
-            <h2 className="font-heading text-2xl mt-1">Sending Streams</h2>
-          </div>
-          <div className="relative">
-            <select
-              value={outgoingSort}
-              onChange={(e) => setOutgoingSort(e.target.value as SortOption)}
-              className="appearance-none bg-white/5 border border-white/10 rounded-lg px-3 py-2 pr-8 text-sm text-white/90 cursor-pointer hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00f5ff]/50"
-            >
-              <option value="endDate">Sort by: End Date</option>
-              <option value="value">Sort by: Value</option>
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/50" size={16} />
+      <section className="col-span-full lg:col-span-4 rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden">
+        {/* Dynamic Blur Header with Adaptive Lucency */}
+        <div 
+          className="sticky top-0 z-10 px-6 md:px-8 pt-6 md:pt-8 pb-6 transition-all duration-300"
+          style={{
+            backdropFilter: `blur(${outgoingScrollState.blurIntensity === "md" ? "12px" : outgoingScrollState.blurIntensity === "lg" ? "16px" : outgoingScrollState.blurIntensity === "xl" ? "20px" : "24px"})`,
+            backgroundColor: `rgba(255, 255, 255, ${outgoingScrollState.bgOpacity})`,
+            borderBottom: outgoingScrollState.isScrolled ? "1px solid #8a00ff" : "1px solid transparent",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-body text-xs tracking-[0.12em] text-white/60 uppercase">
+                Outgoing
+              </p>
+              <h2 className="font-heading text-2xl mt-1">Sending Streams</h2>
+            </div>
+            <div className="relative">
+              <select
+                value={outgoingSort}
+                onChange={(e) => setOutgoingSort(e.target.value as SortOption)}
+                className="appearance-none bg-white/5 border border-white/10 rounded-lg px-3 py-2 pr-8 text-sm text-white/90 cursor-pointer hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00f5ff]/50"
+              >
+                <option value="endDate">Sort by: End Date</option>
+                <option value="value">Sort by: Value</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/50" size={16} />
+            </div>
           </div>
         </div>
-        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+        
+        {/* Scrollable Stream List */}
+        <div 
+          ref={outgoingScrollRef}
+          className="space-y-3 max-h-[600px] overflow-y-auto px-6 md:px-8 pb-6 md:pb-8 stream-list-scroll"
+        >
           {sortedOutgoing.map((stream) => (
             <StreamCard key={stream.id} stream={stream} type="outgoing" />
           ))}
@@ -231,27 +251,42 @@ export default function StreamsPage() {
       </section>
 
       {/* Column 3: Incoming Streams */}
-      <section className="col-span-full lg:col-span-4 rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 md:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="font-body text-xs tracking-[0.12em] text-white/60 uppercase">
-              Incoming
-            </p>
-            <h2 className="font-heading text-2xl mt-1">Receiving Streams</h2>
-          </div>
-          <div className="relative">
-            <select
-              value={incomingSort}
-              onChange={(e) => setIncomingSort(e.target.value as SortOption)}
-              className="appearance-none bg-white/5 border border-white/10 rounded-lg px-3 py-2 pr-8 text-sm text-white/90 cursor-pointer hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00f5ff]/50"
-            >
-              <option value="endDate">Sort by: End Date</option>
-              <option value="value">Sort by: Value</option>
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/50" size={16} />
+      <section className="col-span-full lg:col-span-4 rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden">
+        {/* Dynamic Blur Header with Adaptive Lucency */}
+        <div 
+          className="sticky top-0 z-10 px-6 md:px-8 pt-6 md:pt-8 pb-6 transition-all duration-300"
+          style={{
+            backdropFilter: `blur(${incomingScrollState.blurIntensity === "md" ? "12px" : incomingScrollState.blurIntensity === "lg" ? "16px" : incomingScrollState.blurIntensity === "xl" ? "20px" : "24px"})`,
+            backgroundColor: `rgba(255, 255, 255, ${incomingScrollState.bgOpacity})`,
+            borderBottom: incomingScrollState.isScrolled ? "1px solid #8a00ff" : "1px solid transparent",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-body text-xs tracking-[0.12em] text-white/60 uppercase">
+                Incoming
+              </p>
+              <h2 className="font-heading text-2xl mt-1">Receiving Streams</h2>
+            </div>
+            <div className="relative">
+              <select
+                value={incomingSort}
+                onChange={(e) => setIncomingSort(e.target.value as SortOption)}
+                className="appearance-none bg-white/5 border border-white/10 rounded-lg px-3 py-2 pr-8 text-sm text-white/90 cursor-pointer hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00f5ff]/50"
+              >
+                <option value="endDate">Sort by: End Date</option>
+                <option value="value">Sort by: Value</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-white/50" size={16} />
+            </div>
           </div>
         </div>
-        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+        
+        {/* Scrollable Stream List */}
+        <div 
+          ref={incomingScrollRef}
+          className="space-y-3 max-h-[600px] overflow-y-auto px-6 md:px-8 pb-6 md:pb-8 stream-list-scroll"
+        >
           {sortedIncoming.map((stream) => (
             <StreamCard key={stream.id} stream={stream} type="incoming" />
           ))}

@@ -2,7 +2,7 @@
 
 use crate::{interest, types::*, StellarStream, StellarStreamClient};
 use soroban_sdk::{
-    testutils::{Address as _, Ledger},
+    testutils::Address as _,
     token, Address, Env,
 };
 
@@ -53,7 +53,7 @@ fn setup_test_env() -> (
 
 #[test]
 fn test_create_stream_with_interest_strategy() {
-    let (env, _admin, sender, receiver, token_address, _token_admin, client) = setup_test_env();
+    let (_env, _admin, sender, receiver, token_address, _token_admin, client) = setup_test_env();
 
     let stream_id = client.create_stream(
         &sender,
@@ -65,6 +65,7 @@ fn test_create_stream_with_interest_strategy() {
         &200,
         &INTEREST_TO_RECEIVER, // All interest to receiver
         &None,                 // No vault
+        &None,
     );
 
     let stream = client.get_stream(&stream_id);
@@ -88,6 +89,7 @@ fn test_create_stream_with_vault() {
         &200,
         &INTEREST_TO_SENDER,
         &Some(vault.clone()),
+        &None,
     );
 
     let stream = client.get_stream(&stream_id);
@@ -156,7 +158,7 @@ fn test_vault_interest_loss() {
 
 #[test]
 fn test_get_interest_info_no_vault() {
-    let (env, _admin, sender, receiver, token_address, _token_admin, client) = setup_test_env();
+    let (_env, _admin, sender, receiver, token_address, _token_admin, client) = setup_test_env();
 
     let stream_id = client.create_stream(
         &sender,
@@ -168,6 +170,7 @@ fn test_get_interest_info_no_vault() {
         &200,
         &3,    // 50/50 split
         &None, // No vault
+        &None,
     );
 
     let interest_info = client.get_interest_info(&stream_id);
@@ -181,7 +184,7 @@ fn test_get_interest_info_no_vault() {
 #[test]
 #[should_panic(expected = "Invalid interest strategy")]
 fn test_invalid_interest_strategy() {
-    let (env, _admin, sender, receiver, token_address, _token_admin, client) = setup_test_env();
+    let (_env, _admin, sender, receiver, token_address, _token_admin, client) = setup_test_env();
 
     client.create_stream(
         &sender,
@@ -192,6 +195,7 @@ fn test_invalid_interest_strategy() {
         &100,
         &200,
         &99, // Invalid strategy (> 7)
+        &None,
         &None,
     );
 }

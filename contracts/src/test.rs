@@ -7,9 +7,7 @@ use soroban_sdk::{token, Address, Env};
 #[allow(dead_code)]
 struct TestContext {
     env: Env,
-    contract_id: Address,
     client: StellarStreamClient<'static>,
-    token_admin: Address,
     token: token::StellarAssetClient<'static>,
     token_id: Address,
 }
@@ -24,17 +22,15 @@ fn setup_test() -> TestContext {
 
     let token_admin = Address::generate(&env);
 
-    #[allow(deprecated)]
-    let token_id = env.register_stellar_asset_contract(token_admin.clone());
-    let token = token::StellarAssetClient::new(&env, &token_id);
+    // v22 Change: Use v2 method to avoid deprecation warning
+    let token_id = env.register_stellar_asset_contract_v2(token_admin.clone());
+    let token = token::StellarAssetClient::new(&env, &token_id.address());
 
     TestContext {
         env,
-        contract_id,
         client,
-        token_admin,
         token,
-        token_id,
+        token_id: token_id.address(),
     }
 }
 
@@ -60,6 +56,7 @@ fn test_full_stream_cycle() {
         &cliff_time,
         &end_time,
         &2,
+        &None,
         &None,
     );
 
@@ -100,7 +97,8 @@ fn test_unauthorized_withdrawal() {
         &50,
         &100,
         &2,
-        &None,
+           &None,
+           &None,
     );
 
     ctx.client.withdraw(&stream_id, &thief);
@@ -123,7 +121,8 @@ fn test_cancellation_split() {
         &100,
         &1000,
         &2,
-        &None,
+           &None,
+           &None,
     );
 
     // Jump to 25% (250 seconds in)
@@ -153,6 +152,8 @@ fn test_protocol_fee() {
     let sender = Address::generate(&ctx.env);
     let receiver = Address::generate(&ctx.env);
 
+    // Initialize contract with admin (grants all roles)
+    ctx.client.initialize(&admin);
     ctx.client.initialize_fee(&admin, &100, &treasury);
 
     ctx.token.mint(&sender, &1000);
@@ -165,6 +166,7 @@ fn test_protocol_fee() {
         &100,
         &1000,
         &2,
+        &None,
         &None,
     );
 
@@ -192,7 +194,8 @@ fn test_transfer_receiver() {
         &100,
         &1000,
         &2,
-        &None,
+           &None,
+           &None,
     );
 
     ctx.client.transfer_receiver(&stream_id, &new_receiver);
@@ -233,7 +236,8 @@ fn test_old_receiver_cannot_withdraw_after_transfer() {
         &100,
         &1000,
         &2,
-        &None,
+           &None,
+           &None,
     );
 
     ctx.client.transfer_receiver(&stream_id, &new_receiver);
@@ -272,6 +276,7 @@ fn test_batch_stream_creation() {
         end_time: 1000,
         interest_strategy: 2,
         vault_address: None,
+        metadata: None,
     });
     requests.push_back(StreamRequest {
         receiver: receiver2.clone(),
@@ -281,6 +286,7 @@ fn test_batch_stream_creation() {
         end_time: 1000,
         interest_strategy: 2,
         vault_address: None,
+        metadata: None,
     });
     requests.push_back(StreamRequest {
         receiver: receiver3.clone(),
@@ -290,6 +296,7 @@ fn test_batch_stream_creation() {
         end_time: 1000,
         interest_strategy: 2,
         vault_address: None,
+        metadata: None,
     });
 
     let stream_ids = ctx
@@ -326,7 +333,8 @@ fn test_pause_blocks_create_stream() {
         &100,
         &1000,
         &2,
-        &None,
+           &None,
+           &None,
     );
 }
 
@@ -349,7 +357,8 @@ fn test_pause_blocks_withdraw() {
         &100,
         &1000,
         &2,
-        &None,
+           &None,
+           &None,
     );
 
     ctx.client.set_pause(&admin, &true);
@@ -375,6 +384,8 @@ fn test_fee_cap() {
     let admin = Address::generate(&ctx.env);
     let treasury = Address::generate(&ctx.env);
 
+    // Initialize contract with admin (grants all roles)
+    ctx.client.initialize(&admin);
     ctx.client.initialize_fee(&admin, &1001, &treasury);
 }
 
@@ -384,6 +395,8 @@ fn test_update_fee() {
     let admin = Address::generate(&ctx.env);
     let treasury = Address::generate(&ctx.env);
 
+    // Initialize contract with admin (grants all roles)
+    ctx.client.initialize(&admin);
     ctx.client.initialize_fee(&admin, &100, &treasury);
     ctx.client.update_fee(&admin, &200);
 }
@@ -405,7 +418,8 @@ fn test_cliff_blocks_withdrawal() {
         &500,
         &1000,
         &2,
-        &None,
+           &None,
+           &None,
     );
 
     ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
@@ -438,7 +452,8 @@ fn test_cliff_unlocks_at_cliff_time() {
         &500,
         &1000,
         &2,
-        &None,
+           &None,
+           &None,
     );
 
     ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
@@ -477,6 +492,7 @@ fn test_unpause_allows_operations() {
         &1000,
         &2,
         &None,
+        &None,
     );
 
     ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
@@ -512,6 +528,7 @@ fn test_invalid_cliff_time() {
         &50,
         &200,
         &2,
-        &None,
+           &None,
+           &None,
     );
 }

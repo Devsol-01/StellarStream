@@ -83,6 +83,7 @@ interface StellarAddressInputProps {
 
 import { useState } from 'react';
 import { StellarAddressInput } from '@/components/stellar-address-input';
+import NetworkStatusOrb from '@/components/networkstatusorb';
 
 export default function SendPage() {
   const [recipientAddress, setRecipientAddress] = useState('');
@@ -96,7 +97,7 @@ export default function SendPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-8 space-y-8">
       <StellarAddressInput
         value={recipientAddress}
         onChange={setRecipientAddress}
@@ -112,7 +113,44 @@ export default function SendPage() {
       >
         Send Payment
       </button>
+
+      <div className="space-y-2">
+        <h4 className="text-white font-semibold">Network Status Widget</h4>
+        <p className="text-white/70 text-sm">
+          The orb reflects congestion level and pulses faster when lag is higher.
+        </p>
+        <NetworkStatusOrb congestionLevel={0.3} averageFee={0.002} />
+      </div>
     </div>
   );
 }
+```
+
+---
+
+## New Component: NetworkStatusOrb
+
+### Current Status
+
+✅ Component created: `frontend/components/networkstatusorb.tsx`
+✅ Demo snippet added in `frontend/app/demo/page.tsx`
+
+### Description
+A compact glowing orb that indicates the current health of the Stellar
+network. It uses color transitions (green/yellow/red) to reflect congestion
+levels and pulses faster when the network is lagging. Hovering the orb
+reveals a tooltip with exact congestion percentage and average fee.
+
+### Props
+```ts
+interface NetworkStatusOrbProps {
+  congestionLevel?: number; // 0 (smooth) to 1 (jammed)
+  averageFee?: number;      // optional numeric fee value
+  size?: number;            // diameter in pixels (default 20)
+}
+```
+
+### Example Usage
+```tsx
+<NetworkStatusOrb congestionLevel={0.75} averageFee={0.005} size={24} />
 ```

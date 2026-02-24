@@ -1,126 +1,131 @@
-# StellarStream 🌊
-**Real-time, linear asset streaming on the Stellar Network.**
+# Soroban Transaction Pending Orb
 
-StellarStream is a decentralized, non-custodial protocol built on Soroban. It enables "Money as a Stream"—allowing assets to flow from senders to receivers second-by-second based on the ledger timestamp. 
+A lightweight, performant floating UI component for Soroban blockchain transactions that displays a beautiful 3D-like orb with a "Hyper Violet" glow when awaiting wallet signature.
 
-This project moves away from traditional lump-sum payroll cycles, offering instant liquidity for employees, freelancers, and service providers while reducing trust requirements between parties.
+## Features
 
----
+✓ **Lightweight & Performant**: Pure CSS animations, no heavy assets or libraries
+✓ **Fixed Position**: Bottom-right corner, non-blocking (pointer-events: none)
+✓ **3D Visual Effect**: Radial gradient orb with soft glow and highlight
+✓ **Smooth Animation**: Breathing effect using CSS transforms (scale)
+✓ **State-Driven**: Appears on `pending`, disappears immediately on `signed`/`rejected`
+✓ **Accessible**: ARIA live regions, proper roles, screen reader support
+✓ **Reduced Motion**: Respects `prefers-reduced-motion` preference
+✓ **No Layout Shifts**: Uses `contain: layout` for optimal performance
+✓ **Cross-Browser**: Compatible with modern browsers
+✓ **Memory Safe**: No memory leaks, clean effect cleanup
 
-## 🚀 The Concept: How it Works
-Traditional payments are discrete events. StellarStream treats payment as a continuous function of time. Once a stream is initialized, the smart contract "unlocks" a portion of the total funds every time a new ledger is closed on the Stellar network.
+## Installation
 
-### The Mathematical Engine
-The contract calculates the "Unlocked Balance" using the following linear formula:
-
-$$Unlocked = \frac{TotalAmount \times (CurrentTime - StartTime)}{EndTime - StartTime}$$
-
-* **CurrentTime**: The timestamp of the latest ledger.
-* **StartTime**: The moment the stream begins.
-* **EndTime**: The moment the stream is fully vested.
-
----
-
-## ✨ Features in Detail
-
-### 1. Second-by-Second Liquidity
-Receivers do not need to wait for the stream to end. They can call the `withdraw` function at any moment to pull the currently unlocked portion of funds into their wallet.
-
-### 2. Programmable Cancellations
-Either party (or just the sender, depending on configuration) can terminate the stream early. 
-* **Receiver** gets the pro-rated amount earned up to that exact second.
-* **Sender** is automatically refunded the remaining "unearned" balance.
-
-### 3. Native Asset Support
-StellarStream utilizes the **Soroban Token Interface**, making it compatible with:
-* **Fiat Stablecoins**: USDC, BRLG, ARST.
-* **Stellar Assets**: Wrapped XLM and other SAC-compliant tokens.
-
----
-
-## 🛠 Project Structure
-
-This repository is organized as a modular monorepo. Each layer is decoupled to allow specialized development without cross-dependencies during the build phase.
-
-### Directory Mapping
-```text
-StellarStream/
-├── contracts/               # THE CORE PROTOCOL (Rust + Soroban)
-│   ├── src/
-│   │   ├── lib.rs           # Main entry points (initialize, withdraw, cancel)
-│   │   ├── types.rs         # Data structures (Stream, UserProfile)
-│   │   ├── math.rs          # Precise fixed-point arithmetic for streaming
-│   │   ├── validation.rs    # Safety guards (TTL, Auth, Bounds)
-│   │   └── errors.rs        # Custom Error Enum with 40+ variants
-│   └── tests/               # Comprehensive test suite (try_ pattern)
-│
-├── frontend/                # THE USER DASHBOARD (Next.js 14)
-│   ├── src/
-│   │   ├── components/      # "Ticking" balance UI, Stream cards
-│   │   ├── hooks/           # Soroban-Client & Freighter Wallet hooks
-│   │   ├── store/           # Global state for active streams (Zustand/Redux)
-│   │   └── layout/          # Responsive Dashboard for Senders/Receivers
-│
-├── backend/                 # THE ANALYTICS LAYER (Node.js + TS)
-│   ├── src/
-│   │   ├── indexer/         # Event listener for Horizon/Soroban-RPC
-│   │   ├── db/              # PostgreSQL schema for historical data
-│   │   └── api/             # REST/GraphQL endpoints for stream stats
-│
-└── docs/                    # Technical specs and Wave assets
-```
-
----
-
-## 🤝 How to Contribute
-We follow an Issue-Oriented workflow. Contributors should assign themselves to an issue before starting work.
-
-### Folder-Specific Guidelines
-
-#### 🦀 Smart Contract Engineers (/contracts)
-**Focus**: State management, security, and gas optimization.
-
-**Setup**: Requires rustup and soroban-cli.
-
-**Rule**: No logic changes without a corresponding test update. Use cargo test before submitting PRs.
-
-#### ⚛️ Frontend Developers (/frontend)
-**Focus**: UX/UI, real-time data visualization, and wallet connectivity.
-
-**Setup**: npm install inside the directory.
-
-**Rule**: Components must be responsive. Use framer-motion for the ticking number animations.
-
-#### 🗄️ Backend Engineers (/backend)
-**Focus**: Indexing performance, data persistence, and API reliability.
-
-**Setup**: Docker-compose is provided for local DB setup.
-
-**Rule**: The indexer must be idempotent and capable of handling ledger rollbacks.
-
----
-
-## 🚦 Getting Started
-
-1. **Clone the Repository:**
 ```bash
-git clone https://github.com/your-username/stellar-stream.git
-cd stellar-stream
-```
-
-2. **Build Contracts:**
-```bash
-cd contracts
-soroban contract build
-```
-
-3. **Run Frontend:**
-```bash
-cd ../frontend
 npm install
-npm run dev
 ```
 
----
+## Usage
 
-Built for the Drips Stellar Wave. Pushing the boundaries of real-time finance.
+```tsx
+import { TransactionPendingOrb, WalletStatus } from './components/TransactionPendingOrb';
+
+function MyApp() {
+  const [walletStatus, setWalletStatus] = useState<WalletStatus>('idle');
+
+  return (
+    <>
+      <YourAppContent />
+      <TransactionPendingOrb walletStatus={walletStatus} />
+    </>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `walletStatus` | `'idle' \| 'pending' \| 'signed' \| 'rejected'` | Required | Current wallet transaction state |
+| `ariaLabel` | `string` | `'Transaction status'` | Accessible label for screen readers |
+
+## Wallet Status States
+
+- `idle`: No transaction, orb hidden
+- `pending`: Transaction awaiting signature, orb visible with animation
+- `signed`: Transaction signed, orb disappears immediately
+- `rejected`: Transaction rejected, orb disappears immediately
+
+## Development
+
+```bash
+# Start dev server
+npm run dev
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Build for production
+npm run build
+```
+
+## Testing
+
+The component includes comprehensive tests covering:
+
+- Visibility toggling based on wallet status
+- Content rendering (orb, text, classes)
+- Accessibility (ARIA attributes, live regions)
+- Animation state management
+- Performance and memory leak prevention
+- CSS class application
+
+Run tests with:
+```bash
+npm test
+```
+
+## Accessibility
+
+The component follows WCAG guidelines:
+
+- Uses `role="status"` for status updates
+- Implements `aria-live="polite"` for non-intrusive announcements
+- Provides customizable `aria-label`
+- Includes screen-reader-only text updates
+- Respects `prefers-reduced-motion` for users with vestibular disorders
+
+## Performance Optimizations
+
+- **CSS-only animations**: No JavaScript animation loops
+- **will-change**: Optimizes transform animations
+- **contain: layout**: Prevents layout thrashing
+- **pointer-events: none**: Non-blocking, doesn't interfere with clicks
+- **Conditional rendering**: Component unmounts when not needed
+- **No re-renders**: Minimal state updates, clean effect dependencies
+
+## Browser Support
+
+- Chrome/Edge 88+
+- Firefox 85+
+- Safari 14+
+- All modern browsers with CSS Grid and CSS Custom Properties support
+
+## Customization
+
+The component uses CSS variables and can be customized by overriding styles:
+
+```css
+.transaction-pending-orb-container {
+  bottom: 32px; /* Adjust position */
+  right: 32px;
+}
+
+.orb {
+  /* Customize colors */
+  background: radial-gradient(circle at 30% 30%, your-color-1, your-color-2);
+}
+```
+
+## License
+
+MIT

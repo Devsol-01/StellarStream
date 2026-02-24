@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { StellarAddressInput } from '@/components/stellar-address-input';
+import NetworkStatusOrb from '@/components/networkstatusorb';
 
 export default function DemoPage() {
   const [address, setAddress] = useState('');
@@ -79,6 +80,54 @@ export default function DemoPage() {
             <li>Clear, contextual error messages</li>
             <li>Debounced validation for better UX</li>
           </ul>
+        </div>
+
+        {/* network status orb demo */}
+        <div className="glass-card p-8 space-y-4 text-center">
+          <h2 className="text-xl font-semibold text-white">Network Status Orb</h2>
+          <p className="text-white/60 text-sm">
+            Shows current network congestion (green/yellow/red) and average
+            transaction fee. Hover for details.
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-4">
+            <NetworkStatusOrb congestionLevel={0.12} averageFee={0.0012} size={30} />
+            <NetworkStatusOrb congestionLevel={0.5} averageFee={0.005} size={30} />
+            <NetworkStatusOrb congestionLevel={0.9} averageFee={0.02} size={30} />
+          </div>
+        </div>
+
+        {/* Demo Links */}
+        <div className="glass-card p-6 space-y-4">
+          <h3 className="text-white font-semibold text-lg">More Demos</h3>
+          <div className="space-y-2">
+            <a
+              href="/demo/flux-yield-slider"
+              className="block px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/10 hover:border-[var(--stellar-primary)]/30"
+            >
+              <div className="font-semibold text-white">Flux Yield Comparison Slider</div>
+              <div className="text-sm text-white/60 mt-1">
+                Interactive yield comparison with draggable glass divider
+              </div>
+            </a>
+            <a
+              href="/demo/toast"
+              className="block px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/10 hover:border-[var(--stellar-primary)]/30"
+            >
+              <div className="font-semibold text-white">Toast Notifications</div>
+              <div className="text-sm text-white/60 mt-1">
+                Stellar Glass toast notification system
+              </div>
+            </a>
+            <a
+              href="/demo/ledger-loader"
+              className="block px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/10 hover:border-[var(--stellar-primary)]/30"
+            >
+              <div className="font-semibold text-white">Ledger Loader</div>
+              <div className="text-sm text-white/60 mt-1">
+                3D animated ledger device loader
+              </div>
+            </a>
+          </div>
         </div>
       </div>
     </div>

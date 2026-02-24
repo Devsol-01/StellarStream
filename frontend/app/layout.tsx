@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Lato, Poppins } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
 import { ToastProvider } from "@/components/toast-provider";
+import { WalletProvider } from "@/lib/wallet-context";
 
 const lato = Lato({
   variable: "--font-lato",
@@ -29,10 +31,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${lato.variable} ${poppins.variable} antialiased`}>
-        <Nav />
-        {children}
-        <ToastProvider />
+      <body className={`${lato.variable} ${poppins.variable} antialiased flex flex-col min-h-screen`}>
+        <WalletProvider>
+          <Nav />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer />
+          <ToastProvider />
+        </WalletProvider>
       </body>
     </html>
   );
