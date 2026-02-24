@@ -62,7 +62,7 @@ export default function StreamChart({ totalAmount, startTime, endTime }: StreamC
               borderRadius: "8px",
               color: "#00f5ff"
             }}
-            formatter={(value: number) => [formatAmount(value), "Unlocked"]}
+            formatter={(value: number | undefined) => [formatAmount(value || 0), "Unlocked"]}
             labelFormatter={(label) => `Time: ${label}`}
           />
           
