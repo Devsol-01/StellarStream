@@ -1,7 +1,9 @@
 import express, { Express, Request, Response } from 'express';
 import { authMiddleware } from './middleware/auth.js';
 import { rateLimitMiddleware } from './middleware/rateLimit.js';
+import { requireWalletAuth } from './middleware/requireWalletAuth.js';
 import { getStats, getSearch } from './api/public.js';
+import { getNonce, getMe } from './api/auth.js';
 import { ensureRedis, closeRedis } from './lib/redis.js';
 import { prisma } from './lib/db.js';
 
@@ -17,6 +19,11 @@ app.get('/health', (_req: Request, res: Response) => {
 
 app.get('/stats', rateLimitMiddleware, getStats);
 app.get('/search', rateLimitMiddleware, getSearch);
+
+const authRouter = express.Router();
+authRouter.get('/nonce', rateLimitMiddleware, getNonce);
+authRouter.get('/me', rateLimitMiddleware, requireWalletAuth, getMe);
+app.use('/api/v1/auth', authRouter);
 
 async function start(): Promise<void> {
   await ensureRedis();
