@@ -1,19 +1,14 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/client"
+  provider = "prisma-client"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-// Mirrors the Stream state from the Soroban smart contract
+// Mirroring the Stream state from Soroban
 model Stream {
-  id              String       @id // Primary Key from Contract (Contract Stream ID)
+  id              String   @id // The Contract ID or unique Stream ID
   sender          String
   receiver        String
   tokenAddress    String
@@ -25,7 +20,7 @@ model Stream {
   @@index([receiver])
 }
 
-// Tracks the last synced blockchain ledger sequence
+// Tracks the last synced blockchain state
 model SyncState {
   id                 Int @id @default(1)
   lastLedgerSequence Int @default(0)
