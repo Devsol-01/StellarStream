@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, MouseEvent } from "react";
+import { motion, useSpring } from "framer-motion";
 
 interface MagneticButtonProps {
   children: React.ReactNode;
@@ -20,9 +21,11 @@ export default function MagneticButton({
   variant = "primary",
 }: MagneticButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
+  
+  // Use framer-motion springs for smooth magnetic effect
+  const x = useSpring(0, { stiffness: 150, damping: 15 });
+  const y = useSpring(0, { stiffness: 150, damping: 15 });
 
   const handleMouseMove = (e: MouseEvent<HTMLButtonElement>) => {
     if (!buttonRef.current || disabled) return;
@@ -50,25 +53,19 @@ export default function MagneticButton({
       const moveX = (deltaX / distance) * magneticStrength * strength;
       const moveY = (deltaY / distance) * magneticStrength * strength;
       
-      setPosition({ x: moveX, y: moveY });
+      x.set(moveX);
+      y.set(moveY);
     }
   };
 
   const handleMouseLeave = () => {
-    setPosition({ x: 0, y: 0 });
+    x.set(0);
+    y.set(0);
     setIsHovered(false);
   };
 
   const handleMouseEnter = () => {
     setIsHovered(true);
-  };
-
-  const handleMouseDown = () => {
-    setIsPressed(true);
-  };
-
-  const handleMouseUp = () => {
-    setIsPressed(false);
   };
 
   const handleClick = () => {
@@ -109,12 +106,10 @@ export default function MagneticButton({
           border: none;
           border-radius: 12px;
           cursor: pointer;
-          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
           font-family: 'Syne', sans-serif;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           overflow: hidden;
-          will-change: transform, box-shadow;
         }
 
         .magnetic-button::before {
@@ -158,11 +153,6 @@ export default function MagneticButton({
         .magnetic-button:disabled {
           opacity: 0.5;
           cursor: not-allowed;
-          transform: none !important;
-        }
-
-        .magnetic-button:disabled:hover {
-          box-shadow: 0 8px 32px rgba(138, 43, 226, 0.4);
         }
 
         .button-content {
@@ -173,39 +163,29 @@ export default function MagneticButton({
           justify-content: center;
           gap: 8px;
         }
-
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.8;
-          }
-        }
-
-        .magnetic-button.pressed {
-          animation: pulse 0.3s ease;
-        }
       `}</style>
 
-      <button
+      <motion.button
         ref={buttonRef}
-        className={`magnetic-button ${isPressed ? 'pressed' : ''} ${className}`}
+        className={`magnetic-button ${className}`}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onMouseEnter={handleMouseEnter}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
         onClick={handleClick}
         disabled={disabled}
         style={{
           background: currentVariant.background,
           boxShadow: isHovered ? currentVariant.hoverShadow : currentVariant.shadow,
-          transform: `translate(${position.x}px, ${position.y}px) scale(${isPressed ? 0.95 : 1})`,
+          x,
+          y,
+        }}
+        whileTap={{ scale: disabled ? 1 : 0.95 }}
+        transition={{
+          boxShadow: { duration: 0.15 },
         }}
       >
         <span className="button-content">{children}</span>
-      </button>
+      </motion.button>
     </>
   );
 }

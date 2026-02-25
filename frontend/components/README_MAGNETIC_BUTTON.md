@@ -4,7 +4,7 @@ A high-end button with magnetic cursor attraction and haptic feedback for premiu
 
 ## Overview
 
-The Magnetic Button creates an engaging interaction by subtly following the user's cursor when nearby, providing a "magnetic" feel. Features include cursor attraction (5-10px), haptic-style scale down on click, electric cyan background, and expanding hyper violet shadow.
+The Magnetic Button creates an engaging interaction by subtly following the user's cursor when nearby, providing a "magnetic" feel. Built with framer-motion for smooth, spring-based animations. Features include cursor attraction (5-10px), haptic-style scale down on click, electric cyan background, and expanding hyper violet shadow.
 
 ## Features
 
@@ -381,18 +381,24 @@ const [loading, setLoading] = useState(false);
 3. Calculate cursor distance from center
 4. Normalize distance vector
 5. Apply magnetic strength with falloff
-6. Update button position via transform
+6. Update button position via framer-motion springs
 
 ### State Management
-- `position`: { x, y } for magnetic offset
+- `x`: framer-motion spring for horizontal offset
+- `y`: framer-motion spring for vertical offset
 - `isHovered`: Boolean for shadow expansion
-- `isPressed`: Boolean for scale effect
+
+### Framer Motion Integration
+- **Springs**: `useSpring` with stiffness: 150, damping: 15
+- **whileTap**: Scale animation (0.95x) on click
+- **Smooth Transitions**: Hardware-accelerated transforms
+- **Performance**: GPU-accelerated, 60fps animations
 
 ### Performance Optimizations
 - useRef for button element (no re-renders)
+- Framer-motion springs (optimized animations)
 - Transform-only animations (GPU)
-- Debounced mouse tracking
-- Will-change CSS hint
+- Hardware-accelerated properties
 
 ## Related Components
 
