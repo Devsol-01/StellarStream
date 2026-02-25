@@ -2,6 +2,12 @@ import express, { Express, Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import apiRouter from './api';
+import { authMiddleware } from './middleware/auth.js';
+import { rateLimitMiddleware } from './middleware/rateLimit.js';
+import { getStats, getSearch } from './api/public.js';
+import { ensureRedis, closeRedis } from './lib/redis.js';
+import { prisma } from './lib/db.js';
+import batchRoutes from './api/routes.js';
 
 const app: Express = express();
 const PORT = process.env.PORT ?? 3000;
@@ -45,6 +51,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(authMiddleware);
 
 // Register API routes
 app.use('/api', apiRouter);
@@ -52,6 +59,39 @@ app.use('/api', apiRouter);
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'StellarStream Backend is running' });
 });
+
+app.get('/stats', rateLimitMiddleware, getStats);
+app.get('/search', rateLimitMiddleware, getSearch);
+
+async function start(): Promise<void> {
+  await ensureRedis();
+  app.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+  });
+}
+
+function shutdown(signal: string): void {
+  console.log(`${signal} received, shutting down gracefully...`);
+  closeRedis()
+    .then(() => prisma.$disconnect())
+    .then(() => {
+      console.log('Goodbye.');
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error('Shutdown error:', err);
+      process.exit(1);
+    });
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+start().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+// Batch metadata endpoint for bulk streaming queries
+app.use(batchRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

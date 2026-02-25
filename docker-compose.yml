@@ -14,6 +14,17 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   api:
     build: ./backend
     restart: always
@@ -21,6 +32,9 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: "postgresql://user:password@db:5432/stellarstream?schema=public"
+      REDIS_URL: "redis://redis:6379"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
