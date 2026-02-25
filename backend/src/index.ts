@@ -1,6 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import apiRouter from './api';
 
 const app: Express = express();
 const PORT = process.env.PORT ?? 3000;
@@ -44,6 +45,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Register API routes
+app.use('/api', apiRouter);
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'StellarStream Backend is running' });

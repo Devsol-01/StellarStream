@@ -6,3 +6,5 @@ export {
   toBigIntOrNull,
   toObjectOrNull,
 } from "./stream-lifecycle-service.js";
+
+export { AuditLogService } from "./audit-log.service.js";
