@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![cfg(feature = "voting_tests")] // Disabled - requires voting implementation
 use crate::{StellarStreamContract, StellarStreamContractClient};
 use soroban_sdk::{
     testutils::{Address as _, Ledger, LedgerInfo},

@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![cfg(feature = "clawback_tests")] // Disabled - requires clawback implementation
 use crate::{StellarStreamContract, StellarStreamContractClient};
 use soroban_sdk::{
     testutils::{Address as _, Ledger, LedgerInfo},

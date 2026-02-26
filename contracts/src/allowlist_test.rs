@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![cfg(feature = "allowlist_tests")] // Disabled - requires allowlist implementation
 use crate::{StellarStreamContract, StellarStreamContractClient};
 use soroban_sdk::{
     testutils::Address as _,

@@ -53,7 +53,8 @@ export async function getSearch(req: Request, res: Response): Promise<void> {
     const sender = typeof req.query.sender === 'string' ? req.query.sender.trim() : '';
     const receiver = typeof req.query.receiver === 'string' ? req.query.receiver.trim() : '';
 
-    const where: Parameters<typeof prisma.stream.findMany>[0]['where'] = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
 
     if (sender) {
       where.sender = { contains: sender, mode: 'insensitive' };
@@ -74,7 +75,6 @@ export async function getSearch(req: Request, res: Response): Promise<void> {
         where,
         take: limit,
         skip: offset,
-        orderBy: { createdAt: 'desc' },
       }),
       prisma.stream.count({ where }),
     ]);

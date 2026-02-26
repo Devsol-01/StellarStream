@@ -73,6 +73,11 @@ app.use('/api/v1/auth', authRouter);
 
 async function start(): Promise<void> {
   await ensureRedis();
+  
+  // Batch metadata endpoint for bulk streaming queries
+  app.use(batchRoutes);
+  app.use(healthRoutes);
+  
   app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
   });
@@ -98,12 +103,6 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 start().catch((err) => {
   console.error('Failed to start server:', err);
   process.exit(1);
-// Batch metadata endpoint for bulk streaming queries
-app.use(batchRoutes);
-app.use(healthRoutes);
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
 });
 
 export default app;

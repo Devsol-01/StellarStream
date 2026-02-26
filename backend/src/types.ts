@@ -9,6 +9,7 @@ import { SorobanRpc } from "@stellar/stellar-sdk";
  */
 export interface EventWatcherConfig {
   rpcUrl: string;
+  horizonUrl: string;
   networkPassphrase: string;
   contractId: string;
   pollIntervalMs: number;
@@ -39,6 +40,8 @@ export interface WatcherState {
   isRunning: boolean;
   errorCount: number;
   lastError?: Error;
+  ledgersSinceLastVerification: number;
+  lastVerifiedLedger: number;
 }
 
 /**

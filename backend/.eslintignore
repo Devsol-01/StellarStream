@@ -1,4 +1,7 @@
-node_modules/
-dist/
-*.js
-*.d.ts
+src/generated/**
+src/__tests__/**
+**/*.d.ts
+dist/**
+node_modules/**
+*.config.js
+*.config.ts

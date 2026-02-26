@@ -4,8 +4,12 @@
 import { Router, Request, Response } from "express";
 import { AuditLogService } from "../services/audit-log.service";
 import { logger } from "../logger";
+import streamsRouter from "./streams.routes";
 
 const router = Router();
+
+// Register v1 routes
+router.use("/v1", streamsRouter);
 const auditLogService = new AuditLogService();
 
 /**
@@ -46,10 +50,11 @@ router.get("/audit-log/:streamId", async (req: Request, res: Response) => {
     const { streamId } = req.params;
 
     if (!streamId) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: "Stream ID is required",
       });
+      return;
     }
 
     const events = await auditLogService.getStreamEvents(streamId);

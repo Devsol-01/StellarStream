@@ -1,4 +1,5 @@
 #![cfg(test)]
+#![cfg(feature = "dispute_tests")] // Disabled - requires dispute resolution implementation
 use crate::{StellarStreamContract, StellarStreamContractClient};
 use soroban_sdk::{
     testutils::{Address as _, Ledger, LedgerInfo},

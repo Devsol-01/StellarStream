@@ -13,16 +13,30 @@ datasource db {
 
 // Mirrors the Stream state from the Soroban smart contract
 model Stream {
-  id              String       @id // Primary Key from Contract (Contract Stream ID)
+  id              String       @id @default(cuid())
+  streamId        String?      @unique // Contract-level Stream ID
+  txHash          String       @unique
   sender          String
   receiver        String
-  tokenAddress    String
-  amountPerSecond BigInt
-  totalAmount     BigInt
+  tokenAddress    String?
+  amount          String       // Store as string to handle large numbers safely if needed, or BigInt
+  duration        Int?
   status          StreamStatus @default(ACTIVE)
+  withdrawn       String?      @default("0")
 
   @@index([sender])
   @@index([receiver])
+  @@index([streamId])
+}
+
+// Registered Webhooks for external notifications
+model Webhook {
+  id          String   @id @default(cuid())
+  url         String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // Tracks the last synced blockchain ledger sequence
@@ -56,4 +70,11 @@ enum StreamStatus {
   PAUSED
   COMPLETED
   CANCELED
+}
+
+// Stores ledger hashes for integrity verification against Horizon API
+model LedgerHash {
+  sequence  Int      @id
+  hash      String
+  createdAt DateTime @default(now())
 }
