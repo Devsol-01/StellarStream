@@ -1,4 +1,4 @@
-import { Server } from '@stellar/stellar-sdk';
+import { Horizon } from '@stellar/stellar-sdk';
 import NodeCache from 'node-cache';
 
 interface TokenMetadata {
@@ -10,11 +10,11 @@ interface TokenMetadata {
 
 export class TokenMetadataService {
   private cache: NodeCache;
-  private horizon: Server;
+  private horizon: Horizon.Server;
 
   constructor(horizonUrl: string = 'https://horizon-testnet.stellar.org', ttl: number = 86400) {
     this.cache = new NodeCache({ stdTTL: ttl });
-    this.horizon = new Server(horizonUrl);
+    this.horizon = new Horizon.Server(horizonUrl);
   }
 
   async getTokenMetadata(contractId: string): Promise<TokenMetadata> {

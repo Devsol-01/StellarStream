@@ -3,10 +3,9 @@
  * Manages event logging for all protocol actions
  */
 
-import { PrismaClient } from "../generated/client/client.js";
+import { PrismaClient } from "../generated/client/index.js";
 import { logger } from "../logger";
 
-// @ts-expect-error Prisma Client may not be generated yet
 const prisma = new PrismaClient();
 
 export interface EventLogEntry {
@@ -80,7 +79,19 @@ export class AuditLogService {
         take: limit,
       });
 
-      return events.map((event) => ({
+      return events.map((event: {
+        id: string;
+        eventType: string;
+        streamId: string;
+        txHash: string;
+        ledger: number;
+        ledgerClosedAt: string;
+        sender: string | null;
+        receiver: string | null;
+        amount: bigint | null;
+        metadata: string | null;
+        createdAt: Date;
+      }) => ({
         id: event.id,
         eventType: event.eventType,
         streamId: event.streamId,
@@ -113,7 +124,19 @@ export class AuditLogService {
         },
       });
 
-      return events.map((event) => ({
+      return events.map((event: {
+        id: string;
+        eventType: string;
+        streamId: string;
+        txHash: string;
+        ledger: number;
+        ledgerClosedAt: string;
+        sender: string | null;
+        receiver: string | null;
+        amount: bigint | null;
+        metadata: string | null;
+        createdAt: Date;
+      }) => ({
         id: event.id,
         eventType: event.eventType,
         streamId: event.streamId,

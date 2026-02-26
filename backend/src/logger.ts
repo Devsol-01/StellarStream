@@ -20,14 +20,21 @@ import winston from "winston";
 import path from "path";
 
 // ─── Level type (keep backward compat with existing code) ────────────────────
-type LogLevel = "debug" | "info" | "warn" | "error";
+// type LogLevel = "debug" | "info" | "warn" | "error";
 
 // ─── Console format: colorized, human-readable ────────────────────────────────
 const consoleFmt = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss.SSS" }),
   winston.format.errors({ stack: true }),
   winston.format.colorize({ all: true }),
-  winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
+  winston.format.printf((info) => {
+    const { timestamp, level, message, stack, ...meta } = info as {
+      timestamp?: string;
+      level: string;
+      message: string;
+      stack?: string;
+      [key: string]: unknown;
+    };
     const metaStr =
       Object.keys(meta).length
         ? ` ${JSON.stringify(meta)}`
