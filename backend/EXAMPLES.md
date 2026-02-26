@@ -16,7 +16,7 @@ npm run build && npm start
 
 ### Stream Created Event
 
-When a new payment stream is created:
+When a new payment stream is   created:
 
 ```json
 [2024-02-24T10:30:45.123Z] [INFO] EVENT: stream_created {

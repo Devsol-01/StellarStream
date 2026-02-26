@@ -1,5 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { wsService } from "../index.js";
+import { StreamEventPayload, BalanceUpdatePayload } from "./websocket.service.js";
 
 export type IndexedStreamStatus = "ACTIVE" | "CANCELED" | "COMPLETED" | "PAUSED";
 
@@ -82,6 +84,22 @@ export class StreamLifecycleService {
     };
 
     await this.saveDb(db);
+
+    const payload: StreamEventPayload = {
+      streamId: input.streamId,
+      sender: input.sender,
+      receiver: input.receiver,
+      amount: input.totalAmount.toString(),
+      status: "ACTIVE",
+      timestamp: nowIso
+    };
+
+    try {
+      wsService.emitNewStream(input.sender, payload);
+      wsService.emitNewStream(input.receiver, payload);
+    } catch (error) {
+      console.warn('Failed to emit WebSocket events:', error);
+    }
   }
 
   async registerWithdrawal(input: WithdrawalInput): Promise<void> {
@@ -97,6 +115,18 @@ export class StreamLifecycleService {
     existing.last_ledger = input.ledger;
 
     await this.saveDb(db);
+
+    const balancePayload: BalanceUpdatePayload = {
+      address: existing.receiver,
+      newBalance: streamedAmount.toString(),
+      timestamp: existing.updated_at
+    };
+
+    try {
+      wsService.emitBalanceUpdate(existing.receiver, balancePayload);
+    } catch (error) {
+      console.warn('Failed to emit balance update:', error);
+    }
   }
 
   async cancelStream(input: CancelInput): Promise<CancellationSummary> {
@@ -126,6 +156,22 @@ export class StreamLifecycleService {
 
     db.streams[input.streamId] = record;
     await this.saveDb(db);
+
+    const payload: StreamEventPayload = {
+      streamId: input.streamId,
+      sender: record.sender,
+      receiver: record.receiver,
+      amount: finalStreamedAmount.toString(),
+      status: "CANCELED",
+      timestamp: nowIso
+    };
+
+    try {
+      wsService.emitNewStream(record.sender, payload);
+      wsService.emitNewStream(record.receiver, payload);
+    } catch (error) {
+      console.warn('Failed to emit cancellation events:', error);
+    }
 
     return {
       streamId: input.streamId,

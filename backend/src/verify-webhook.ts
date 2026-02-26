@@ -3,7 +3,7 @@ import { WebhookService } from "./services/webhook.service.js";
 async function verifyWebhookLogic() {
     console.log("--- Webhook Logic Verification ---");
 
-    const webhookService = new WebhookService();
+    void new WebhookService();
 
     // Mock Large Stream (> 10,000 XLM)
     const largeStream = {

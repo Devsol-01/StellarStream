@@ -1,5 +1,5 @@
 import { Horizon } from "@stellar/stellar-sdk";
-import { PrismaClient } from "../generated/client/client.js";
+import type { PrismaClient } from "../generated/client/index.js";
 import { logger } from "../logger.js";
 
 interface LedgerMismatch {
@@ -26,7 +26,13 @@ export class LedgerVerificationService {
     fromSequence: number,
     toSequence: number
   ): Promise<VerificationResult> {
-    const storedHashes = await this.prisma.ledgerHash.findMany({
+    type LedgerHashDelegate = {
+      findMany: (args: {
+        where: { sequence: { gte: number; lte: number } };
+        orderBy: { sequence: "asc" };
+      }) => Promise<{ sequence: number; hash: string }[]>;
+    };
+    const storedHashes = await (this.prisma as unknown as { ledgerHash: LedgerHashDelegate }).ledgerHash.findMany({
       where: {
         sequence: { gte: fromSequence, lte: toSequence },
       },
@@ -45,16 +51,17 @@ export class LedgerVerificationService {
 
     for (const stored of storedHashes) {
       try {
-        const ledgerRecord = await this.horizon
+        const page = await this.horizon
           .ledgers()
           .ledger(stored.sequence)
           .call();
-
-        if (ledgerRecord.hash !== stored.hash) {
+        const ledgerRecord = page.records?.[0];
+        const actualHash = ledgerRecord?.hash ?? "";
+        if (actualHash !== stored.hash) {
           mismatches.push({
             sequence: stored.sequence,
             stored: stored.hash,
-            actual: ledgerRecord.hash,
+            actual: actualHash,
           });
         }
       } catch (error) {
