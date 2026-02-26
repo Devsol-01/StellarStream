@@ -1,7 +1,7 @@
 #![cfg(test)]
 use crate::{StellarStreamContract, StellarStreamContractClient};
 use soroban_sdk::{
-    testutils::{Address as _, Ledger, LedgerInfo},
+    testutils::Address as _,
     token::{StellarAssetClient, TokenClient},
     Address, Env, Vec,
 };

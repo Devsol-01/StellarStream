@@ -1,5 +1,5 @@
 import { BatchMetadataService } from "./batch-metadata.service.js";
-import type { PrismaClient } from "../generated/client/client.js";
+import type { PrismaClient } from "../generated/client/index.js";
 
 const NUM_POINTS = 20;
 
@@ -43,7 +43,7 @@ export async function getStreamGraph(
       where: { streamId: streamId },
       select: { duration: true },
     });
-    if (stream && stream.duration > 0) {
+    if (stream && stream.duration != null && stream.duration > 0) {
       endMs = startMs + stream.duration * 1000;
     } else {
       endMs = Date.now();

@@ -7,7 +7,7 @@ import { EventWatcherConfig, WatcherState, ParsedContractEvent } from "./types";
 import { logger } from "./logger";
 import { parseContractEvent, extractEventType } from "./event-parser";
 import { scValToNative, xdr } from "@stellar/stellar-sdk";
-import { PrismaClient } from "./generated/client/client.js";
+import { PrismaClient } from "./generated/client/index.js";
 import { LedgerVerificationService } from "./services/ledger-verification.service.js";
 import { AuditLogService } from "./services/audit-log.service";
 import {
@@ -17,7 +17,6 @@ import {
 } from "./services/stream-lifecycle-service";
 import { WebhookService } from "./services/webhook.service";
 
-// @ts-expect-error Prisma Client may not be generated yet
 const prisma = new PrismaClient();
 
 export class EventWatcher {
@@ -315,7 +314,22 @@ export class EventWatcher {
             }
           }
 
-          await prisma.stream.create({
+          await (
+            prisma as unknown as {
+              stream: {
+                create: (arg: {
+                  data: {
+                    txHash: string;
+                    streamId: string | null;
+                    sender: string;
+                    receiver: string;
+                    amount: string;
+                    duration: number | null;
+                  };
+                }) => Promise<unknown>;
+              };
+            }
+          ).stream.create({
             data: {
               txHash: event.txHash,
               streamId: streamId || null,
@@ -367,7 +381,13 @@ export class EventWatcher {
             const amountWithdrawn = dataObj.amount !== undefined ? String(dataObj.amount) : "0";
 
             if (withdrawStreamId !== "") {
-              const stream = await prisma.stream.findUnique({
+              const stream = await (
+                prisma as unknown as {
+                  stream: {
+                    findUnique: (arg: { where: { streamId: string } }) => Promise<{ id: string; withdrawn: string | null } | null>;
+                  };
+                }
+              ).stream.findUnique({
                 where: { streamId: withdrawStreamId },
               });
 
@@ -376,7 +396,16 @@ export class EventWatcher {
                 const newWithdrawn = BigInt(amountWithdrawn);
                 const totalWithdrawn = (currentWithdrawn + newWithdrawn).toString();
 
-                await prisma.stream.update({
+                await (
+                  prisma as unknown as {
+                    stream: {
+                      update: (arg: {
+                        where: { id: string };
+                        data: { withdrawn: string };
+                      }) => Promise<unknown>;
+                    };
+                  }
+                ).stream.update({
                   where: { id: stream.id },
                   data: { withdrawn: totalWithdrawn },
                 });
@@ -569,20 +598,26 @@ export class EventWatcher {
    */
   private async storeLedgerHash(sequence: number): Promise<void> {
     try {
-      const ledgerRecord = await this.horizonServer
+      const page = await this.horizonServer
         .ledgers()
         .ledger(sequence)
         .call();
+      const ledgerRecord = page.records?.[0];
+      if (!ledgerRecord) {
+        logger.warn("No ledger record returned", { sequence });
+        return;
+      }
+      const hash = ledgerRecord.hash;
 
-      await prisma.ledgerHash.upsert({
+      await (prisma as unknown as { ledgerHash: { upsert: (arg: { where: { sequence: number }; update: { hash: string }; create: { sequence: number; hash: string } }) => Promise<unknown> } }).ledgerHash.upsert({
         where: { sequence },
-        update: { hash: ledgerRecord.hash },
-        create: { sequence, hash: ledgerRecord.hash },
+        update: { hash },
+        create: { sequence, hash },
       });
 
       logger.debug("Stored ledger hash", {
         sequence,
-        hash: ledgerRecord.hash,
+        hash,
       });
     } catch (error) {
       logger.warn("Failed to store ledger hash", {

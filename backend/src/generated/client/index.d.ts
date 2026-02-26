@@ -19,6 +19,11 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
  */
 export type Stream = $Result.DefaultSelection<Prisma.$StreamPayload>
 /**
+ * Model Webhook
+ * 
+ */
+export type Webhook = $Result.DefaultSelection<Prisma.$WebhookPayload>
+/**
  * Model SyncState
  * 
  */
@@ -28,6 +33,11 @@ export type SyncState = $Result.DefaultSelection<Prisma.$SyncStatePayload>
  * 
  */
 export type EventLog = $Result.DefaultSelection<Prisma.$EventLogPayload>
+/**
+ * Model LedgerHash
+ * 
+ */
+export type LedgerHash = $Result.DefaultSelection<Prisma.$LedgerHashPayload>
 
 /**
  * Enums
@@ -182,6 +192,16 @@ export class PrismaClient<
   get stream(): Prisma.StreamDelegate<ExtArgs>;
 
   /**
+   * `prisma.webhook`: Exposes CRUD operations for the **Webhook** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Webhooks
+    * const webhooks = await prisma.webhook.findMany()
+    * ```
+    */
+  get webhook(): Prisma.WebhookDelegate<ExtArgs>;
+
+  /**
    * `prisma.syncState`: Exposes CRUD operations for the **SyncState** model.
     * Example usage:
     * ```ts
@@ -200,6 +220,16 @@ export class PrismaClient<
     * ```
     */
   get eventLog(): Prisma.EventLogDelegate<ExtArgs>;
+
+  /**
+   * `prisma.ledgerHash`: Exposes CRUD operations for the **LedgerHash** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LedgerHashes
+    * const ledgerHashes = await prisma.ledgerHash.findMany()
+    * ```
+    */
+  get ledgerHash(): Prisma.LedgerHashDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -642,8 +672,10 @@ export namespace Prisma {
 
   export const ModelName: {
     Stream: 'Stream',
+    Webhook: 'Webhook',
     SyncState: 'SyncState',
-    EventLog: 'EventLog'
+    EventLog: 'EventLog',
+    LedgerHash: 'LedgerHash'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -659,7 +691,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "stream" | "syncState" | "eventLog"
+      modelProps: "stream" | "webhook" | "syncState" | "eventLog" | "ledgerHash"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -730,6 +762,76 @@ export namespace Prisma {
           count: {
             args: Prisma.StreamCountArgs<ExtArgs>
             result: $Utils.Optional<StreamCountAggregateOutputType> | number
+          }
+        }
+      }
+      Webhook: {
+        payload: Prisma.$WebhookPayload<ExtArgs>
+        fields: Prisma.WebhookFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WebhookFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WebhookPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WebhookFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WebhookPayload>
+          }
+          findFirst: {
+            args: Prisma.WebhookFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WebhookPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WebhookFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WebhookPayload>
+          }
+          findMany: {
+            args: Prisma.WebhookFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WebhookPayload>[]
+          }
+          create: {
+            args: Prisma.WebhookCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WebhookPayload>
+          }
+          createMany: {
+            args: Prisma.WebhookCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WebhookCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WebhookPayload>[]
+          }
+          delete: {
+            args: Prisma.WebhookDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WebhookPayload>
+          }
+          update: {
+            args: Prisma.WebhookUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WebhookPayload>
+          }
+          deleteMany: {
+            args: Prisma.WebhookDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WebhookUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.WebhookUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WebhookPayload>
+          }
+          aggregate: {
+            args: Prisma.WebhookAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWebhook>
+          }
+          groupBy: {
+            args: Prisma.WebhookGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WebhookGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WebhookCountArgs<ExtArgs>
+            result: $Utils.Optional<WebhookCountAggregateOutputType> | number
           }
         }
       }
@@ -870,6 +972,76 @@ export namespace Prisma {
           count: {
             args: Prisma.EventLogCountArgs<ExtArgs>
             result: $Utils.Optional<EventLogCountAggregateOutputType> | number
+          }
+        }
+      }
+      LedgerHash: {
+        payload: Prisma.$LedgerHashPayload<ExtArgs>
+        fields: Prisma.LedgerHashFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LedgerHashFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerHashPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LedgerHashFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerHashPayload>
+          }
+          findFirst: {
+            args: Prisma.LedgerHashFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerHashPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LedgerHashFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerHashPayload>
+          }
+          findMany: {
+            args: Prisma.LedgerHashFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerHashPayload>[]
+          }
+          create: {
+            args: Prisma.LedgerHashCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerHashPayload>
+          }
+          createMany: {
+            args: Prisma.LedgerHashCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LedgerHashCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerHashPayload>[]
+          }
+          delete: {
+            args: Prisma.LedgerHashDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerHashPayload>
+          }
+          update: {
+            args: Prisma.LedgerHashUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerHashPayload>
+          }
+          deleteMany: {
+            args: Prisma.LedgerHashDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LedgerHashUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.LedgerHashUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LedgerHashPayload>
+          }
+          aggregate: {
+            args: Prisma.LedgerHashAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLedgerHash>
+          }
+          groupBy: {
+            args: Prisma.LedgerHashGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LedgerHashGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LedgerHashCountArgs<ExtArgs>
+            result: $Utils.Optional<LedgerHashCountAggregateOutputType> | number
           }
         }
       }
@@ -1047,85 +1219,99 @@ export namespace Prisma {
   }
 
   export type StreamAvgAggregateOutputType = {
-    amountPerSecond: number | null
-    totalAmount: number | null
+    duration: number | null
   }
 
   export type StreamSumAggregateOutputType = {
-    amountPerSecond: bigint | null
-    totalAmount: bigint | null
+    duration: number | null
   }
 
   export type StreamMinAggregateOutputType = {
     id: string | null
+    streamId: string | null
+    txHash: string | null
     sender: string | null
     receiver: string | null
     tokenAddress: string | null
-    amountPerSecond: bigint | null
-    totalAmount: bigint | null
+    amount: string | null
+    duration: number | null
     status: $Enums.StreamStatus | null
+    withdrawn: string | null
   }
 
   export type StreamMaxAggregateOutputType = {
     id: string | null
+    streamId: string | null
+    txHash: string | null
     sender: string | null
     receiver: string | null
     tokenAddress: string | null
-    amountPerSecond: bigint | null
-    totalAmount: bigint | null
+    amount: string | null
+    duration: number | null
     status: $Enums.StreamStatus | null
+    withdrawn: string | null
   }
 
   export type StreamCountAggregateOutputType = {
     id: number
+    streamId: number
+    txHash: number
     sender: number
     receiver: number
     tokenAddress: number
-    amountPerSecond: number
-    totalAmount: number
+    amount: number
+    duration: number
     status: number
+    withdrawn: number
     _all: number
   }
 
 
   export type StreamAvgAggregateInputType = {
-    amountPerSecond?: true
-    totalAmount?: true
+    duration?: true
   }
 
   export type StreamSumAggregateInputType = {
-    amountPerSecond?: true
-    totalAmount?: true
+    duration?: true
   }
 
   export type StreamMinAggregateInputType = {
     id?: true
+    streamId?: true
+    txHash?: true
     sender?: true
     receiver?: true
     tokenAddress?: true
-    amountPerSecond?: true
-    totalAmount?: true
+    amount?: true
+    duration?: true
     status?: true
+    withdrawn?: true
   }
 
   export type StreamMaxAggregateInputType = {
     id?: true
+    streamId?: true
+    txHash?: true
     sender?: true
     receiver?: true
     tokenAddress?: true
-    amountPerSecond?: true
-    totalAmount?: true
+    amount?: true
+    duration?: true
     status?: true
+    withdrawn?: true
   }
 
   export type StreamCountAggregateInputType = {
     id?: true
+    streamId?: true
+    txHash?: true
     sender?: true
     receiver?: true
     tokenAddress?: true
-    amountPerSecond?: true
-    totalAmount?: true
+    amount?: true
+    duration?: true
     status?: true
+    withdrawn?: true
     _all?: true
   }
 
@@ -1217,12 +1403,15 @@ export namespace Prisma {
 
   export type StreamGroupByOutputType = {
     id: string
+    streamId: string | null
+    txHash: string
     sender: string
     receiver: string
-    tokenAddress: string
-    amountPerSecond: bigint
-    totalAmount: bigint
+    tokenAddress: string | null
+    amount: string
+    duration: number | null
     status: $Enums.StreamStatus
+    withdrawn: string | null
     _count: StreamCountAggregateOutputType | null
     _avg: StreamAvgAggregateOutputType | null
     _sum: StreamSumAggregateOutputType | null
@@ -1246,32 +1435,41 @@ export namespace Prisma {
 
   export type StreamSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
+    streamId?: boolean
+    txHash?: boolean
     sender?: boolean
     receiver?: boolean
     tokenAddress?: boolean
-    amountPerSecond?: boolean
-    totalAmount?: boolean
+    amount?: boolean
+    duration?: boolean
     status?: boolean
+    withdrawn?: boolean
   }, ExtArgs["result"]["stream"]>
 
   export type StreamSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
+    streamId?: boolean
+    txHash?: boolean
     sender?: boolean
     receiver?: boolean
     tokenAddress?: boolean
-    amountPerSecond?: boolean
-    totalAmount?: boolean
+    amount?: boolean
+    duration?: boolean
     status?: boolean
+    withdrawn?: boolean
   }, ExtArgs["result"]["stream"]>
 
   export type StreamSelectScalar = {
     id?: boolean
+    streamId?: boolean
+    txHash?: boolean
     sender?: boolean
     receiver?: boolean
     tokenAddress?: boolean
-    amountPerSecond?: boolean
-    totalAmount?: boolean
+    amount?: boolean
+    duration?: boolean
     status?: boolean
+    withdrawn?: boolean
   }
 
 
@@ -1280,12 +1478,15 @@ export namespace Prisma {
     objects: {}
     scalars: $Extensions.GetPayloadResult<{
       id: string
+      streamId: string | null
+      txHash: string
       sender: string
       receiver: string
-      tokenAddress: string
-      amountPerSecond: bigint
-      totalAmount: bigint
+      tokenAddress: string | null
+      amount: string
+      duration: number | null
       status: $Enums.StreamStatus
+      withdrawn: string | null
     }, ExtArgs["result"]["stream"]>
     composites: {}
   }
@@ -1680,12 +1881,15 @@ export namespace Prisma {
    */ 
   interface StreamFieldRefs {
     readonly id: FieldRef<"Stream", 'String'>
+    readonly streamId: FieldRef<"Stream", 'String'>
+    readonly txHash: FieldRef<"Stream", 'String'>
     readonly sender: FieldRef<"Stream", 'String'>
     readonly receiver: FieldRef<"Stream", 'String'>
     readonly tokenAddress: FieldRef<"Stream", 'String'>
-    readonly amountPerSecond: FieldRef<"Stream", 'BigInt'>
-    readonly totalAmount: FieldRef<"Stream", 'BigInt'>
+    readonly amount: FieldRef<"Stream", 'String'>
+    readonly duration: FieldRef<"Stream", 'Int'>
     readonly status: FieldRef<"Stream", 'StreamStatus'>
+    readonly withdrawn: FieldRef<"Stream", 'String'>
   }
     
 
@@ -1971,6 +2175,896 @@ export namespace Prisma {
      * Select specific fields to fetch from the Stream
      */
     select?: StreamSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model Webhook
+   */
+
+  export type AggregateWebhook = {
+    _count: WebhookCountAggregateOutputType | null
+    _min: WebhookMinAggregateOutputType | null
+    _max: WebhookMaxAggregateOutputType | null
+  }
+
+  export type WebhookMinAggregateOutputType = {
+    id: string | null
+    url: string | null
+    description: string | null
+    isActive: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type WebhookMaxAggregateOutputType = {
+    id: string | null
+    url: string | null
+    description: string | null
+    isActive: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type WebhookCountAggregateOutputType = {
+    id: number
+    url: number
+    description: number
+    isActive: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type WebhookMinAggregateInputType = {
+    id?: true
+    url?: true
+    description?: true
+    isActive?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type WebhookMaxAggregateInputType = {
+    id?: true
+    url?: true
+    description?: true
+    isActive?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type WebhookCountAggregateInputType = {
+    id?: true
+    url?: true
+    description?: true
+    isActive?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type WebhookAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Webhook to aggregate.
+     */
+    where?: WebhookWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Webhooks to fetch.
+     */
+    orderBy?: WebhookOrderByWithRelationInput | WebhookOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WebhookWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Webhooks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Webhooks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Webhooks
+    **/
+    _count?: true | WebhookCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WebhookMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WebhookMaxAggregateInputType
+  }
+
+  export type GetWebhookAggregateType<T extends WebhookAggregateArgs> = {
+        [P in keyof T & keyof AggregateWebhook]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWebhook[P]>
+      : GetScalarType<T[P], AggregateWebhook[P]>
+  }
+
+
+
+
+  export type WebhookGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WebhookWhereInput
+    orderBy?: WebhookOrderByWithAggregationInput | WebhookOrderByWithAggregationInput[]
+    by: WebhookScalarFieldEnum[] | WebhookScalarFieldEnum
+    having?: WebhookScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WebhookCountAggregateInputType | true
+    _min?: WebhookMinAggregateInputType
+    _max?: WebhookMaxAggregateInputType
+  }
+
+  export type WebhookGroupByOutputType = {
+    id: string
+    url: string
+    description: string | null
+    isActive: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: WebhookCountAggregateOutputType | null
+    _min: WebhookMinAggregateOutputType | null
+    _max: WebhookMaxAggregateOutputType | null
+  }
+
+  type GetWebhookGroupByPayload<T extends WebhookGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WebhookGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WebhookGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WebhookGroupByOutputType[P]>
+            : GetScalarType<T[P], WebhookGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WebhookSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    url?: boolean
+    description?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["webhook"]>
+
+  export type WebhookSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    url?: boolean
+    description?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["webhook"]>
+
+  export type WebhookSelectScalar = {
+    id?: boolean
+    url?: boolean
+    description?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $WebhookPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Webhook"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      url: string
+      description: string | null
+      isActive: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["webhook"]>
+    composites: {}
+  }
+
+  type WebhookGetPayload<S extends boolean | null | undefined | WebhookDefaultArgs> = $Result.GetResult<Prisma.$WebhookPayload, S>
+
+  type WebhookCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<WebhookFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: WebhookCountAggregateInputType | true
+    }
+
+  export interface WebhookDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Webhook'], meta: { name: 'Webhook' } }
+    /**
+     * Find zero or one Webhook that matches the filter.
+     * @param {WebhookFindUniqueArgs} args - Arguments to find a Webhook
+     * @example
+     * // Get one Webhook
+     * const webhook = await prisma.webhook.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WebhookFindUniqueArgs>(args: SelectSubset<T, WebhookFindUniqueArgs<ExtArgs>>): Prisma__WebhookClient<$Result.GetResult<Prisma.$WebhookPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one Webhook that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {WebhookFindUniqueOrThrowArgs} args - Arguments to find a Webhook
+     * @example
+     * // Get one Webhook
+     * const webhook = await prisma.webhook.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WebhookFindUniqueOrThrowArgs>(args: SelectSubset<T, WebhookFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WebhookClient<$Result.GetResult<Prisma.$WebhookPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first Webhook that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WebhookFindFirstArgs} args - Arguments to find a Webhook
+     * @example
+     * // Get one Webhook
+     * const webhook = await prisma.webhook.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WebhookFindFirstArgs>(args?: SelectSubset<T, WebhookFindFirstArgs<ExtArgs>>): Prisma__WebhookClient<$Result.GetResult<Prisma.$WebhookPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first Webhook that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WebhookFindFirstOrThrowArgs} args - Arguments to find a Webhook
+     * @example
+     * // Get one Webhook
+     * const webhook = await prisma.webhook.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WebhookFindFirstOrThrowArgs>(args?: SelectSubset<T, WebhookFindFirstOrThrowArgs<ExtArgs>>): Prisma__WebhookClient<$Result.GetResult<Prisma.$WebhookPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more Webhooks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WebhookFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Webhooks
+     * const webhooks = await prisma.webhook.findMany()
+     * 
+     * // Get first 10 Webhooks
+     * const webhooks = await prisma.webhook.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const webhookWithIdOnly = await prisma.webhook.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WebhookFindManyArgs>(args?: SelectSubset<T, WebhookFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WebhookPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a Webhook.
+     * @param {WebhookCreateArgs} args - Arguments to create a Webhook.
+     * @example
+     * // Create one Webhook
+     * const Webhook = await prisma.webhook.create({
+     *   data: {
+     *     // ... data to create a Webhook
+     *   }
+     * })
+     * 
+     */
+    create<T extends WebhookCreateArgs>(args: SelectSubset<T, WebhookCreateArgs<ExtArgs>>): Prisma__WebhookClient<$Result.GetResult<Prisma.$WebhookPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many Webhooks.
+     * @param {WebhookCreateManyArgs} args - Arguments to create many Webhooks.
+     * @example
+     * // Create many Webhooks
+     * const webhook = await prisma.webhook.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WebhookCreateManyArgs>(args?: SelectSubset<T, WebhookCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Webhooks and returns the data saved in the database.
+     * @param {WebhookCreateManyAndReturnArgs} args - Arguments to create many Webhooks.
+     * @example
+     * // Create many Webhooks
+     * const webhook = await prisma.webhook.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Webhooks and only return the `id`
+     * const webhookWithIdOnly = await prisma.webhook.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WebhookCreateManyAndReturnArgs>(args?: SelectSubset<T, WebhookCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WebhookPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a Webhook.
+     * @param {WebhookDeleteArgs} args - Arguments to delete one Webhook.
+     * @example
+     * // Delete one Webhook
+     * const Webhook = await prisma.webhook.delete({
+     *   where: {
+     *     // ... filter to delete one Webhook
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WebhookDeleteArgs>(args: SelectSubset<T, WebhookDeleteArgs<ExtArgs>>): Prisma__WebhookClient<$Result.GetResult<Prisma.$WebhookPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one Webhook.
+     * @param {WebhookUpdateArgs} args - Arguments to update one Webhook.
+     * @example
+     * // Update one Webhook
+     * const webhook = await prisma.webhook.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WebhookUpdateArgs>(args: SelectSubset<T, WebhookUpdateArgs<ExtArgs>>): Prisma__WebhookClient<$Result.GetResult<Prisma.$WebhookPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more Webhooks.
+     * @param {WebhookDeleteManyArgs} args - Arguments to filter Webhooks to delete.
+     * @example
+     * // Delete a few Webhooks
+     * const { count } = await prisma.webhook.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WebhookDeleteManyArgs>(args?: SelectSubset<T, WebhookDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Webhooks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WebhookUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Webhooks
+     * const webhook = await prisma.webhook.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WebhookUpdateManyArgs>(args: SelectSubset<T, WebhookUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Webhook.
+     * @param {WebhookUpsertArgs} args - Arguments to update or create a Webhook.
+     * @example
+     * // Update or create a Webhook
+     * const webhook = await prisma.webhook.upsert({
+     *   create: {
+     *     // ... data to create a Webhook
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Webhook we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WebhookUpsertArgs>(args: SelectSubset<T, WebhookUpsertArgs<ExtArgs>>): Prisma__WebhookClient<$Result.GetResult<Prisma.$WebhookPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of Webhooks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WebhookCountArgs} args - Arguments to filter Webhooks to count.
+     * @example
+     * // Count the number of Webhooks
+     * const count = await prisma.webhook.count({
+     *   where: {
+     *     // ... the filter for the Webhooks we want to count
+     *   }
+     * })
+    **/
+    count<T extends WebhookCountArgs>(
+      args?: Subset<T, WebhookCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WebhookCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Webhook.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WebhookAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WebhookAggregateArgs>(args: Subset<T, WebhookAggregateArgs>): Prisma.PrismaPromise<GetWebhookAggregateType<T>>
+
+    /**
+     * Group by Webhook.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WebhookGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WebhookGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WebhookGroupByArgs['orderBy'] }
+        : { orderBy?: WebhookGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WebhookGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWebhookGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Webhook model
+   */
+  readonly fields: WebhookFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Webhook.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WebhookClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Webhook model
+   */ 
+  interface WebhookFieldRefs {
+    readonly id: FieldRef<"Webhook", 'String'>
+    readonly url: FieldRef<"Webhook", 'String'>
+    readonly description: FieldRef<"Webhook", 'String'>
+    readonly isActive: FieldRef<"Webhook", 'Boolean'>
+    readonly createdAt: FieldRef<"Webhook", 'DateTime'>
+    readonly updatedAt: FieldRef<"Webhook", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Webhook findUnique
+   */
+  export type WebhookFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelect<ExtArgs> | null
+    /**
+     * Filter, which Webhook to fetch.
+     */
+    where: WebhookWhereUniqueInput
+  }
+
+  /**
+   * Webhook findUniqueOrThrow
+   */
+  export type WebhookFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelect<ExtArgs> | null
+    /**
+     * Filter, which Webhook to fetch.
+     */
+    where: WebhookWhereUniqueInput
+  }
+
+  /**
+   * Webhook findFirst
+   */
+  export type WebhookFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelect<ExtArgs> | null
+    /**
+     * Filter, which Webhook to fetch.
+     */
+    where?: WebhookWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Webhooks to fetch.
+     */
+    orderBy?: WebhookOrderByWithRelationInput | WebhookOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Webhooks.
+     */
+    cursor?: WebhookWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Webhooks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Webhooks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Webhooks.
+     */
+    distinct?: WebhookScalarFieldEnum | WebhookScalarFieldEnum[]
+  }
+
+  /**
+   * Webhook findFirstOrThrow
+   */
+  export type WebhookFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelect<ExtArgs> | null
+    /**
+     * Filter, which Webhook to fetch.
+     */
+    where?: WebhookWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Webhooks to fetch.
+     */
+    orderBy?: WebhookOrderByWithRelationInput | WebhookOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Webhooks.
+     */
+    cursor?: WebhookWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Webhooks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Webhooks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Webhooks.
+     */
+    distinct?: WebhookScalarFieldEnum | WebhookScalarFieldEnum[]
+  }
+
+  /**
+   * Webhook findMany
+   */
+  export type WebhookFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelect<ExtArgs> | null
+    /**
+     * Filter, which Webhooks to fetch.
+     */
+    where?: WebhookWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Webhooks to fetch.
+     */
+    orderBy?: WebhookOrderByWithRelationInput | WebhookOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Webhooks.
+     */
+    cursor?: WebhookWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Webhooks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Webhooks.
+     */
+    skip?: number
+    distinct?: WebhookScalarFieldEnum | WebhookScalarFieldEnum[]
+  }
+
+  /**
+   * Webhook create
+   */
+  export type WebhookCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelect<ExtArgs> | null
+    /**
+     * The data needed to create a Webhook.
+     */
+    data: XOR<WebhookCreateInput, WebhookUncheckedCreateInput>
+  }
+
+  /**
+   * Webhook createMany
+   */
+  export type WebhookCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Webhooks.
+     */
+    data: WebhookCreateManyInput | WebhookCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Webhook createManyAndReturn
+   */
+  export type WebhookCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many Webhooks.
+     */
+    data: WebhookCreateManyInput | WebhookCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Webhook update
+   */
+  export type WebhookUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelect<ExtArgs> | null
+    /**
+     * The data needed to update a Webhook.
+     */
+    data: XOR<WebhookUpdateInput, WebhookUncheckedUpdateInput>
+    /**
+     * Choose, which Webhook to update.
+     */
+    where: WebhookWhereUniqueInput
+  }
+
+  /**
+   * Webhook updateMany
+   */
+  export type WebhookUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Webhooks.
+     */
+    data: XOR<WebhookUpdateManyMutationInput, WebhookUncheckedUpdateManyInput>
+    /**
+     * Filter which Webhooks to update
+     */
+    where?: WebhookWhereInput
+  }
+
+  /**
+   * Webhook upsert
+   */
+  export type WebhookUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelect<ExtArgs> | null
+    /**
+     * The filter to search for the Webhook to update in case it exists.
+     */
+    where: WebhookWhereUniqueInput
+    /**
+     * In case the Webhook found by the `where` argument doesn't exist, create a new Webhook with this data.
+     */
+    create: XOR<WebhookCreateInput, WebhookUncheckedCreateInput>
+    /**
+     * In case the Webhook was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WebhookUpdateInput, WebhookUncheckedUpdateInput>
+  }
+
+  /**
+   * Webhook delete
+   */
+  export type WebhookDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelect<ExtArgs> | null
+    /**
+     * Filter which Webhook to delete.
+     */
+    where: WebhookWhereUniqueInput
+  }
+
+  /**
+   * Webhook deleteMany
+   */
+  export type WebhookDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Webhooks to delete
+     */
+    where?: WebhookWhereInput
+  }
+
+  /**
+   * Webhook without action
+   */
+  export type WebhookDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Webhook
+     */
+    select?: WebhookSelect<ExtArgs> | null
   }
 
 
@@ -3843,6 +4937,894 @@ export namespace Prisma {
 
 
   /**
+   * Model LedgerHash
+   */
+
+  export type AggregateLedgerHash = {
+    _count: LedgerHashCountAggregateOutputType | null
+    _avg: LedgerHashAvgAggregateOutputType | null
+    _sum: LedgerHashSumAggregateOutputType | null
+    _min: LedgerHashMinAggregateOutputType | null
+    _max: LedgerHashMaxAggregateOutputType | null
+  }
+
+  export type LedgerHashAvgAggregateOutputType = {
+    sequence: number | null
+  }
+
+  export type LedgerHashSumAggregateOutputType = {
+    sequence: number | null
+  }
+
+  export type LedgerHashMinAggregateOutputType = {
+    sequence: number | null
+    hash: string | null
+    createdAt: Date | null
+  }
+
+  export type LedgerHashMaxAggregateOutputType = {
+    sequence: number | null
+    hash: string | null
+    createdAt: Date | null
+  }
+
+  export type LedgerHashCountAggregateOutputType = {
+    sequence: number
+    hash: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type LedgerHashAvgAggregateInputType = {
+    sequence?: true
+  }
+
+  export type LedgerHashSumAggregateInputType = {
+    sequence?: true
+  }
+
+  export type LedgerHashMinAggregateInputType = {
+    sequence?: true
+    hash?: true
+    createdAt?: true
+  }
+
+  export type LedgerHashMaxAggregateInputType = {
+    sequence?: true
+    hash?: true
+    createdAt?: true
+  }
+
+  export type LedgerHashCountAggregateInputType = {
+    sequence?: true
+    hash?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type LedgerHashAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerHash to aggregate.
+     */
+    where?: LedgerHashWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerHashes to fetch.
+     */
+    orderBy?: LedgerHashOrderByWithRelationInput | LedgerHashOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LedgerHashWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerHashes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerHashes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LedgerHashes
+    **/
+    _count?: true | LedgerHashCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: LedgerHashAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LedgerHashSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LedgerHashMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LedgerHashMaxAggregateInputType
+  }
+
+  export type GetLedgerHashAggregateType<T extends LedgerHashAggregateArgs> = {
+        [P in keyof T & keyof AggregateLedgerHash]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLedgerHash[P]>
+      : GetScalarType<T[P], AggregateLedgerHash[P]>
+  }
+
+
+
+
+  export type LedgerHashGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LedgerHashWhereInput
+    orderBy?: LedgerHashOrderByWithAggregationInput | LedgerHashOrderByWithAggregationInput[]
+    by: LedgerHashScalarFieldEnum[] | LedgerHashScalarFieldEnum
+    having?: LedgerHashScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LedgerHashCountAggregateInputType | true
+    _avg?: LedgerHashAvgAggregateInputType
+    _sum?: LedgerHashSumAggregateInputType
+    _min?: LedgerHashMinAggregateInputType
+    _max?: LedgerHashMaxAggregateInputType
+  }
+
+  export type LedgerHashGroupByOutputType = {
+    sequence: number
+    hash: string
+    createdAt: Date
+    _count: LedgerHashCountAggregateOutputType | null
+    _avg: LedgerHashAvgAggregateOutputType | null
+    _sum: LedgerHashSumAggregateOutputType | null
+    _min: LedgerHashMinAggregateOutputType | null
+    _max: LedgerHashMaxAggregateOutputType | null
+  }
+
+  type GetLedgerHashGroupByPayload<T extends LedgerHashGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LedgerHashGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LedgerHashGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LedgerHashGroupByOutputType[P]>
+            : GetScalarType<T[P], LedgerHashGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LedgerHashSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    sequence?: boolean
+    hash?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["ledgerHash"]>
+
+  export type LedgerHashSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    sequence?: boolean
+    hash?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["ledgerHash"]>
+
+  export type LedgerHashSelectScalar = {
+    sequence?: boolean
+    hash?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $LedgerHashPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LedgerHash"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      sequence: number
+      hash: string
+      createdAt: Date
+    }, ExtArgs["result"]["ledgerHash"]>
+    composites: {}
+  }
+
+  type LedgerHashGetPayload<S extends boolean | null | undefined | LedgerHashDefaultArgs> = $Result.GetResult<Prisma.$LedgerHashPayload, S>
+
+  type LedgerHashCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<LedgerHashFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: LedgerHashCountAggregateInputType | true
+    }
+
+  export interface LedgerHashDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LedgerHash'], meta: { name: 'LedgerHash' } }
+    /**
+     * Find zero or one LedgerHash that matches the filter.
+     * @param {LedgerHashFindUniqueArgs} args - Arguments to find a LedgerHash
+     * @example
+     * // Get one LedgerHash
+     * const ledgerHash = await prisma.ledgerHash.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LedgerHashFindUniqueArgs>(args: SelectSubset<T, LedgerHashFindUniqueArgs<ExtArgs>>): Prisma__LedgerHashClient<$Result.GetResult<Prisma.$LedgerHashPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one LedgerHash that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {LedgerHashFindUniqueOrThrowArgs} args - Arguments to find a LedgerHash
+     * @example
+     * // Get one LedgerHash
+     * const ledgerHash = await prisma.ledgerHash.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LedgerHashFindUniqueOrThrowArgs>(args: SelectSubset<T, LedgerHashFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LedgerHashClient<$Result.GetResult<Prisma.$LedgerHashPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first LedgerHash that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerHashFindFirstArgs} args - Arguments to find a LedgerHash
+     * @example
+     * // Get one LedgerHash
+     * const ledgerHash = await prisma.ledgerHash.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LedgerHashFindFirstArgs>(args?: SelectSubset<T, LedgerHashFindFirstArgs<ExtArgs>>): Prisma__LedgerHashClient<$Result.GetResult<Prisma.$LedgerHashPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first LedgerHash that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerHashFindFirstOrThrowArgs} args - Arguments to find a LedgerHash
+     * @example
+     * // Get one LedgerHash
+     * const ledgerHash = await prisma.ledgerHash.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LedgerHashFindFirstOrThrowArgs>(args?: SelectSubset<T, LedgerHashFindFirstOrThrowArgs<ExtArgs>>): Prisma__LedgerHashClient<$Result.GetResult<Prisma.$LedgerHashPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more LedgerHashes that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerHashFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LedgerHashes
+     * const ledgerHashes = await prisma.ledgerHash.findMany()
+     * 
+     * // Get first 10 LedgerHashes
+     * const ledgerHashes = await prisma.ledgerHash.findMany({ take: 10 })
+     * 
+     * // Only select the `sequence`
+     * const ledgerHashWithSequenceOnly = await prisma.ledgerHash.findMany({ select: { sequence: true } })
+     * 
+     */
+    findMany<T extends LedgerHashFindManyArgs>(args?: SelectSubset<T, LedgerHashFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerHashPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a LedgerHash.
+     * @param {LedgerHashCreateArgs} args - Arguments to create a LedgerHash.
+     * @example
+     * // Create one LedgerHash
+     * const LedgerHash = await prisma.ledgerHash.create({
+     *   data: {
+     *     // ... data to create a LedgerHash
+     *   }
+     * })
+     * 
+     */
+    create<T extends LedgerHashCreateArgs>(args: SelectSubset<T, LedgerHashCreateArgs<ExtArgs>>): Prisma__LedgerHashClient<$Result.GetResult<Prisma.$LedgerHashPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many LedgerHashes.
+     * @param {LedgerHashCreateManyArgs} args - Arguments to create many LedgerHashes.
+     * @example
+     * // Create many LedgerHashes
+     * const ledgerHash = await prisma.ledgerHash.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LedgerHashCreateManyArgs>(args?: SelectSubset<T, LedgerHashCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LedgerHashes and returns the data saved in the database.
+     * @param {LedgerHashCreateManyAndReturnArgs} args - Arguments to create many LedgerHashes.
+     * @example
+     * // Create many LedgerHashes
+     * const ledgerHash = await prisma.ledgerHash.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LedgerHashes and only return the `sequence`
+     * const ledgerHashWithSequenceOnly = await prisma.ledgerHash.createManyAndReturn({ 
+     *   select: { sequence: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LedgerHashCreateManyAndReturnArgs>(args?: SelectSubset<T, LedgerHashCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LedgerHashPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a LedgerHash.
+     * @param {LedgerHashDeleteArgs} args - Arguments to delete one LedgerHash.
+     * @example
+     * // Delete one LedgerHash
+     * const LedgerHash = await prisma.ledgerHash.delete({
+     *   where: {
+     *     // ... filter to delete one LedgerHash
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LedgerHashDeleteArgs>(args: SelectSubset<T, LedgerHashDeleteArgs<ExtArgs>>): Prisma__LedgerHashClient<$Result.GetResult<Prisma.$LedgerHashPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one LedgerHash.
+     * @param {LedgerHashUpdateArgs} args - Arguments to update one LedgerHash.
+     * @example
+     * // Update one LedgerHash
+     * const ledgerHash = await prisma.ledgerHash.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LedgerHashUpdateArgs>(args: SelectSubset<T, LedgerHashUpdateArgs<ExtArgs>>): Prisma__LedgerHashClient<$Result.GetResult<Prisma.$LedgerHashPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more LedgerHashes.
+     * @param {LedgerHashDeleteManyArgs} args - Arguments to filter LedgerHashes to delete.
+     * @example
+     * // Delete a few LedgerHashes
+     * const { count } = await prisma.ledgerHash.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LedgerHashDeleteManyArgs>(args?: SelectSubset<T, LedgerHashDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LedgerHashes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerHashUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LedgerHashes
+     * const ledgerHash = await prisma.ledgerHash.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LedgerHashUpdateManyArgs>(args: SelectSubset<T, LedgerHashUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one LedgerHash.
+     * @param {LedgerHashUpsertArgs} args - Arguments to update or create a LedgerHash.
+     * @example
+     * // Update or create a LedgerHash
+     * const ledgerHash = await prisma.ledgerHash.upsert({
+     *   create: {
+     *     // ... data to create a LedgerHash
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LedgerHash we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LedgerHashUpsertArgs>(args: SelectSubset<T, LedgerHashUpsertArgs<ExtArgs>>): Prisma__LedgerHashClient<$Result.GetResult<Prisma.$LedgerHashPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of LedgerHashes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerHashCountArgs} args - Arguments to filter LedgerHashes to count.
+     * @example
+     * // Count the number of LedgerHashes
+     * const count = await prisma.ledgerHash.count({
+     *   where: {
+     *     // ... the filter for the LedgerHashes we want to count
+     *   }
+     * })
+    **/
+    count<T extends LedgerHashCountArgs>(
+      args?: Subset<T, LedgerHashCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LedgerHashCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LedgerHash.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerHashAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LedgerHashAggregateArgs>(args: Subset<T, LedgerHashAggregateArgs>): Prisma.PrismaPromise<GetLedgerHashAggregateType<T>>
+
+    /**
+     * Group by LedgerHash.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LedgerHashGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LedgerHashGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LedgerHashGroupByArgs['orderBy'] }
+        : { orderBy?: LedgerHashGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LedgerHashGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLedgerHashGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LedgerHash model
+   */
+  readonly fields: LedgerHashFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LedgerHash.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LedgerHashClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LedgerHash model
+   */ 
+  interface LedgerHashFieldRefs {
+    readonly sequence: FieldRef<"LedgerHash", 'Int'>
+    readonly hash: FieldRef<"LedgerHash", 'String'>
+    readonly createdAt: FieldRef<"LedgerHash", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LedgerHash findUnique
+   */
+  export type LedgerHashFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelect<ExtArgs> | null
+    /**
+     * Filter, which LedgerHash to fetch.
+     */
+    where: LedgerHashWhereUniqueInput
+  }
+
+  /**
+   * LedgerHash findUniqueOrThrow
+   */
+  export type LedgerHashFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelect<ExtArgs> | null
+    /**
+     * Filter, which LedgerHash to fetch.
+     */
+    where: LedgerHashWhereUniqueInput
+  }
+
+  /**
+   * LedgerHash findFirst
+   */
+  export type LedgerHashFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelect<ExtArgs> | null
+    /**
+     * Filter, which LedgerHash to fetch.
+     */
+    where?: LedgerHashWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerHashes to fetch.
+     */
+    orderBy?: LedgerHashOrderByWithRelationInput | LedgerHashOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerHashes.
+     */
+    cursor?: LedgerHashWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerHashes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerHashes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerHashes.
+     */
+    distinct?: LedgerHashScalarFieldEnum | LedgerHashScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerHash findFirstOrThrow
+   */
+  export type LedgerHashFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelect<ExtArgs> | null
+    /**
+     * Filter, which LedgerHash to fetch.
+     */
+    where?: LedgerHashWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerHashes to fetch.
+     */
+    orderBy?: LedgerHashOrderByWithRelationInput | LedgerHashOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LedgerHashes.
+     */
+    cursor?: LedgerHashWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerHashes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerHashes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LedgerHashes.
+     */
+    distinct?: LedgerHashScalarFieldEnum | LedgerHashScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerHash findMany
+   */
+  export type LedgerHashFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelect<ExtArgs> | null
+    /**
+     * Filter, which LedgerHashes to fetch.
+     */
+    where?: LedgerHashWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LedgerHashes to fetch.
+     */
+    orderBy?: LedgerHashOrderByWithRelationInput | LedgerHashOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LedgerHashes.
+     */
+    cursor?: LedgerHashWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LedgerHashes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LedgerHashes.
+     */
+    skip?: number
+    distinct?: LedgerHashScalarFieldEnum | LedgerHashScalarFieldEnum[]
+  }
+
+  /**
+   * LedgerHash create
+   */
+  export type LedgerHashCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelect<ExtArgs> | null
+    /**
+     * The data needed to create a LedgerHash.
+     */
+    data: XOR<LedgerHashCreateInput, LedgerHashUncheckedCreateInput>
+  }
+
+  /**
+   * LedgerHash createMany
+   */
+  export type LedgerHashCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LedgerHashes.
+     */
+    data: LedgerHashCreateManyInput | LedgerHashCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerHash createManyAndReturn
+   */
+  export type LedgerHashCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many LedgerHashes.
+     */
+    data: LedgerHashCreateManyInput | LedgerHashCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LedgerHash update
+   */
+  export type LedgerHashUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelect<ExtArgs> | null
+    /**
+     * The data needed to update a LedgerHash.
+     */
+    data: XOR<LedgerHashUpdateInput, LedgerHashUncheckedUpdateInput>
+    /**
+     * Choose, which LedgerHash to update.
+     */
+    where: LedgerHashWhereUniqueInput
+  }
+
+  /**
+   * LedgerHash updateMany
+   */
+  export type LedgerHashUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LedgerHashes.
+     */
+    data: XOR<LedgerHashUpdateManyMutationInput, LedgerHashUncheckedUpdateManyInput>
+    /**
+     * Filter which LedgerHashes to update
+     */
+    where?: LedgerHashWhereInput
+  }
+
+  /**
+   * LedgerHash upsert
+   */
+  export type LedgerHashUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelect<ExtArgs> | null
+    /**
+     * The filter to search for the LedgerHash to update in case it exists.
+     */
+    where: LedgerHashWhereUniqueInput
+    /**
+     * In case the LedgerHash found by the `where` argument doesn't exist, create a new LedgerHash with this data.
+     */
+    create: XOR<LedgerHashCreateInput, LedgerHashUncheckedCreateInput>
+    /**
+     * In case the LedgerHash was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LedgerHashUpdateInput, LedgerHashUncheckedUpdateInput>
+  }
+
+  /**
+   * LedgerHash delete
+   */
+  export type LedgerHashDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelect<ExtArgs> | null
+    /**
+     * Filter which LedgerHash to delete.
+     */
+    where: LedgerHashWhereUniqueInput
+  }
+
+  /**
+   * LedgerHash deleteMany
+   */
+  export type LedgerHashDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LedgerHashes to delete
+     */
+    where?: LedgerHashWhereInput
+  }
+
+  /**
+   * LedgerHash without action
+   */
+  export type LedgerHashDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LedgerHash
+     */
+    select?: LedgerHashSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -3858,15 +5840,30 @@ export namespace Prisma {
 
   export const StreamScalarFieldEnum: {
     id: 'id',
+    streamId: 'streamId',
+    txHash: 'txHash',
     sender: 'sender',
     receiver: 'receiver',
     tokenAddress: 'tokenAddress',
-    amountPerSecond: 'amountPerSecond',
-    totalAmount: 'totalAmount',
-    status: 'status'
+    amount: 'amount',
+    duration: 'duration',
+    status: 'status',
+    withdrawn: 'withdrawn'
   };
 
   export type StreamScalarFieldEnum = (typeof StreamScalarFieldEnum)[keyof typeof StreamScalarFieldEnum]
+
+
+  export const WebhookScalarFieldEnum: {
+    id: 'id',
+    url: 'url',
+    description: 'description',
+    isActive: 'isActive',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type WebhookScalarFieldEnum = (typeof WebhookScalarFieldEnum)[keyof typeof WebhookScalarFieldEnum]
 
 
   export const SyncStateScalarFieldEnum: {
@@ -3892,6 +5889,15 @@ export namespace Prisma {
   };
 
   export type EventLogScalarFieldEnum = (typeof EventLogScalarFieldEnum)[keyof typeof EventLogScalarFieldEnum]
+
+
+  export const LedgerHashScalarFieldEnum: {
+    sequence: 'sequence',
+    hash: 'hash',
+    createdAt: 'createdAt'
+  };
+
+  export type LedgerHashScalarFieldEnum = (typeof LedgerHashScalarFieldEnum)[keyof typeof LedgerHashScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -3938,16 +5944,16 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'BigInt'
+   * Reference to a field of type 'Int'
    */
-  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
     
 
 
   /**
-   * Reference to a field of type 'BigInt[]'
+   * Reference to a field of type 'Int[]'
    */
-  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
+  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 
@@ -3966,16 +5972,9 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Int'
+   * Reference to a field of type 'Boolean'
    */
-  export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-  /**
-   * Reference to a field of type 'Int[]'
-   */
-  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -3990,6 +5989,20 @@ export namespace Prisma {
    * Reference to a field of type 'DateTime[]'
    */
   export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt'
+   */
+  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt[]'
+   */
+  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
     
 
 
@@ -4015,45 +6028,57 @@ export namespace Prisma {
     OR?: StreamWhereInput[]
     NOT?: StreamWhereInput | StreamWhereInput[]
     id?: StringFilter<"Stream"> | string
+    streamId?: StringNullableFilter<"Stream"> | string | null
+    txHash?: StringFilter<"Stream"> | string
     sender?: StringFilter<"Stream"> | string
     receiver?: StringFilter<"Stream"> | string
-    tokenAddress?: StringFilter<"Stream"> | string
-    amountPerSecond?: BigIntFilter<"Stream"> | bigint | number
-    totalAmount?: BigIntFilter<"Stream"> | bigint | number
+    tokenAddress?: StringNullableFilter<"Stream"> | string | null
+    amount?: StringFilter<"Stream"> | string
+    duration?: IntNullableFilter<"Stream"> | number | null
     status?: EnumStreamStatusFilter<"Stream"> | $Enums.StreamStatus
+    withdrawn?: StringNullableFilter<"Stream"> | string | null
   }
 
   export type StreamOrderByWithRelationInput = {
     id?: SortOrder
+    streamId?: SortOrderInput | SortOrder
+    txHash?: SortOrder
     sender?: SortOrder
     receiver?: SortOrder
-    tokenAddress?: SortOrder
-    amountPerSecond?: SortOrder
-    totalAmount?: SortOrder
+    tokenAddress?: SortOrderInput | SortOrder
+    amount?: SortOrder
+    duration?: SortOrderInput | SortOrder
     status?: SortOrder
+    withdrawn?: SortOrderInput | SortOrder
   }
 
   export type StreamWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    streamId?: string
+    txHash?: string
     AND?: StreamWhereInput | StreamWhereInput[]
     OR?: StreamWhereInput[]
     NOT?: StreamWhereInput | StreamWhereInput[]
     sender?: StringFilter<"Stream"> | string
     receiver?: StringFilter<"Stream"> | string
-    tokenAddress?: StringFilter<"Stream"> | string
-    amountPerSecond?: BigIntFilter<"Stream"> | bigint | number
-    totalAmount?: BigIntFilter<"Stream"> | bigint | number
+    tokenAddress?: StringNullableFilter<"Stream"> | string | null
+    amount?: StringFilter<"Stream"> | string
+    duration?: IntNullableFilter<"Stream"> | number | null
     status?: EnumStreamStatusFilter<"Stream"> | $Enums.StreamStatus
-  }, "id">
+    withdrawn?: StringNullableFilter<"Stream"> | string | null
+  }, "id" | "streamId" | "txHash">
 
   export type StreamOrderByWithAggregationInput = {
     id?: SortOrder
+    streamId?: SortOrderInput | SortOrder
+    txHash?: SortOrder
     sender?: SortOrder
     receiver?: SortOrder
-    tokenAddress?: SortOrder
-    amountPerSecond?: SortOrder
-    totalAmount?: SortOrder
+    tokenAddress?: SortOrderInput | SortOrder
+    amount?: SortOrder
+    duration?: SortOrderInput | SortOrder
     status?: SortOrder
+    withdrawn?: SortOrderInput | SortOrder
     _count?: StreamCountOrderByAggregateInput
     _avg?: StreamAvgOrderByAggregateInput
     _max?: StreamMaxOrderByAggregateInput
@@ -4066,12 +6091,72 @@ export namespace Prisma {
     OR?: StreamScalarWhereWithAggregatesInput[]
     NOT?: StreamScalarWhereWithAggregatesInput | StreamScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Stream"> | string
+    streamId?: StringNullableWithAggregatesFilter<"Stream"> | string | null
+    txHash?: StringWithAggregatesFilter<"Stream"> | string
     sender?: StringWithAggregatesFilter<"Stream"> | string
     receiver?: StringWithAggregatesFilter<"Stream"> | string
-    tokenAddress?: StringWithAggregatesFilter<"Stream"> | string
-    amountPerSecond?: BigIntWithAggregatesFilter<"Stream"> | bigint | number
-    totalAmount?: BigIntWithAggregatesFilter<"Stream"> | bigint | number
+    tokenAddress?: StringNullableWithAggregatesFilter<"Stream"> | string | null
+    amount?: StringWithAggregatesFilter<"Stream"> | string
+    duration?: IntNullableWithAggregatesFilter<"Stream"> | number | null
     status?: EnumStreamStatusWithAggregatesFilter<"Stream"> | $Enums.StreamStatus
+    withdrawn?: StringNullableWithAggregatesFilter<"Stream"> | string | null
+  }
+
+  export type WebhookWhereInput = {
+    AND?: WebhookWhereInput | WebhookWhereInput[]
+    OR?: WebhookWhereInput[]
+    NOT?: WebhookWhereInput | WebhookWhereInput[]
+    id?: StringFilter<"Webhook"> | string
+    url?: StringFilter<"Webhook"> | string
+    description?: StringNullableFilter<"Webhook"> | string | null
+    isActive?: BoolFilter<"Webhook"> | boolean
+    createdAt?: DateTimeFilter<"Webhook"> | Date | string
+    updatedAt?: DateTimeFilter<"Webhook"> | Date | string
+  }
+
+  export type WebhookOrderByWithRelationInput = {
+    id?: SortOrder
+    url?: SortOrder
+    description?: SortOrderInput | SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type WebhookWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    url?: string
+    AND?: WebhookWhereInput | WebhookWhereInput[]
+    OR?: WebhookWhereInput[]
+    NOT?: WebhookWhereInput | WebhookWhereInput[]
+    description?: StringNullableFilter<"Webhook"> | string | null
+    isActive?: BoolFilter<"Webhook"> | boolean
+    createdAt?: DateTimeFilter<"Webhook"> | Date | string
+    updatedAt?: DateTimeFilter<"Webhook"> | Date | string
+  }, "id" | "url">
+
+  export type WebhookOrderByWithAggregationInput = {
+    id?: SortOrder
+    url?: SortOrder
+    description?: SortOrderInput | SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: WebhookCountOrderByAggregateInput
+    _max?: WebhookMaxOrderByAggregateInput
+    _min?: WebhookMinOrderByAggregateInput
+  }
+
+  export type WebhookScalarWhereWithAggregatesInput = {
+    AND?: WebhookScalarWhereWithAggregatesInput | WebhookScalarWhereWithAggregatesInput[]
+    OR?: WebhookScalarWhereWithAggregatesInput[]
+    NOT?: WebhookScalarWhereWithAggregatesInput | WebhookScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Webhook"> | string
+    url?: StringWithAggregatesFilter<"Webhook"> | string
+    description?: StringNullableWithAggregatesFilter<"Webhook"> | string | null
+    isActive?: BoolWithAggregatesFilter<"Webhook"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"Webhook"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Webhook"> | Date | string
   }
 
   export type SyncStateWhereInput = {
@@ -4197,74 +6282,202 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"EventLog"> | Date | string
   }
 
+  export type LedgerHashWhereInput = {
+    AND?: LedgerHashWhereInput | LedgerHashWhereInput[]
+    OR?: LedgerHashWhereInput[]
+    NOT?: LedgerHashWhereInput | LedgerHashWhereInput[]
+    sequence?: IntFilter<"LedgerHash"> | number
+    hash?: StringFilter<"LedgerHash"> | string
+    createdAt?: DateTimeFilter<"LedgerHash"> | Date | string
+  }
+
+  export type LedgerHashOrderByWithRelationInput = {
+    sequence?: SortOrder
+    hash?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerHashWhereUniqueInput = Prisma.AtLeast<{
+    sequence?: number
+    AND?: LedgerHashWhereInput | LedgerHashWhereInput[]
+    OR?: LedgerHashWhereInput[]
+    NOT?: LedgerHashWhereInput | LedgerHashWhereInput[]
+    hash?: StringFilter<"LedgerHash"> | string
+    createdAt?: DateTimeFilter<"LedgerHash"> | Date | string
+  }, "sequence">
+
+  export type LedgerHashOrderByWithAggregationInput = {
+    sequence?: SortOrder
+    hash?: SortOrder
+    createdAt?: SortOrder
+    _count?: LedgerHashCountOrderByAggregateInput
+    _avg?: LedgerHashAvgOrderByAggregateInput
+    _max?: LedgerHashMaxOrderByAggregateInput
+    _min?: LedgerHashMinOrderByAggregateInput
+    _sum?: LedgerHashSumOrderByAggregateInput
+  }
+
+  export type LedgerHashScalarWhereWithAggregatesInput = {
+    AND?: LedgerHashScalarWhereWithAggregatesInput | LedgerHashScalarWhereWithAggregatesInput[]
+    OR?: LedgerHashScalarWhereWithAggregatesInput[]
+    NOT?: LedgerHashScalarWhereWithAggregatesInput | LedgerHashScalarWhereWithAggregatesInput[]
+    sequence?: IntWithAggregatesFilter<"LedgerHash"> | number
+    hash?: StringWithAggregatesFilter<"LedgerHash"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"LedgerHash"> | Date | string
+  }
+
   export type StreamCreateInput = {
-    id: string
+    id?: string
+    streamId?: string | null
+    txHash: string
     sender: string
     receiver: string
-    tokenAddress: string
-    amountPerSecond: bigint | number
-    totalAmount: bigint | number
+    tokenAddress?: string | null
+    amount: string
+    duration?: number | null
     status?: $Enums.StreamStatus
+    withdrawn?: string | null
   }
 
   export type StreamUncheckedCreateInput = {
-    id: string
+    id?: string
+    streamId?: string | null
+    txHash: string
     sender: string
     receiver: string
-    tokenAddress: string
-    amountPerSecond: bigint | number
-    totalAmount: bigint | number
+    tokenAddress?: string | null
+    amount: string
+    duration?: number | null
     status?: $Enums.StreamStatus
+    withdrawn?: string | null
   }
 
   export type StreamUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: StringFieldUpdateOperationsInput | string
     sender?: StringFieldUpdateOperationsInput | string
     receiver?: StringFieldUpdateOperationsInput | string
-    tokenAddress?: StringFieldUpdateOperationsInput | string
-    amountPerSecond?: BigIntFieldUpdateOperationsInput | bigint | number
-    totalAmount?: BigIntFieldUpdateOperationsInput | bigint | number
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumStreamStatusFieldUpdateOperationsInput | $Enums.StreamStatus
+    withdrawn?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type StreamUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: StringFieldUpdateOperationsInput | string
     sender?: StringFieldUpdateOperationsInput | string
     receiver?: StringFieldUpdateOperationsInput | string
-    tokenAddress?: StringFieldUpdateOperationsInput | string
-    amountPerSecond?: BigIntFieldUpdateOperationsInput | bigint | number
-    totalAmount?: BigIntFieldUpdateOperationsInput | bigint | number
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumStreamStatusFieldUpdateOperationsInput | $Enums.StreamStatus
+    withdrawn?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type StreamCreateManyInput = {
-    id: string
+    id?: string
+    streamId?: string | null
+    txHash: string
     sender: string
     receiver: string
-    tokenAddress: string
-    amountPerSecond: bigint | number
-    totalAmount: bigint | number
+    tokenAddress?: string | null
+    amount: string
+    duration?: number | null
     status?: $Enums.StreamStatus
+    withdrawn?: string | null
   }
 
   export type StreamUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: StringFieldUpdateOperationsInput | string
     sender?: StringFieldUpdateOperationsInput | string
     receiver?: StringFieldUpdateOperationsInput | string
-    tokenAddress?: StringFieldUpdateOperationsInput | string
-    amountPerSecond?: BigIntFieldUpdateOperationsInput | bigint | number
-    totalAmount?: BigIntFieldUpdateOperationsInput | bigint | number
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumStreamStatusFieldUpdateOperationsInput | $Enums.StreamStatus
+    withdrawn?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type StreamUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: StringFieldUpdateOperationsInput | string
     sender?: StringFieldUpdateOperationsInput | string
     receiver?: StringFieldUpdateOperationsInput | string
-    tokenAddress?: StringFieldUpdateOperationsInput | string
-    amountPerSecond?: BigIntFieldUpdateOperationsInput | bigint | number
-    totalAmount?: BigIntFieldUpdateOperationsInput | bigint | number
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    duration?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumStreamStatusFieldUpdateOperationsInput | $Enums.StreamStatus
+    withdrawn?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type WebhookCreateInput = {
+    id?: string
+    url: string
+    description?: string | null
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WebhookUncheckedCreateInput = {
+    id?: string
+    url: string
+    description?: string | null
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WebhookUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WebhookUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WebhookCreateManyInput = {
+    id?: string
+    url: string
+    description?: string | null
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WebhookUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WebhookUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type SyncStateCreateInput = {
@@ -4400,6 +6613,48 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type LedgerHashCreateInput = {
+    sequence: number
+    hash: string
+    createdAt?: Date | string
+  }
+
+  export type LedgerHashUncheckedCreateInput = {
+    sequence: number
+    hash: string
+    createdAt?: Date | string
+  }
+
+  export type LedgerHashUpdateInput = {
+    sequence?: IntFieldUpdateOperationsInput | number
+    hash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerHashUncheckedUpdateInput = {
+    sequence?: IntFieldUpdateOperationsInput | number
+    hash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerHashCreateManyInput = {
+    sequence: number
+    hash: string
+    createdAt?: Date | string
+  }
+
+  export type LedgerHashUpdateManyMutationInput = {
+    sequence?: IntFieldUpdateOperationsInput | number
+    hash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LedgerHashUncheckedUpdateManyInput = {
+    sequence?: IntFieldUpdateOperationsInput | number
+    hash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -4415,15 +6670,30 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
-  export type BigIntFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type EnumStreamStatusFilter<$PrismaModel = never> = {
@@ -4433,44 +6703,56 @@ export namespace Prisma {
     not?: NestedEnumStreamStatusFilter<$PrismaModel> | $Enums.StreamStatus
   }
 
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
+  }
+
   export type StreamCountOrderByAggregateInput = {
     id?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
     sender?: SortOrder
     receiver?: SortOrder
     tokenAddress?: SortOrder
-    amountPerSecond?: SortOrder
-    totalAmount?: SortOrder
+    amount?: SortOrder
+    duration?: SortOrder
     status?: SortOrder
+    withdrawn?: SortOrder
   }
 
   export type StreamAvgOrderByAggregateInput = {
-    amountPerSecond?: SortOrder
-    totalAmount?: SortOrder
+    duration?: SortOrder
   }
 
   export type StreamMaxOrderByAggregateInput = {
     id?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
     sender?: SortOrder
     receiver?: SortOrder
     tokenAddress?: SortOrder
-    amountPerSecond?: SortOrder
-    totalAmount?: SortOrder
+    amount?: SortOrder
+    duration?: SortOrder
     status?: SortOrder
+    withdrawn?: SortOrder
   }
 
   export type StreamMinOrderByAggregateInput = {
     id?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
     sender?: SortOrder
     receiver?: SortOrder
     tokenAddress?: SortOrder
-    amountPerSecond?: SortOrder
-    totalAmount?: SortOrder
+    amount?: SortOrder
+    duration?: SortOrder
     status?: SortOrder
+    withdrawn?: SortOrder
   }
 
   export type StreamSumOrderByAggregateInput = {
-    amountPerSecond?: SortOrder
-    totalAmount?: SortOrder
+    duration?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -4491,20 +6773,38 @@ export namespace Prisma {
     _max?: NestedStringFilter<$PrismaModel>
   }
 
-  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedBigIntFilter<$PrismaModel>
-    _min?: NestedBigIntFilter<$PrismaModel>
-    _max?: NestedBigIntFilter<$PrismaModel>
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type EnumStreamStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -4515,6 +6815,71 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumStreamStatusFilter<$PrismaModel>
     _max?: NestedEnumStreamStatusFilter<$PrismaModel>
+  }
+
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type DateTimeFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+  }
+
+  export type WebhookCountOrderByAggregateInput = {
+    id?: SortOrder
+    url?: SortOrder
+    description?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type WebhookMaxOrderByAggregateInput = {
+    id?: SortOrder
+    url?: SortOrder
+    description?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type WebhookMinOrderByAggregateInput = {
+    id?: SortOrder
+    url?: SortOrder
+    description?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedDateTimeFilter<$PrismaModel>
+    _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -4569,21 +6934,6 @@ export namespace Prisma {
     _max?: NestedIntFilter<$PrismaModel>
   }
 
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
   export type BigIntNullableFilter<$PrismaModel = never> = {
     equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
     in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
@@ -4593,22 +6943,6 @@ export namespace Prisma {
     gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
     gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
     not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
-  }
-
-  export type DateTimeFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
-  }
-
-  export type SortOrderInput = {
-    sort: SortOrder
-    nulls?: NullsOrder
   }
 
   export type EventLogCountOrderByAggregateInput = {
@@ -4663,24 +6997,6 @@ export namespace Prisma {
     amount?: SortOrder
   }
 
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
   export type BigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
     in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
@@ -4697,34 +7013,58 @@ export namespace Prisma {
     _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
-  export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedDateTimeFilter<$PrismaModel>
-    _max?: NestedDateTimeFilter<$PrismaModel>
+  export type LedgerHashCountOrderByAggregateInput = {
+    sequence?: SortOrder
+    hash?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerHashAvgOrderByAggregateInput = {
+    sequence?: SortOrder
+  }
+
+  export type LedgerHashMaxOrderByAggregateInput = {
+    sequence?: SortOrder
+    hash?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerHashMinOrderByAggregateInput = {
+    sequence?: SortOrder
+    hash?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type LedgerHashSumOrderByAggregateInput = {
+    sequence?: SortOrder
   }
 
   export type StringFieldUpdateOperationsInput = {
     set?: string
   }
 
-  export type BigIntFieldUpdateOperationsInput = {
-    set?: bigint | number
-    increment?: bigint | number
-    decrement?: bigint | number
-    multiply?: bigint | number
-    divide?: bigint | number
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
   }
 
   export type EnumStreamStatusFieldUpdateOperationsInput = {
     set?: $Enums.StreamStatus
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
+  export type DateTimeFieldUpdateOperationsInput = {
+    set?: Date | string
   }
 
   export type IntFieldUpdateOperationsInput = {
@@ -4735,20 +7075,12 @@ export namespace Prisma {
     divide?: number
   }
 
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
-  }
-
   export type NullableBigIntFieldUpdateOperationsInput = {
     set?: bigint | number | null
     increment?: bigint | number
     decrement?: bigint | number
     multiply?: bigint | number
     divide?: bigint | number
-  }
-
-  export type DateTimeFieldUpdateOperationsInput = {
-    set?: Date | string
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -4765,15 +7097,29 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
-  export type NestedBigIntFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  export type NestedStringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedEnumStreamStatusFilter<$PrismaModel = never> = {
@@ -4811,31 +7157,48 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
-  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedBigIntFilter<$PrismaModel>
-    _min?: NestedBigIntFilter<$PrismaModel>
-    _max?: NestedBigIntFilter<$PrismaModel>
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+  export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
+  }
+
+  export type NestedFloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
     lt?: number | FloatFieldRefInput<$PrismaModel>
     lte?: number | FloatFieldRefInput<$PrismaModel>
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedEnumStreamStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -4846,6 +7209,44 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumStreamStatusFilter<$PrismaModel>
     _max?: NestedEnumStreamStatusFilter<$PrismaModel>
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedDateTimeFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedDateTimeFilter<$PrismaModel>
+    _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -4864,18 +7265,15 @@ export namespace Prisma {
     _max?: NestedIntFilter<$PrismaModel>
   }
 
-  export type NestedStringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
   export type NestedBigIntNullableFilter<$PrismaModel = never> = {
@@ -4887,45 +7285,6 @@ export namespace Prisma {
     gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
     gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
     not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
-  }
-
-  export type NestedDateTimeFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
-  }
-
-  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
-  export type NestedIntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedBigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -4944,31 +7303,6 @@ export namespace Prisma {
     _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
-  export type NestedFloatNullableFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
-  }
-
-  export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedDateTimeFilter<$PrismaModel>
-    _max?: NestedDateTimeFilter<$PrismaModel>
-  }
-
 
 
   /**
@@ -4979,6 +7313,10 @@ export namespace Prisma {
      */
     export type StreamArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = StreamDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use WebhookDefaultArgs instead
+     */
+    export type WebhookArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WebhookDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use SyncStateDefaultArgs instead
      */
     export type SyncStateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SyncStateDefaultArgs<ExtArgs>
@@ -4986,6 +7324,10 @@ export namespace Prisma {
      * @deprecated Use EventLogDefaultArgs instead
      */
     export type EventLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = EventLogDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use LedgerHashDefaultArgs instead
+     */
+    export type LedgerHashArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LedgerHashDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

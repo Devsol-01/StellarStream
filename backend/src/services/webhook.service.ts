@@ -1,7 +1,6 @@
-import { PrismaClient } from "../generated/client/client.js";
+import { PrismaClient } from "../generated/client/index.js";
 import { logger } from "../logger.js";
 
-// @ts-expect-error Prisma Client may not be generated yet
 const prisma = new PrismaClient();
 
 export interface WebhookPayload {
@@ -20,7 +19,7 @@ export class WebhookService {
    */
   async trigger(payload: WebhookPayload): Promise<void> {
     try {
-      const activeWebhooks = await prisma.webhook.findMany({
+      const activeWebhooks = await (prisma as unknown as { webhook: { findMany: (arg: { where: { isActive: boolean } }) => Promise<{ url: string }[]> } }).webhook.findMany({
         where: { isActive: true },
       });
 
@@ -31,7 +30,7 @@ export class WebhookService {
 
       logger.info(`Triggering ${activeWebhooks.length} webhooks for stream ${payload.streamId || payload.txHash}`);
 
-      const requests = activeWebhooks.map(async (webhook) => {
+      const requests = activeWebhooks.map(async (webhook: { url: string }) => {
         try {
           const response = await fetch(webhook.url, {
             method: "POST",

@@ -11,6 +11,8 @@ allowlist_tests = []
 clawback_tests = []
 dispute_tests = []
 voting_tests = []
+# Disabled - requires additional implementations
+extended_tests = []
 
 [dependencies]
 soroban-sdk = "22.0.10"

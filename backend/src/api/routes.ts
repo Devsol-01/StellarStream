@@ -104,7 +104,7 @@ export function createBatchRoutes(
                     });
                     return;
                 }
-                const result = await getStreamGraph(id, batchService, prisma as PrismaClient);
+                const result = await getStreamGraph(id, batchService, prisma);
                 if (result === null) {
                     res.status(404).json({
                         error: "Stream not found.",

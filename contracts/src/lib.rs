@@ -41,11 +41,11 @@ mod ttl_stress_test;
 
 use errors::Error;
 use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Vec};
-use storage::{PROPOSAL_COUNT, RECEIPT, STREAM_COUNT};
+use storage::{PROPOSAL_COUNT, RECEIPT, RESTRICTED_ADDRESSES, STREAM_COUNT};
 use types::{
     ContributorRequest, CurveType, DataKey, Milestone, ProposalApprovedEvent, ProposalCreatedEvent,
-    RequestCreatedEvent, RequestExecutedEvent, RequestKey, RequestStatus, Role, Stream,
-    StreamCreatedEvent, StreamProposal, StreamReceipt,
+    ReceiptMetadata, RequestCreatedEvent, RequestExecutedEvent, RequestKey, RequestStatus, Role,
+    Stream, StreamCreatedEvent, StreamProposal, StreamReceipt,
 };
 
 #[contract]
@@ -80,7 +80,7 @@ impl StellarStreamContract {
             return Err(Error::ProposalExpired);
         }
         if Self::is_address_restricted(env.clone(), receiver.clone()) {
-            panic_with_error!(&env, Error::AddressRestricted);
+            soroban_sdk::panic_with_error!(&env, Error::AddressRestricted);
         }
 
         let proposal_id: u64 = env.storage().instance().get(&PROPOSAL_COUNT).unwrap_or(0);
@@ -302,7 +302,7 @@ impl StellarStreamContract {
             return Err(Error::InvalidAmount);
         }
         if Self::is_address_restricted(env.clone(), receiver.clone()) {
-            panic_with_error!(&env, Error::AddressRestricted);
+            soroban_sdk::panic_with_error!(&env, Error::AddressRestricted);
         }
 
         // Validate vault if provided
@@ -515,7 +515,7 @@ impl StellarStreamContract {
             .get(&DataKey::Role(admin, Role::Admin))
             .unwrap_or(false);
         if !has_admin {
-            panic_with_error!(&env, Error::Unauthorized);
+            soroban_sdk::panic_with_error!(&env, Error::Unauthorized);
         }
         let mut list: Vec<Address> = env
             .storage()
@@ -545,7 +545,7 @@ impl StellarStreamContract {
             .get(&DataKey::Role(admin, Role::Admin))
             .unwrap_or(false);
         if !has_admin {
-            panic_with_error!(&env, Error::Unauthorized);
+            soroban_sdk::panic_with_error!(&env, Error::Unauthorized);
         }
         let list: Vec<Address> = env
             .storage()
@@ -581,6 +581,7 @@ impl StellarStreamContract {
     }
 
     /// Extend instance storage TTL so long-lived streams remain accessible.
+    #[allow(dead_code)]
     fn extend_contract_ttl(env: &Env) {
         const EXTEND_LEDGERS: u32 = 6_000_000; // ~1 year at 5s/ledger
         env.storage()
@@ -1029,7 +1030,7 @@ impl StellarStreamContract {
     ) -> Result<(), Error> {
         caller.require_auth();
         if Self::is_address_restricted(env.clone(), new_owner.clone()) {
-            panic_with_error!(&env, Error::AddressRestricted);
+            soroban_sdk::panic_with_error!(&env, Error::AddressRestricted);
         }
         let key = (RECEIPT, stream_id);
         let mut receipt: StreamReceipt = env
