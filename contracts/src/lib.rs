@@ -41,13 +41,11 @@ mod ttl_stress_test;
 
 use errors::Error;
 use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Vec};
-use storage::{PROPOSAL_COUNT, RECEIPT, RESTRICTED_ADDRESSES, STREAM_COUNT};
+use storage::{PROPOSAL_COUNT, RECEIPT, STREAM_COUNT};
 use types::{
-    ClawbackEvent, ContributorRequest, CurveType, DataKey, Milestone, ProposalApprovedEvent,
-    ProposalCreatedEvent, ReceiptMetadata, ReceiptTransferredEvent, RequestCreatedEvent,
-    RequestExecutedEvent, RequestKey, RequestStatus, Role, Stream, StreamCancelledEvent,
-    StreamClaimEvent, StreamCreatedEvent, StreamPausedEvent, StreamProposal, StreamReceipt,
-    StreamUnpausedEvent,
+    ContributorRequest, CurveType, DataKey, Milestone, ProposalApprovedEvent,
+    ProposalCreatedEvent, RequestCreatedEvent, RequestExecutedEvent, RequestKey, RequestStatus,
+    Role, Stream, StreamCreatedEvent, StreamProposal, StreamReceipt,
 };
 
 #[contract]
@@ -427,56 +425,22 @@ impl StellarStreamContract {
             .set(&DataKey::Role(admin.clone(), Role::TreasuryManager), &true);
     }
 
-    pub fn grant_role(env: Env, admin: Address, target: Address, role: Role) {
-        admin.require_auth();
-
-        // Check if admin has Admin role
-        let has_admin_role: bool = env
+    /// Returns true if the given vault address is in the approved vaults list.
+    pub fn is_vault_approved(env: Env, vault: Address) -> bool {
+        let approved: Vec<Address> = env
             .storage()
             .instance()
-            .get(&DataKey::Role(admin, Role::Admin))
-            .unwrap_or(false);
-
-        if !has_admin_role {
-            panic!("Unauthorized");
-        }
-
-        env.storage()
-            .instance()
-            .set(&DataKey::Role(target, role), &true);
+            .get(&DataKey::ApprovedVaults)
+            .unwrap_or(Vec::new(&env));
+        approved.contains(vault)
     }
 
-    pub fn revoke_role(env: Env, admin: Address, target: Address, role: Role) {
-        admin.require_auth();
-
-        // Check if admin has Admin role
-        let has_admin_role: bool = env
-            .storage()
-            .instance()
-            .get(&DataKey::Role(admin, Role::Admin))
-            .unwrap_or(false);
-
-        if !has_admin_role {
-            panic!("Unauthorized");
-        }
-
+    /// Extend instance storage TTL so long-lived streams remain accessible.
+    fn extend_contract_ttl(env: &Env) {
+        const EXTEND_LEDGERS: u32 = 6_000_000; // ~1 year at 5s/ledger
         env.storage()
             .instance()
-            .remove(&DataKey::Role(target, role));
-    }
-
-    pub fn check_role(env: Env, address: Address, role: Role) -> bool {
-        env.storage()
-            .instance()
-            .get(&DataKey::Role(address, role))
-            .unwrap_or(false)
-    }
-
-    pub fn get_admin(env: Env) -> Address {
-        env.storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("Admin not set")
+            .extend_ttl(EXTEND_LEDGERS, EXTEND_LEDGERS);
     }
 
     fn mint_receipt(env: &Env, stream_id: u64, owner: &Address) {
@@ -787,53 +751,6 @@ impl StellarStreamContract {
                 .unwrap_or((stream.total_amount * effective_elapsed) / duration)
             }
         }
-
-        let duration = (stream.end_time - stream.start_time) as i128;
-        (total_usd * effective_elapsed) / duration
-    }
-
-    // ========== RBAC Functions ==========
-
-    /// Grant a role to an address (Admin only)
-    pub fn grant_role(env: Env, admin: Address, target: Address, role: Role) {
-        admin.require_auth();
-
-        // Check if caller has Admin role
-        if !Self::has_role(&env, &admin, Role::Admin) {
-            panic!("{}", Error::Unauthorized as u32);
-        }
-
-        // Grant the role
-        env.storage()
-            .instance()
-            .set(&DataKey::Role(target.clone(), role.clone()), &true);
-
-        // Emit event
-        env.events().publish((symbol_short!("grant"), target), role);
-    }
-
-    /// Revoke a role from an address (Admin only)
-    pub fn revoke_role(env: Env, admin: Address, target: Address, role: Role) {
-        admin.require_auth();
-
-        // Check if caller has Admin role
-        if !Self::has_role(&env, &admin, Role::Admin) {
-            return; // Error::Unauthorized;
-        }
-
-        // Revoke the role
-        env.storage()
-            .instance()
-            .remove(&DataKey::Role(target.clone(), role.clone()));
-
-        // Emit event
-        env.events()
-            .publish((symbol_short!("revoke"), target), role);
-    }
-
-    /// Check if an address has a specific role
-    pub fn check_role(env: Env, address: Address, role: Role) -> bool {
-        Self::has_role(&env, &address, role)
     }
 
     /// Internal helper to check if an address has a role
@@ -863,14 +780,6 @@ impl StellarStreamContract {
         // Emit upgrade event with new WASM hash
         env.events()
             .publish((symbol_short!("upgrade"), admin), new_wasm_hash);
-    }
-
-    /// Get the current admin address (for backward compatibility)
-    pub fn get_admin(env: Env) -> Address {
-        env.storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("Admin not set")
     }
 
     // --- CONTRIBUTOR PULL-REQUEST PAYMENTS ---
@@ -947,6 +856,7 @@ impl StellarStreamContract {
             request.start_time,
             request.start_time + request.duration,
             CurveType::Linear,
+            false, // is_soulbound
         )?;
         env.events().publish(
             (
@@ -972,9 +882,16 @@ impl StellarStreamContract {
 
 // Contract metadata for explorer display (Stellar.Expert, etc.)
 soroban_sdk::contractmeta!(
-    desc = "StellarStream: Token streaming with multi-sig proposals, dynamic vesting curves (linear/exponential), yield optimization, and OFAC compliance. Create, manage, and withdraw from streams with flexible approval workflows.",
-    version = "0.1.0",
-    name = "StellarStream"
+    key = "Description",
+    val = "StellarStream: Token streaming with multi-sig proposals, dynamic vesting curves (linear/exponential), yield optimization, and OFAC compliance. Create, manage, and withdraw from streams with flexible approval workflows."
+);
+soroban_sdk::contractmeta!(
+    key = "Version",
+    val = "0.1.0"
+);
+soroban_sdk::contractmeta!(
+    key = "Name",
+    val = "StellarStream"
 );
 
 #[cfg(test)]

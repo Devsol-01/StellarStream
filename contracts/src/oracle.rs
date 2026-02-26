@@ -1,6 +1,7 @@
 use soroban_sdk::{Address, Env};
 
 /// Fetch price from oracle with staleness check
+#[allow(dead_code)]
 pub fn get_price(env: &Env, oracle: &Address, max_staleness: u64) -> Result<i128, ()> {
     // Call oracle contract to get latest price
     // Oracle interface: get_price() -> (price: i128, timestamp: u64)
@@ -32,6 +33,7 @@ pub fn get_price(env: &Env, oracle: &Address, max_staleness: u64) -> Result<i128
 /// usd_amount: USD value with 7 decimals
 /// price: Token price in USD with 7 decimals
 /// Returns: Token amount with 7 decimals
+#[allow(dead_code)]
 pub fn calculate_token_amount(usd_amount: i128, price: i128) -> Result<i128, ()> {
     if price <= 0 {
         return Err(());

@@ -10,6 +10,7 @@ use crate::types::{
 /// - 0b100 (4): All to protocol
 /// - 0b011 (3): 50/50 sender/receiver
 /// - 0b111 (7): 33/33/33 split among all three
+#[allow(dead_code)]
 pub fn calculate_interest_distribution(
     total_interest: i128,
     strategy: u32,
@@ -90,6 +91,7 @@ pub fn calculate_interest_distribution(
 
 /// Calculate the interest earned from a vault
 /// This compares the current vault balance with the original principal
+#[allow(dead_code)]
 pub fn calculate_vault_interest(current_vault_value: i128, original_principal: i128) -> i128 {
     if current_vault_value > original_principal {
         current_vault_value - original_principal
