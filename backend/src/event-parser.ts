@@ -5,7 +5,7 @@
 import { SorobanRpc, xdr, scValToNative } from "@stellar/stellar-sdk";
 import { ParsedContractEvent } from "./types";
 import { logger } from "./logger";
-
+import * as Sentry from "@sentry/node";
 /**
  * Parse raw Stellar event into structured format
  */
@@ -107,6 +107,14 @@ function parseScVal(scVal: xdr.ScVal): unknown {
         return scVal.toXDR("base64");
     }
   } catch (error) {
+    Sentry.withScope((scope) => {
+      scope.setTag("failure_type", "indexer_failure");
+      scope.setTag("event_type", "xdr_parse_failure");
+      scope.setContext("xdr_payload", {
+        raw: scVal.toXDR("base64")        // the raw XDR strin
+      });
+      Sentry.captureException(error);
+    });
     logger.warn("Failed to parse ScVal, returning raw XDR", { error });
     return scVal.toXDR("base64");
   }

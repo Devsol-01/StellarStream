@@ -16,6 +16,8 @@ import {
   toObjectOrNull,
 } from "./services/stream-lifecycle-service";
 import { WebhookService } from "./services/webhook.service";
+import * as Sentry from "@sentry/node";
+
 
 const prisma = new PrismaClient();
 
@@ -135,6 +137,15 @@ export class EventWatcher {
         // Wait before next poll
         await this.sleep(this.config.pollIntervalMs);
       } catch (error) {
+
+        Sentry.withScope((scope) => {
+          scope.setTag("failure_type", "indexer_failure");
+          scope.setContext("indexer", {
+            lastProcessedLedger: this.state.lastProcessedLedger,
+            errorCount: this.state.errorCount,
+          });
+          Sentry.captureException(error);
+        });
         this.state.errorCount++;
         this.state.lastError = error instanceof Error ? error : new Error(String(error));
 

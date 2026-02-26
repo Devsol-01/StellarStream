@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import express, { Express, Request, Response } from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -17,6 +18,12 @@ import batchRoutes from './api/routes.js';
 import healthRoutes from './api/health.routes.js';
 import { scheduleSnapshotMaintenance } from './services/snapshot.scheduler.js';
 
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN, // add to .env
+  environment: process.env.NODE_ENV ?? "development",
+  tracesSampleRate: 1.0,
+});
 const app: Express = express();
 const server = createServer(app);
 const io = new SocketIOServer(server, {
@@ -27,6 +34,8 @@ const io = new SocketIOServer(server, {
 });
 
 const PORT = process.env.PORT ?? 3000;
+
+
 
 const wsService = new WebSocketService(io);
 // Security: Helmet for secure HTTP headers
@@ -114,6 +123,8 @@ async function start(): Promise<void> {
   // Batch metadata endpoint for bulk streaming queries
   app.use(batchRoutes);
   app.use(healthRoutes);
+
+  Sentry.setupExpressErrorHandler(app);
   
   // Initialize snapshot maintenance scheduler
   scheduleSnapshotMaintenance();
