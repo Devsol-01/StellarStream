@@ -14,3 +14,6 @@ export {
   type StreamMetadataResult,
   type StreamMetadataError,
 } from "./batch-metadata.service.js";
+
+export { SnapshotService } from "./snapshot.service.js";
+export { scheduleSnapshotMaintenance, runMaintenanceNow } from "./snapshot.scheduler.js";
