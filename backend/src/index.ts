@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import express, { Express, Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -12,8 +13,16 @@ import { prisma } from './lib/db.js';
 import batchRoutes from './api/routes.js';
 import healthRoutes from './api/health.routes.js';
 
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN, // add to .env
+  environment: process.env.NODE_ENV ?? "development",
+  tracesSampleRate: 1.0,
+});
 const app: Express = express();
 const PORT = process.env.PORT ?? 3000;
+
+
 
 // Security: Helmet for secure HTTP headers
 app.use(helmet({
@@ -77,6 +86,8 @@ async function start(): Promise<void> {
   // Batch metadata endpoint for bulk streaming queries
   app.use(batchRoutes);
   app.use(healthRoutes);
+
+  Sentry.setupExpressErrorHandler(app);
   
   app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
