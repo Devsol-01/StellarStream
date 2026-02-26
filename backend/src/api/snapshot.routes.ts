@@ -57,16 +57,17 @@ router.get("/:streamId", async (req: Request, res: Response) => {
  * GET /api/v1/snapshots/:streamId/:month
  * Get snapshot for a specific month
  */
-router.get("/:streamId/:month", async (req: Request, res: Response) => {
+router.get("/:streamId/:month", async (req: Request, res: Response): Promise<void> => {
   try {
     const { streamId, month } = req.params;
     const snapshot = await snapshotService.getSnapshot(streamId, month);
     
     if (!snapshot) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         error: "Snapshot not found",
       });
+      return;
     }
     
     res.json({

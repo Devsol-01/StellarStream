@@ -28,6 +28,16 @@ export type SyncState = $Result.DefaultSelection<Prisma.$SyncStatePayload>
  * 
  */
 export type EventLog = $Result.DefaultSelection<Prisma.$EventLogPayload>
+/**
+ * Model StreamSnapshot
+ * 
+ */
+export type StreamSnapshot = $Result.DefaultSelection<Prisma.$StreamSnapshotPayload>
+/**
+ * Model StreamArchive
+ * 
+ */
+export type StreamArchive = $Result.DefaultSelection<Prisma.$StreamArchivePayload>
 
 /**
  * Enums
@@ -200,6 +210,26 @@ export class PrismaClient<
     * ```
     */
   get eventLog(): Prisma.EventLogDelegate<ExtArgs>;
+
+  /**
+   * `prisma.streamSnapshot`: Exposes CRUD operations for the **StreamSnapshot** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more StreamSnapshots
+    * const streamSnapshots = await prisma.streamSnapshot.findMany()
+    * ```
+    */
+  get streamSnapshot(): Prisma.StreamSnapshotDelegate<ExtArgs>;
+
+  /**
+   * `prisma.streamArchive`: Exposes CRUD operations for the **StreamArchive** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more StreamArchives
+    * const streamArchives = await prisma.streamArchive.findMany()
+    * ```
+    */
+  get streamArchive(): Prisma.StreamArchiveDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -643,7 +673,9 @@ export namespace Prisma {
   export const ModelName: {
     Stream: 'Stream',
     SyncState: 'SyncState',
-    EventLog: 'EventLog'
+    EventLog: 'EventLog',
+    StreamSnapshot: 'StreamSnapshot',
+    StreamArchive: 'StreamArchive'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -659,7 +691,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "stream" | "syncState" | "eventLog"
+      modelProps: "stream" | "syncState" | "eventLog" | "streamSnapshot" | "streamArchive"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -870,6 +902,146 @@ export namespace Prisma {
           count: {
             args: Prisma.EventLogCountArgs<ExtArgs>
             result: $Utils.Optional<EventLogCountAggregateOutputType> | number
+          }
+        }
+      }
+      StreamSnapshot: {
+        payload: Prisma.$StreamSnapshotPayload<ExtArgs>
+        fields: Prisma.StreamSnapshotFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.StreamSnapshotFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamSnapshotPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.StreamSnapshotFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamSnapshotPayload>
+          }
+          findFirst: {
+            args: Prisma.StreamSnapshotFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamSnapshotPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.StreamSnapshotFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamSnapshotPayload>
+          }
+          findMany: {
+            args: Prisma.StreamSnapshotFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamSnapshotPayload>[]
+          }
+          create: {
+            args: Prisma.StreamSnapshotCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamSnapshotPayload>
+          }
+          createMany: {
+            args: Prisma.StreamSnapshotCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.StreamSnapshotCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamSnapshotPayload>[]
+          }
+          delete: {
+            args: Prisma.StreamSnapshotDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamSnapshotPayload>
+          }
+          update: {
+            args: Prisma.StreamSnapshotUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamSnapshotPayload>
+          }
+          deleteMany: {
+            args: Prisma.StreamSnapshotDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.StreamSnapshotUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.StreamSnapshotUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamSnapshotPayload>
+          }
+          aggregate: {
+            args: Prisma.StreamSnapshotAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateStreamSnapshot>
+          }
+          groupBy: {
+            args: Prisma.StreamSnapshotGroupByArgs<ExtArgs>
+            result: $Utils.Optional<StreamSnapshotGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.StreamSnapshotCountArgs<ExtArgs>
+            result: $Utils.Optional<StreamSnapshotCountAggregateOutputType> | number
+          }
+        }
+      }
+      StreamArchive: {
+        payload: Prisma.$StreamArchivePayload<ExtArgs>
+        fields: Prisma.StreamArchiveFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.StreamArchiveFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamArchivePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.StreamArchiveFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamArchivePayload>
+          }
+          findFirst: {
+            args: Prisma.StreamArchiveFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamArchivePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.StreamArchiveFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamArchivePayload>
+          }
+          findMany: {
+            args: Prisma.StreamArchiveFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamArchivePayload>[]
+          }
+          create: {
+            args: Prisma.StreamArchiveCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamArchivePayload>
+          }
+          createMany: {
+            args: Prisma.StreamArchiveCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.StreamArchiveCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamArchivePayload>[]
+          }
+          delete: {
+            args: Prisma.StreamArchiveDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamArchivePayload>
+          }
+          update: {
+            args: Prisma.StreamArchiveUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamArchivePayload>
+          }
+          deleteMany: {
+            args: Prisma.StreamArchiveDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.StreamArchiveUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.StreamArchiveUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StreamArchivePayload>
+          }
+          aggregate: {
+            args: Prisma.StreamArchiveAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateStreamArchive>
+          }
+          groupBy: {
+            args: Prisma.StreamArchiveGroupByArgs<ExtArgs>
+            result: $Utils.Optional<StreamArchiveGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.StreamArchiveCountArgs<ExtArgs>
+            result: $Utils.Optional<StreamArchiveCountAggregateOutputType> | number
           }
         }
       }
@@ -3843,6 +4015,1982 @@ export namespace Prisma {
 
 
   /**
+   * Model StreamSnapshot
+   */
+
+  export type AggregateStreamSnapshot = {
+    _count: StreamSnapshotCountAggregateOutputType | null
+    _avg: StreamSnapshotAvgAggregateOutputType | null
+    _sum: StreamSnapshotSumAggregateOutputType | null
+    _min: StreamSnapshotMinAggregateOutputType | null
+    _max: StreamSnapshotMaxAggregateOutputType | null
+  }
+
+  export type StreamSnapshotAvgAggregateOutputType = {
+    amountPerSecond: number | null
+    totalAmount: number | null
+  }
+
+  export type StreamSnapshotSumAggregateOutputType = {
+    amountPerSecond: bigint | null
+    totalAmount: bigint | null
+  }
+
+  export type StreamSnapshotMinAggregateOutputType = {
+    id: string | null
+    streamId: string | null
+    sender: string | null
+    receiver: string | null
+    tokenAddress: string | null
+    amountPerSecond: bigint | null
+    totalAmount: bigint | null
+    status: $Enums.StreamStatus | null
+    snapshotMonth: string | null
+    createdAt: Date | null
+  }
+
+  export type StreamSnapshotMaxAggregateOutputType = {
+    id: string | null
+    streamId: string | null
+    sender: string | null
+    receiver: string | null
+    tokenAddress: string | null
+    amountPerSecond: bigint | null
+    totalAmount: bigint | null
+    status: $Enums.StreamStatus | null
+    snapshotMonth: string | null
+    createdAt: Date | null
+  }
+
+  export type StreamSnapshotCountAggregateOutputType = {
+    id: number
+    streamId: number
+    sender: number
+    receiver: number
+    tokenAddress: number
+    amountPerSecond: number
+    totalAmount: number
+    status: number
+    snapshotMonth: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type StreamSnapshotAvgAggregateInputType = {
+    amountPerSecond?: true
+    totalAmount?: true
+  }
+
+  export type StreamSnapshotSumAggregateInputType = {
+    amountPerSecond?: true
+    totalAmount?: true
+  }
+
+  export type StreamSnapshotMinAggregateInputType = {
+    id?: true
+    streamId?: true
+    sender?: true
+    receiver?: true
+    tokenAddress?: true
+    amountPerSecond?: true
+    totalAmount?: true
+    status?: true
+    snapshotMonth?: true
+    createdAt?: true
+  }
+
+  export type StreamSnapshotMaxAggregateInputType = {
+    id?: true
+    streamId?: true
+    sender?: true
+    receiver?: true
+    tokenAddress?: true
+    amountPerSecond?: true
+    totalAmount?: true
+    status?: true
+    snapshotMonth?: true
+    createdAt?: true
+  }
+
+  export type StreamSnapshotCountAggregateInputType = {
+    id?: true
+    streamId?: true
+    sender?: true
+    receiver?: true
+    tokenAddress?: true
+    amountPerSecond?: true
+    totalAmount?: true
+    status?: true
+    snapshotMonth?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type StreamSnapshotAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which StreamSnapshot to aggregate.
+     */
+    where?: StreamSnapshotWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StreamSnapshots to fetch.
+     */
+    orderBy?: StreamSnapshotOrderByWithRelationInput | StreamSnapshotOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: StreamSnapshotWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StreamSnapshots from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StreamSnapshots.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned StreamSnapshots
+    **/
+    _count?: true | StreamSnapshotCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: StreamSnapshotAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: StreamSnapshotSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: StreamSnapshotMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: StreamSnapshotMaxAggregateInputType
+  }
+
+  export type GetStreamSnapshotAggregateType<T extends StreamSnapshotAggregateArgs> = {
+        [P in keyof T & keyof AggregateStreamSnapshot]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateStreamSnapshot[P]>
+      : GetScalarType<T[P], AggregateStreamSnapshot[P]>
+  }
+
+
+
+
+  export type StreamSnapshotGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: StreamSnapshotWhereInput
+    orderBy?: StreamSnapshotOrderByWithAggregationInput | StreamSnapshotOrderByWithAggregationInput[]
+    by: StreamSnapshotScalarFieldEnum[] | StreamSnapshotScalarFieldEnum
+    having?: StreamSnapshotScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: StreamSnapshotCountAggregateInputType | true
+    _avg?: StreamSnapshotAvgAggregateInputType
+    _sum?: StreamSnapshotSumAggregateInputType
+    _min?: StreamSnapshotMinAggregateInputType
+    _max?: StreamSnapshotMaxAggregateInputType
+  }
+
+  export type StreamSnapshotGroupByOutputType = {
+    id: string
+    streamId: string
+    sender: string
+    receiver: string
+    tokenAddress: string
+    amountPerSecond: bigint
+    totalAmount: bigint
+    status: $Enums.StreamStatus
+    snapshotMonth: string
+    createdAt: Date
+    _count: StreamSnapshotCountAggregateOutputType | null
+    _avg: StreamSnapshotAvgAggregateOutputType | null
+    _sum: StreamSnapshotSumAggregateOutputType | null
+    _min: StreamSnapshotMinAggregateOutputType | null
+    _max: StreamSnapshotMaxAggregateOutputType | null
+  }
+
+  type GetStreamSnapshotGroupByPayload<T extends StreamSnapshotGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<StreamSnapshotGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof StreamSnapshotGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], StreamSnapshotGroupByOutputType[P]>
+            : GetScalarType<T[P], StreamSnapshotGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type StreamSnapshotSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    streamId?: boolean
+    sender?: boolean
+    receiver?: boolean
+    tokenAddress?: boolean
+    amountPerSecond?: boolean
+    totalAmount?: boolean
+    status?: boolean
+    snapshotMonth?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["streamSnapshot"]>
+
+  export type StreamSnapshotSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    streamId?: boolean
+    sender?: boolean
+    receiver?: boolean
+    tokenAddress?: boolean
+    amountPerSecond?: boolean
+    totalAmount?: boolean
+    status?: boolean
+    snapshotMonth?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["streamSnapshot"]>
+
+  export type StreamSnapshotSelectScalar = {
+    id?: boolean
+    streamId?: boolean
+    sender?: boolean
+    receiver?: boolean
+    tokenAddress?: boolean
+    amountPerSecond?: boolean
+    totalAmount?: boolean
+    status?: boolean
+    snapshotMonth?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $StreamSnapshotPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "StreamSnapshot"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      streamId: string
+      sender: string
+      receiver: string
+      tokenAddress: string
+      amountPerSecond: bigint
+      totalAmount: bigint
+      status: $Enums.StreamStatus
+      snapshotMonth: string
+      createdAt: Date
+    }, ExtArgs["result"]["streamSnapshot"]>
+    composites: {}
+  }
+
+  type StreamSnapshotGetPayload<S extends boolean | null | undefined | StreamSnapshotDefaultArgs> = $Result.GetResult<Prisma.$StreamSnapshotPayload, S>
+
+  type StreamSnapshotCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<StreamSnapshotFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: StreamSnapshotCountAggregateInputType | true
+    }
+
+  export interface StreamSnapshotDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['StreamSnapshot'], meta: { name: 'StreamSnapshot' } }
+    /**
+     * Find zero or one StreamSnapshot that matches the filter.
+     * @param {StreamSnapshotFindUniqueArgs} args - Arguments to find a StreamSnapshot
+     * @example
+     * // Get one StreamSnapshot
+     * const streamSnapshot = await prisma.streamSnapshot.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends StreamSnapshotFindUniqueArgs>(args: SelectSubset<T, StreamSnapshotFindUniqueArgs<ExtArgs>>): Prisma__StreamSnapshotClient<$Result.GetResult<Prisma.$StreamSnapshotPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one StreamSnapshot that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {StreamSnapshotFindUniqueOrThrowArgs} args - Arguments to find a StreamSnapshot
+     * @example
+     * // Get one StreamSnapshot
+     * const streamSnapshot = await prisma.streamSnapshot.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends StreamSnapshotFindUniqueOrThrowArgs>(args: SelectSubset<T, StreamSnapshotFindUniqueOrThrowArgs<ExtArgs>>): Prisma__StreamSnapshotClient<$Result.GetResult<Prisma.$StreamSnapshotPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first StreamSnapshot that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamSnapshotFindFirstArgs} args - Arguments to find a StreamSnapshot
+     * @example
+     * // Get one StreamSnapshot
+     * const streamSnapshot = await prisma.streamSnapshot.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends StreamSnapshotFindFirstArgs>(args?: SelectSubset<T, StreamSnapshotFindFirstArgs<ExtArgs>>): Prisma__StreamSnapshotClient<$Result.GetResult<Prisma.$StreamSnapshotPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first StreamSnapshot that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamSnapshotFindFirstOrThrowArgs} args - Arguments to find a StreamSnapshot
+     * @example
+     * // Get one StreamSnapshot
+     * const streamSnapshot = await prisma.streamSnapshot.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends StreamSnapshotFindFirstOrThrowArgs>(args?: SelectSubset<T, StreamSnapshotFindFirstOrThrowArgs<ExtArgs>>): Prisma__StreamSnapshotClient<$Result.GetResult<Prisma.$StreamSnapshotPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more StreamSnapshots that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamSnapshotFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all StreamSnapshots
+     * const streamSnapshots = await prisma.streamSnapshot.findMany()
+     * 
+     * // Get first 10 StreamSnapshots
+     * const streamSnapshots = await prisma.streamSnapshot.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const streamSnapshotWithIdOnly = await prisma.streamSnapshot.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends StreamSnapshotFindManyArgs>(args?: SelectSubset<T, StreamSnapshotFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StreamSnapshotPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a StreamSnapshot.
+     * @param {StreamSnapshotCreateArgs} args - Arguments to create a StreamSnapshot.
+     * @example
+     * // Create one StreamSnapshot
+     * const StreamSnapshot = await prisma.streamSnapshot.create({
+     *   data: {
+     *     // ... data to create a StreamSnapshot
+     *   }
+     * })
+     * 
+     */
+    create<T extends StreamSnapshotCreateArgs>(args: SelectSubset<T, StreamSnapshotCreateArgs<ExtArgs>>): Prisma__StreamSnapshotClient<$Result.GetResult<Prisma.$StreamSnapshotPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many StreamSnapshots.
+     * @param {StreamSnapshotCreateManyArgs} args - Arguments to create many StreamSnapshots.
+     * @example
+     * // Create many StreamSnapshots
+     * const streamSnapshot = await prisma.streamSnapshot.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends StreamSnapshotCreateManyArgs>(args?: SelectSubset<T, StreamSnapshotCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many StreamSnapshots and returns the data saved in the database.
+     * @param {StreamSnapshotCreateManyAndReturnArgs} args - Arguments to create many StreamSnapshots.
+     * @example
+     * // Create many StreamSnapshots
+     * const streamSnapshot = await prisma.streamSnapshot.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many StreamSnapshots and only return the `id`
+     * const streamSnapshotWithIdOnly = await prisma.streamSnapshot.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends StreamSnapshotCreateManyAndReturnArgs>(args?: SelectSubset<T, StreamSnapshotCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StreamSnapshotPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a StreamSnapshot.
+     * @param {StreamSnapshotDeleteArgs} args - Arguments to delete one StreamSnapshot.
+     * @example
+     * // Delete one StreamSnapshot
+     * const StreamSnapshot = await prisma.streamSnapshot.delete({
+     *   where: {
+     *     // ... filter to delete one StreamSnapshot
+     *   }
+     * })
+     * 
+     */
+    delete<T extends StreamSnapshotDeleteArgs>(args: SelectSubset<T, StreamSnapshotDeleteArgs<ExtArgs>>): Prisma__StreamSnapshotClient<$Result.GetResult<Prisma.$StreamSnapshotPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one StreamSnapshot.
+     * @param {StreamSnapshotUpdateArgs} args - Arguments to update one StreamSnapshot.
+     * @example
+     * // Update one StreamSnapshot
+     * const streamSnapshot = await prisma.streamSnapshot.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends StreamSnapshotUpdateArgs>(args: SelectSubset<T, StreamSnapshotUpdateArgs<ExtArgs>>): Prisma__StreamSnapshotClient<$Result.GetResult<Prisma.$StreamSnapshotPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more StreamSnapshots.
+     * @param {StreamSnapshotDeleteManyArgs} args - Arguments to filter StreamSnapshots to delete.
+     * @example
+     * // Delete a few StreamSnapshots
+     * const { count } = await prisma.streamSnapshot.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends StreamSnapshotDeleteManyArgs>(args?: SelectSubset<T, StreamSnapshotDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more StreamSnapshots.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamSnapshotUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many StreamSnapshots
+     * const streamSnapshot = await prisma.streamSnapshot.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends StreamSnapshotUpdateManyArgs>(args: SelectSubset<T, StreamSnapshotUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one StreamSnapshot.
+     * @param {StreamSnapshotUpsertArgs} args - Arguments to update or create a StreamSnapshot.
+     * @example
+     * // Update or create a StreamSnapshot
+     * const streamSnapshot = await prisma.streamSnapshot.upsert({
+     *   create: {
+     *     // ... data to create a StreamSnapshot
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the StreamSnapshot we want to update
+     *   }
+     * })
+     */
+    upsert<T extends StreamSnapshotUpsertArgs>(args: SelectSubset<T, StreamSnapshotUpsertArgs<ExtArgs>>): Prisma__StreamSnapshotClient<$Result.GetResult<Prisma.$StreamSnapshotPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of StreamSnapshots.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamSnapshotCountArgs} args - Arguments to filter StreamSnapshots to count.
+     * @example
+     * // Count the number of StreamSnapshots
+     * const count = await prisma.streamSnapshot.count({
+     *   where: {
+     *     // ... the filter for the StreamSnapshots we want to count
+     *   }
+     * })
+    **/
+    count<T extends StreamSnapshotCountArgs>(
+      args?: Subset<T, StreamSnapshotCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], StreamSnapshotCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a StreamSnapshot.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamSnapshotAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends StreamSnapshotAggregateArgs>(args: Subset<T, StreamSnapshotAggregateArgs>): Prisma.PrismaPromise<GetStreamSnapshotAggregateType<T>>
+
+    /**
+     * Group by StreamSnapshot.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamSnapshotGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends StreamSnapshotGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: StreamSnapshotGroupByArgs['orderBy'] }
+        : { orderBy?: StreamSnapshotGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, StreamSnapshotGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetStreamSnapshotGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the StreamSnapshot model
+   */
+  readonly fields: StreamSnapshotFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for StreamSnapshot.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__StreamSnapshotClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the StreamSnapshot model
+   */ 
+  interface StreamSnapshotFieldRefs {
+    readonly id: FieldRef<"StreamSnapshot", 'String'>
+    readonly streamId: FieldRef<"StreamSnapshot", 'String'>
+    readonly sender: FieldRef<"StreamSnapshot", 'String'>
+    readonly receiver: FieldRef<"StreamSnapshot", 'String'>
+    readonly tokenAddress: FieldRef<"StreamSnapshot", 'String'>
+    readonly amountPerSecond: FieldRef<"StreamSnapshot", 'BigInt'>
+    readonly totalAmount: FieldRef<"StreamSnapshot", 'BigInt'>
+    readonly status: FieldRef<"StreamSnapshot", 'StreamStatus'>
+    readonly snapshotMonth: FieldRef<"StreamSnapshot", 'String'>
+    readonly createdAt: FieldRef<"StreamSnapshot", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * StreamSnapshot findUnique
+   */
+  export type StreamSnapshotFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelect<ExtArgs> | null
+    /**
+     * Filter, which StreamSnapshot to fetch.
+     */
+    where: StreamSnapshotWhereUniqueInput
+  }
+
+  /**
+   * StreamSnapshot findUniqueOrThrow
+   */
+  export type StreamSnapshotFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelect<ExtArgs> | null
+    /**
+     * Filter, which StreamSnapshot to fetch.
+     */
+    where: StreamSnapshotWhereUniqueInput
+  }
+
+  /**
+   * StreamSnapshot findFirst
+   */
+  export type StreamSnapshotFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelect<ExtArgs> | null
+    /**
+     * Filter, which StreamSnapshot to fetch.
+     */
+    where?: StreamSnapshotWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StreamSnapshots to fetch.
+     */
+    orderBy?: StreamSnapshotOrderByWithRelationInput | StreamSnapshotOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for StreamSnapshots.
+     */
+    cursor?: StreamSnapshotWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StreamSnapshots from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StreamSnapshots.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of StreamSnapshots.
+     */
+    distinct?: StreamSnapshotScalarFieldEnum | StreamSnapshotScalarFieldEnum[]
+  }
+
+  /**
+   * StreamSnapshot findFirstOrThrow
+   */
+  export type StreamSnapshotFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelect<ExtArgs> | null
+    /**
+     * Filter, which StreamSnapshot to fetch.
+     */
+    where?: StreamSnapshotWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StreamSnapshots to fetch.
+     */
+    orderBy?: StreamSnapshotOrderByWithRelationInput | StreamSnapshotOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for StreamSnapshots.
+     */
+    cursor?: StreamSnapshotWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StreamSnapshots from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StreamSnapshots.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of StreamSnapshots.
+     */
+    distinct?: StreamSnapshotScalarFieldEnum | StreamSnapshotScalarFieldEnum[]
+  }
+
+  /**
+   * StreamSnapshot findMany
+   */
+  export type StreamSnapshotFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelect<ExtArgs> | null
+    /**
+     * Filter, which StreamSnapshots to fetch.
+     */
+    where?: StreamSnapshotWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StreamSnapshots to fetch.
+     */
+    orderBy?: StreamSnapshotOrderByWithRelationInput | StreamSnapshotOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing StreamSnapshots.
+     */
+    cursor?: StreamSnapshotWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StreamSnapshots from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StreamSnapshots.
+     */
+    skip?: number
+    distinct?: StreamSnapshotScalarFieldEnum | StreamSnapshotScalarFieldEnum[]
+  }
+
+  /**
+   * StreamSnapshot create
+   */
+  export type StreamSnapshotCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelect<ExtArgs> | null
+    /**
+     * The data needed to create a StreamSnapshot.
+     */
+    data: XOR<StreamSnapshotCreateInput, StreamSnapshotUncheckedCreateInput>
+  }
+
+  /**
+   * StreamSnapshot createMany
+   */
+  export type StreamSnapshotCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many StreamSnapshots.
+     */
+    data: StreamSnapshotCreateManyInput | StreamSnapshotCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * StreamSnapshot createManyAndReturn
+   */
+  export type StreamSnapshotCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many StreamSnapshots.
+     */
+    data: StreamSnapshotCreateManyInput | StreamSnapshotCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * StreamSnapshot update
+   */
+  export type StreamSnapshotUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelect<ExtArgs> | null
+    /**
+     * The data needed to update a StreamSnapshot.
+     */
+    data: XOR<StreamSnapshotUpdateInput, StreamSnapshotUncheckedUpdateInput>
+    /**
+     * Choose, which StreamSnapshot to update.
+     */
+    where: StreamSnapshotWhereUniqueInput
+  }
+
+  /**
+   * StreamSnapshot updateMany
+   */
+  export type StreamSnapshotUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update StreamSnapshots.
+     */
+    data: XOR<StreamSnapshotUpdateManyMutationInput, StreamSnapshotUncheckedUpdateManyInput>
+    /**
+     * Filter which StreamSnapshots to update
+     */
+    where?: StreamSnapshotWhereInput
+  }
+
+  /**
+   * StreamSnapshot upsert
+   */
+  export type StreamSnapshotUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelect<ExtArgs> | null
+    /**
+     * The filter to search for the StreamSnapshot to update in case it exists.
+     */
+    where: StreamSnapshotWhereUniqueInput
+    /**
+     * In case the StreamSnapshot found by the `where` argument doesn't exist, create a new StreamSnapshot with this data.
+     */
+    create: XOR<StreamSnapshotCreateInput, StreamSnapshotUncheckedCreateInput>
+    /**
+     * In case the StreamSnapshot was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<StreamSnapshotUpdateInput, StreamSnapshotUncheckedUpdateInput>
+  }
+
+  /**
+   * StreamSnapshot delete
+   */
+  export type StreamSnapshotDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelect<ExtArgs> | null
+    /**
+     * Filter which StreamSnapshot to delete.
+     */
+    where: StreamSnapshotWhereUniqueInput
+  }
+
+  /**
+   * StreamSnapshot deleteMany
+   */
+  export type StreamSnapshotDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which StreamSnapshots to delete
+     */
+    where?: StreamSnapshotWhereInput
+  }
+
+  /**
+   * StreamSnapshot without action
+   */
+  export type StreamSnapshotDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamSnapshot
+     */
+    select?: StreamSnapshotSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model StreamArchive
+   */
+
+  export type AggregateStreamArchive = {
+    _count: StreamArchiveCountAggregateOutputType | null
+    _avg: StreamArchiveAvgAggregateOutputType | null
+    _sum: StreamArchiveSumAggregateOutputType | null
+    _min: StreamArchiveMinAggregateOutputType | null
+    _max: StreamArchiveMaxAggregateOutputType | null
+  }
+
+  export type StreamArchiveAvgAggregateOutputType = {
+    ledger: number | null
+    amount: number | null
+  }
+
+  export type StreamArchiveSumAggregateOutputType = {
+    ledger: number | null
+    amount: bigint | null
+  }
+
+  export type StreamArchiveMinAggregateOutputType = {
+    id: string | null
+    eventType: string | null
+    streamId: string | null
+    txHash: string | null
+    ledger: number | null
+    ledgerClosedAt: string | null
+    sender: string | null
+    receiver: string | null
+    amount: bigint | null
+    metadata: string | null
+    createdAt: Date | null
+    archivedAt: Date | null
+  }
+
+  export type StreamArchiveMaxAggregateOutputType = {
+    id: string | null
+    eventType: string | null
+    streamId: string | null
+    txHash: string | null
+    ledger: number | null
+    ledgerClosedAt: string | null
+    sender: string | null
+    receiver: string | null
+    amount: bigint | null
+    metadata: string | null
+    createdAt: Date | null
+    archivedAt: Date | null
+  }
+
+  export type StreamArchiveCountAggregateOutputType = {
+    id: number
+    eventType: number
+    streamId: number
+    txHash: number
+    ledger: number
+    ledgerClosedAt: number
+    sender: number
+    receiver: number
+    amount: number
+    metadata: number
+    createdAt: number
+    archivedAt: number
+    _all: number
+  }
+
+
+  export type StreamArchiveAvgAggregateInputType = {
+    ledger?: true
+    amount?: true
+  }
+
+  export type StreamArchiveSumAggregateInputType = {
+    ledger?: true
+    amount?: true
+  }
+
+  export type StreamArchiveMinAggregateInputType = {
+    id?: true
+    eventType?: true
+    streamId?: true
+    txHash?: true
+    ledger?: true
+    ledgerClosedAt?: true
+    sender?: true
+    receiver?: true
+    amount?: true
+    metadata?: true
+    createdAt?: true
+    archivedAt?: true
+  }
+
+  export type StreamArchiveMaxAggregateInputType = {
+    id?: true
+    eventType?: true
+    streamId?: true
+    txHash?: true
+    ledger?: true
+    ledgerClosedAt?: true
+    sender?: true
+    receiver?: true
+    amount?: true
+    metadata?: true
+    createdAt?: true
+    archivedAt?: true
+  }
+
+  export type StreamArchiveCountAggregateInputType = {
+    id?: true
+    eventType?: true
+    streamId?: true
+    txHash?: true
+    ledger?: true
+    ledgerClosedAt?: true
+    sender?: true
+    receiver?: true
+    amount?: true
+    metadata?: true
+    createdAt?: true
+    archivedAt?: true
+    _all?: true
+  }
+
+  export type StreamArchiveAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which StreamArchive to aggregate.
+     */
+    where?: StreamArchiveWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StreamArchives to fetch.
+     */
+    orderBy?: StreamArchiveOrderByWithRelationInput | StreamArchiveOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: StreamArchiveWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StreamArchives from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StreamArchives.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned StreamArchives
+    **/
+    _count?: true | StreamArchiveCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: StreamArchiveAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: StreamArchiveSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: StreamArchiveMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: StreamArchiveMaxAggregateInputType
+  }
+
+  export type GetStreamArchiveAggregateType<T extends StreamArchiveAggregateArgs> = {
+        [P in keyof T & keyof AggregateStreamArchive]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateStreamArchive[P]>
+      : GetScalarType<T[P], AggregateStreamArchive[P]>
+  }
+
+
+
+
+  export type StreamArchiveGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: StreamArchiveWhereInput
+    orderBy?: StreamArchiveOrderByWithAggregationInput | StreamArchiveOrderByWithAggregationInput[]
+    by: StreamArchiveScalarFieldEnum[] | StreamArchiveScalarFieldEnum
+    having?: StreamArchiveScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: StreamArchiveCountAggregateInputType | true
+    _avg?: StreamArchiveAvgAggregateInputType
+    _sum?: StreamArchiveSumAggregateInputType
+    _min?: StreamArchiveMinAggregateInputType
+    _max?: StreamArchiveMaxAggregateInputType
+  }
+
+  export type StreamArchiveGroupByOutputType = {
+    id: string
+    eventType: string
+    streamId: string
+    txHash: string
+    ledger: number
+    ledgerClosedAt: string
+    sender: string | null
+    receiver: string | null
+    amount: bigint | null
+    metadata: string | null
+    createdAt: Date
+    archivedAt: Date
+    _count: StreamArchiveCountAggregateOutputType | null
+    _avg: StreamArchiveAvgAggregateOutputType | null
+    _sum: StreamArchiveSumAggregateOutputType | null
+    _min: StreamArchiveMinAggregateOutputType | null
+    _max: StreamArchiveMaxAggregateOutputType | null
+  }
+
+  type GetStreamArchiveGroupByPayload<T extends StreamArchiveGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<StreamArchiveGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof StreamArchiveGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], StreamArchiveGroupByOutputType[P]>
+            : GetScalarType<T[P], StreamArchiveGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type StreamArchiveSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    eventType?: boolean
+    streamId?: boolean
+    txHash?: boolean
+    ledger?: boolean
+    ledgerClosedAt?: boolean
+    sender?: boolean
+    receiver?: boolean
+    amount?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    archivedAt?: boolean
+  }, ExtArgs["result"]["streamArchive"]>
+
+  export type StreamArchiveSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    eventType?: boolean
+    streamId?: boolean
+    txHash?: boolean
+    ledger?: boolean
+    ledgerClosedAt?: boolean
+    sender?: boolean
+    receiver?: boolean
+    amount?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    archivedAt?: boolean
+  }, ExtArgs["result"]["streamArchive"]>
+
+  export type StreamArchiveSelectScalar = {
+    id?: boolean
+    eventType?: boolean
+    streamId?: boolean
+    txHash?: boolean
+    ledger?: boolean
+    ledgerClosedAt?: boolean
+    sender?: boolean
+    receiver?: boolean
+    amount?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    archivedAt?: boolean
+  }
+
+
+  export type $StreamArchivePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "StreamArchive"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      eventType: string
+      streamId: string
+      txHash: string
+      ledger: number
+      ledgerClosedAt: string
+      sender: string | null
+      receiver: string | null
+      amount: bigint | null
+      metadata: string | null
+      createdAt: Date
+      archivedAt: Date
+    }, ExtArgs["result"]["streamArchive"]>
+    composites: {}
+  }
+
+  type StreamArchiveGetPayload<S extends boolean | null | undefined | StreamArchiveDefaultArgs> = $Result.GetResult<Prisma.$StreamArchivePayload, S>
+
+  type StreamArchiveCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<StreamArchiveFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: StreamArchiveCountAggregateInputType | true
+    }
+
+  export interface StreamArchiveDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['StreamArchive'], meta: { name: 'StreamArchive' } }
+    /**
+     * Find zero or one StreamArchive that matches the filter.
+     * @param {StreamArchiveFindUniqueArgs} args - Arguments to find a StreamArchive
+     * @example
+     * // Get one StreamArchive
+     * const streamArchive = await prisma.streamArchive.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends StreamArchiveFindUniqueArgs>(args: SelectSubset<T, StreamArchiveFindUniqueArgs<ExtArgs>>): Prisma__StreamArchiveClient<$Result.GetResult<Prisma.$StreamArchivePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one StreamArchive that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {StreamArchiveFindUniqueOrThrowArgs} args - Arguments to find a StreamArchive
+     * @example
+     * // Get one StreamArchive
+     * const streamArchive = await prisma.streamArchive.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends StreamArchiveFindUniqueOrThrowArgs>(args: SelectSubset<T, StreamArchiveFindUniqueOrThrowArgs<ExtArgs>>): Prisma__StreamArchiveClient<$Result.GetResult<Prisma.$StreamArchivePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first StreamArchive that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamArchiveFindFirstArgs} args - Arguments to find a StreamArchive
+     * @example
+     * // Get one StreamArchive
+     * const streamArchive = await prisma.streamArchive.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends StreamArchiveFindFirstArgs>(args?: SelectSubset<T, StreamArchiveFindFirstArgs<ExtArgs>>): Prisma__StreamArchiveClient<$Result.GetResult<Prisma.$StreamArchivePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first StreamArchive that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamArchiveFindFirstOrThrowArgs} args - Arguments to find a StreamArchive
+     * @example
+     * // Get one StreamArchive
+     * const streamArchive = await prisma.streamArchive.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends StreamArchiveFindFirstOrThrowArgs>(args?: SelectSubset<T, StreamArchiveFindFirstOrThrowArgs<ExtArgs>>): Prisma__StreamArchiveClient<$Result.GetResult<Prisma.$StreamArchivePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more StreamArchives that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamArchiveFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all StreamArchives
+     * const streamArchives = await prisma.streamArchive.findMany()
+     * 
+     * // Get first 10 StreamArchives
+     * const streamArchives = await prisma.streamArchive.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const streamArchiveWithIdOnly = await prisma.streamArchive.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends StreamArchiveFindManyArgs>(args?: SelectSubset<T, StreamArchiveFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StreamArchivePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a StreamArchive.
+     * @param {StreamArchiveCreateArgs} args - Arguments to create a StreamArchive.
+     * @example
+     * // Create one StreamArchive
+     * const StreamArchive = await prisma.streamArchive.create({
+     *   data: {
+     *     // ... data to create a StreamArchive
+     *   }
+     * })
+     * 
+     */
+    create<T extends StreamArchiveCreateArgs>(args: SelectSubset<T, StreamArchiveCreateArgs<ExtArgs>>): Prisma__StreamArchiveClient<$Result.GetResult<Prisma.$StreamArchivePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many StreamArchives.
+     * @param {StreamArchiveCreateManyArgs} args - Arguments to create many StreamArchives.
+     * @example
+     * // Create many StreamArchives
+     * const streamArchive = await prisma.streamArchive.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends StreamArchiveCreateManyArgs>(args?: SelectSubset<T, StreamArchiveCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many StreamArchives and returns the data saved in the database.
+     * @param {StreamArchiveCreateManyAndReturnArgs} args - Arguments to create many StreamArchives.
+     * @example
+     * // Create many StreamArchives
+     * const streamArchive = await prisma.streamArchive.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many StreamArchives and only return the `id`
+     * const streamArchiveWithIdOnly = await prisma.streamArchive.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends StreamArchiveCreateManyAndReturnArgs>(args?: SelectSubset<T, StreamArchiveCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StreamArchivePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a StreamArchive.
+     * @param {StreamArchiveDeleteArgs} args - Arguments to delete one StreamArchive.
+     * @example
+     * // Delete one StreamArchive
+     * const StreamArchive = await prisma.streamArchive.delete({
+     *   where: {
+     *     // ... filter to delete one StreamArchive
+     *   }
+     * })
+     * 
+     */
+    delete<T extends StreamArchiveDeleteArgs>(args: SelectSubset<T, StreamArchiveDeleteArgs<ExtArgs>>): Prisma__StreamArchiveClient<$Result.GetResult<Prisma.$StreamArchivePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one StreamArchive.
+     * @param {StreamArchiveUpdateArgs} args - Arguments to update one StreamArchive.
+     * @example
+     * // Update one StreamArchive
+     * const streamArchive = await prisma.streamArchive.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends StreamArchiveUpdateArgs>(args: SelectSubset<T, StreamArchiveUpdateArgs<ExtArgs>>): Prisma__StreamArchiveClient<$Result.GetResult<Prisma.$StreamArchivePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more StreamArchives.
+     * @param {StreamArchiveDeleteManyArgs} args - Arguments to filter StreamArchives to delete.
+     * @example
+     * // Delete a few StreamArchives
+     * const { count } = await prisma.streamArchive.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends StreamArchiveDeleteManyArgs>(args?: SelectSubset<T, StreamArchiveDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more StreamArchives.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamArchiveUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many StreamArchives
+     * const streamArchive = await prisma.streamArchive.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends StreamArchiveUpdateManyArgs>(args: SelectSubset<T, StreamArchiveUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one StreamArchive.
+     * @param {StreamArchiveUpsertArgs} args - Arguments to update or create a StreamArchive.
+     * @example
+     * // Update or create a StreamArchive
+     * const streamArchive = await prisma.streamArchive.upsert({
+     *   create: {
+     *     // ... data to create a StreamArchive
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the StreamArchive we want to update
+     *   }
+     * })
+     */
+    upsert<T extends StreamArchiveUpsertArgs>(args: SelectSubset<T, StreamArchiveUpsertArgs<ExtArgs>>): Prisma__StreamArchiveClient<$Result.GetResult<Prisma.$StreamArchivePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of StreamArchives.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamArchiveCountArgs} args - Arguments to filter StreamArchives to count.
+     * @example
+     * // Count the number of StreamArchives
+     * const count = await prisma.streamArchive.count({
+     *   where: {
+     *     // ... the filter for the StreamArchives we want to count
+     *   }
+     * })
+    **/
+    count<T extends StreamArchiveCountArgs>(
+      args?: Subset<T, StreamArchiveCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], StreamArchiveCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a StreamArchive.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamArchiveAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends StreamArchiveAggregateArgs>(args: Subset<T, StreamArchiveAggregateArgs>): Prisma.PrismaPromise<GetStreamArchiveAggregateType<T>>
+
+    /**
+     * Group by StreamArchive.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StreamArchiveGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends StreamArchiveGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: StreamArchiveGroupByArgs['orderBy'] }
+        : { orderBy?: StreamArchiveGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, StreamArchiveGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetStreamArchiveGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the StreamArchive model
+   */
+  readonly fields: StreamArchiveFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for StreamArchive.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__StreamArchiveClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the StreamArchive model
+   */ 
+  interface StreamArchiveFieldRefs {
+    readonly id: FieldRef<"StreamArchive", 'String'>
+    readonly eventType: FieldRef<"StreamArchive", 'String'>
+    readonly streamId: FieldRef<"StreamArchive", 'String'>
+    readonly txHash: FieldRef<"StreamArchive", 'String'>
+    readonly ledger: FieldRef<"StreamArchive", 'Int'>
+    readonly ledgerClosedAt: FieldRef<"StreamArchive", 'String'>
+    readonly sender: FieldRef<"StreamArchive", 'String'>
+    readonly receiver: FieldRef<"StreamArchive", 'String'>
+    readonly amount: FieldRef<"StreamArchive", 'BigInt'>
+    readonly metadata: FieldRef<"StreamArchive", 'String'>
+    readonly createdAt: FieldRef<"StreamArchive", 'DateTime'>
+    readonly archivedAt: FieldRef<"StreamArchive", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * StreamArchive findUnique
+   */
+  export type StreamArchiveFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelect<ExtArgs> | null
+    /**
+     * Filter, which StreamArchive to fetch.
+     */
+    where: StreamArchiveWhereUniqueInput
+  }
+
+  /**
+   * StreamArchive findUniqueOrThrow
+   */
+  export type StreamArchiveFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelect<ExtArgs> | null
+    /**
+     * Filter, which StreamArchive to fetch.
+     */
+    where: StreamArchiveWhereUniqueInput
+  }
+
+  /**
+   * StreamArchive findFirst
+   */
+  export type StreamArchiveFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelect<ExtArgs> | null
+    /**
+     * Filter, which StreamArchive to fetch.
+     */
+    where?: StreamArchiveWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StreamArchives to fetch.
+     */
+    orderBy?: StreamArchiveOrderByWithRelationInput | StreamArchiveOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for StreamArchives.
+     */
+    cursor?: StreamArchiveWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StreamArchives from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StreamArchives.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of StreamArchives.
+     */
+    distinct?: StreamArchiveScalarFieldEnum | StreamArchiveScalarFieldEnum[]
+  }
+
+  /**
+   * StreamArchive findFirstOrThrow
+   */
+  export type StreamArchiveFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelect<ExtArgs> | null
+    /**
+     * Filter, which StreamArchive to fetch.
+     */
+    where?: StreamArchiveWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StreamArchives to fetch.
+     */
+    orderBy?: StreamArchiveOrderByWithRelationInput | StreamArchiveOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for StreamArchives.
+     */
+    cursor?: StreamArchiveWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StreamArchives from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StreamArchives.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of StreamArchives.
+     */
+    distinct?: StreamArchiveScalarFieldEnum | StreamArchiveScalarFieldEnum[]
+  }
+
+  /**
+   * StreamArchive findMany
+   */
+  export type StreamArchiveFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelect<ExtArgs> | null
+    /**
+     * Filter, which StreamArchives to fetch.
+     */
+    where?: StreamArchiveWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StreamArchives to fetch.
+     */
+    orderBy?: StreamArchiveOrderByWithRelationInput | StreamArchiveOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing StreamArchives.
+     */
+    cursor?: StreamArchiveWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StreamArchives from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StreamArchives.
+     */
+    skip?: number
+    distinct?: StreamArchiveScalarFieldEnum | StreamArchiveScalarFieldEnum[]
+  }
+
+  /**
+   * StreamArchive create
+   */
+  export type StreamArchiveCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelect<ExtArgs> | null
+    /**
+     * The data needed to create a StreamArchive.
+     */
+    data: XOR<StreamArchiveCreateInput, StreamArchiveUncheckedCreateInput>
+  }
+
+  /**
+   * StreamArchive createMany
+   */
+  export type StreamArchiveCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many StreamArchives.
+     */
+    data: StreamArchiveCreateManyInput | StreamArchiveCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * StreamArchive createManyAndReturn
+   */
+  export type StreamArchiveCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many StreamArchives.
+     */
+    data: StreamArchiveCreateManyInput | StreamArchiveCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * StreamArchive update
+   */
+  export type StreamArchiveUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelect<ExtArgs> | null
+    /**
+     * The data needed to update a StreamArchive.
+     */
+    data: XOR<StreamArchiveUpdateInput, StreamArchiveUncheckedUpdateInput>
+    /**
+     * Choose, which StreamArchive to update.
+     */
+    where: StreamArchiveWhereUniqueInput
+  }
+
+  /**
+   * StreamArchive updateMany
+   */
+  export type StreamArchiveUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update StreamArchives.
+     */
+    data: XOR<StreamArchiveUpdateManyMutationInput, StreamArchiveUncheckedUpdateManyInput>
+    /**
+     * Filter which StreamArchives to update
+     */
+    where?: StreamArchiveWhereInput
+  }
+
+  /**
+   * StreamArchive upsert
+   */
+  export type StreamArchiveUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelect<ExtArgs> | null
+    /**
+     * The filter to search for the StreamArchive to update in case it exists.
+     */
+    where: StreamArchiveWhereUniqueInput
+    /**
+     * In case the StreamArchive found by the `where` argument doesn't exist, create a new StreamArchive with this data.
+     */
+    create: XOR<StreamArchiveCreateInput, StreamArchiveUncheckedCreateInput>
+    /**
+     * In case the StreamArchive was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<StreamArchiveUpdateInput, StreamArchiveUncheckedUpdateInput>
+  }
+
+  /**
+   * StreamArchive delete
+   */
+  export type StreamArchiveDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelect<ExtArgs> | null
+    /**
+     * Filter which StreamArchive to delete.
+     */
+    where: StreamArchiveWhereUniqueInput
+  }
+
+  /**
+   * StreamArchive deleteMany
+   */
+  export type StreamArchiveDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which StreamArchives to delete
+     */
+    where?: StreamArchiveWhereInput
+  }
+
+  /**
+   * StreamArchive without action
+   */
+  export type StreamArchiveDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StreamArchive
+     */
+    select?: StreamArchiveSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -3892,6 +6040,40 @@ export namespace Prisma {
   };
 
   export type EventLogScalarFieldEnum = (typeof EventLogScalarFieldEnum)[keyof typeof EventLogScalarFieldEnum]
+
+
+  export const StreamSnapshotScalarFieldEnum: {
+    id: 'id',
+    streamId: 'streamId',
+    sender: 'sender',
+    receiver: 'receiver',
+    tokenAddress: 'tokenAddress',
+    amountPerSecond: 'amountPerSecond',
+    totalAmount: 'totalAmount',
+    status: 'status',
+    snapshotMonth: 'snapshotMonth',
+    createdAt: 'createdAt'
+  };
+
+  export type StreamSnapshotScalarFieldEnum = (typeof StreamSnapshotScalarFieldEnum)[keyof typeof StreamSnapshotScalarFieldEnum]
+
+
+  export const StreamArchiveScalarFieldEnum: {
+    id: 'id',
+    eventType: 'eventType',
+    streamId: 'streamId',
+    txHash: 'txHash',
+    ledger: 'ledger',
+    ledgerClosedAt: 'ledgerClosedAt',
+    sender: 'sender',
+    receiver: 'receiver',
+    amount: 'amount',
+    metadata: 'metadata',
+    createdAt: 'createdAt',
+    archivedAt: 'archivedAt'
+  };
+
+  export type StreamArchiveScalarFieldEnum = (typeof StreamArchiveScalarFieldEnum)[keyof typeof StreamArchiveScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -4197,6 +6379,175 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"EventLog"> | Date | string
   }
 
+  export type StreamSnapshotWhereInput = {
+    AND?: StreamSnapshotWhereInput | StreamSnapshotWhereInput[]
+    OR?: StreamSnapshotWhereInput[]
+    NOT?: StreamSnapshotWhereInput | StreamSnapshotWhereInput[]
+    id?: StringFilter<"StreamSnapshot"> | string
+    streamId?: StringFilter<"StreamSnapshot"> | string
+    sender?: StringFilter<"StreamSnapshot"> | string
+    receiver?: StringFilter<"StreamSnapshot"> | string
+    tokenAddress?: StringFilter<"StreamSnapshot"> | string
+    amountPerSecond?: BigIntFilter<"StreamSnapshot"> | bigint | number
+    totalAmount?: BigIntFilter<"StreamSnapshot"> | bigint | number
+    status?: EnumStreamStatusFilter<"StreamSnapshot"> | $Enums.StreamStatus
+    snapshotMonth?: StringFilter<"StreamSnapshot"> | string
+    createdAt?: DateTimeFilter<"StreamSnapshot"> | Date | string
+  }
+
+  export type StreamSnapshotOrderByWithRelationInput = {
+    id?: SortOrder
+    streamId?: SortOrder
+    sender?: SortOrder
+    receiver?: SortOrder
+    tokenAddress?: SortOrder
+    amountPerSecond?: SortOrder
+    totalAmount?: SortOrder
+    status?: SortOrder
+    snapshotMonth?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type StreamSnapshotWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    streamId_snapshotMonth?: StreamSnapshotStreamIdSnapshotMonthCompoundUniqueInput
+    AND?: StreamSnapshotWhereInput | StreamSnapshotWhereInput[]
+    OR?: StreamSnapshotWhereInput[]
+    NOT?: StreamSnapshotWhereInput | StreamSnapshotWhereInput[]
+    streamId?: StringFilter<"StreamSnapshot"> | string
+    sender?: StringFilter<"StreamSnapshot"> | string
+    receiver?: StringFilter<"StreamSnapshot"> | string
+    tokenAddress?: StringFilter<"StreamSnapshot"> | string
+    amountPerSecond?: BigIntFilter<"StreamSnapshot"> | bigint | number
+    totalAmount?: BigIntFilter<"StreamSnapshot"> | bigint | number
+    status?: EnumStreamStatusFilter<"StreamSnapshot"> | $Enums.StreamStatus
+    snapshotMonth?: StringFilter<"StreamSnapshot"> | string
+    createdAt?: DateTimeFilter<"StreamSnapshot"> | Date | string
+  }, "id" | "streamId_snapshotMonth">
+
+  export type StreamSnapshotOrderByWithAggregationInput = {
+    id?: SortOrder
+    streamId?: SortOrder
+    sender?: SortOrder
+    receiver?: SortOrder
+    tokenAddress?: SortOrder
+    amountPerSecond?: SortOrder
+    totalAmount?: SortOrder
+    status?: SortOrder
+    snapshotMonth?: SortOrder
+    createdAt?: SortOrder
+    _count?: StreamSnapshotCountOrderByAggregateInput
+    _avg?: StreamSnapshotAvgOrderByAggregateInput
+    _max?: StreamSnapshotMaxOrderByAggregateInput
+    _min?: StreamSnapshotMinOrderByAggregateInput
+    _sum?: StreamSnapshotSumOrderByAggregateInput
+  }
+
+  export type StreamSnapshotScalarWhereWithAggregatesInput = {
+    AND?: StreamSnapshotScalarWhereWithAggregatesInput | StreamSnapshotScalarWhereWithAggregatesInput[]
+    OR?: StreamSnapshotScalarWhereWithAggregatesInput[]
+    NOT?: StreamSnapshotScalarWhereWithAggregatesInput | StreamSnapshotScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"StreamSnapshot"> | string
+    streamId?: StringWithAggregatesFilter<"StreamSnapshot"> | string
+    sender?: StringWithAggregatesFilter<"StreamSnapshot"> | string
+    receiver?: StringWithAggregatesFilter<"StreamSnapshot"> | string
+    tokenAddress?: StringWithAggregatesFilter<"StreamSnapshot"> | string
+    amountPerSecond?: BigIntWithAggregatesFilter<"StreamSnapshot"> | bigint | number
+    totalAmount?: BigIntWithAggregatesFilter<"StreamSnapshot"> | bigint | number
+    status?: EnumStreamStatusWithAggregatesFilter<"StreamSnapshot"> | $Enums.StreamStatus
+    snapshotMonth?: StringWithAggregatesFilter<"StreamSnapshot"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"StreamSnapshot"> | Date | string
+  }
+
+  export type StreamArchiveWhereInput = {
+    AND?: StreamArchiveWhereInput | StreamArchiveWhereInput[]
+    OR?: StreamArchiveWhereInput[]
+    NOT?: StreamArchiveWhereInput | StreamArchiveWhereInput[]
+    id?: StringFilter<"StreamArchive"> | string
+    eventType?: StringFilter<"StreamArchive"> | string
+    streamId?: StringFilter<"StreamArchive"> | string
+    txHash?: StringFilter<"StreamArchive"> | string
+    ledger?: IntFilter<"StreamArchive"> | number
+    ledgerClosedAt?: StringFilter<"StreamArchive"> | string
+    sender?: StringNullableFilter<"StreamArchive"> | string | null
+    receiver?: StringNullableFilter<"StreamArchive"> | string | null
+    amount?: BigIntNullableFilter<"StreamArchive"> | bigint | number | null
+    metadata?: StringNullableFilter<"StreamArchive"> | string | null
+    createdAt?: DateTimeFilter<"StreamArchive"> | Date | string
+    archivedAt?: DateTimeFilter<"StreamArchive"> | Date | string
+  }
+
+  export type StreamArchiveOrderByWithRelationInput = {
+    id?: SortOrder
+    eventType?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
+    ledger?: SortOrder
+    ledgerClosedAt?: SortOrder
+    sender?: SortOrderInput | SortOrder
+    receiver?: SortOrderInput | SortOrder
+    amount?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type StreamArchiveWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: StreamArchiveWhereInput | StreamArchiveWhereInput[]
+    OR?: StreamArchiveWhereInput[]
+    NOT?: StreamArchiveWhereInput | StreamArchiveWhereInput[]
+    eventType?: StringFilter<"StreamArchive"> | string
+    streamId?: StringFilter<"StreamArchive"> | string
+    txHash?: StringFilter<"StreamArchive"> | string
+    ledger?: IntFilter<"StreamArchive"> | number
+    ledgerClosedAt?: StringFilter<"StreamArchive"> | string
+    sender?: StringNullableFilter<"StreamArchive"> | string | null
+    receiver?: StringNullableFilter<"StreamArchive"> | string | null
+    amount?: BigIntNullableFilter<"StreamArchive"> | bigint | number | null
+    metadata?: StringNullableFilter<"StreamArchive"> | string | null
+    createdAt?: DateTimeFilter<"StreamArchive"> | Date | string
+    archivedAt?: DateTimeFilter<"StreamArchive"> | Date | string
+  }, "id">
+
+  export type StreamArchiveOrderByWithAggregationInput = {
+    id?: SortOrder
+    eventType?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
+    ledger?: SortOrder
+    ledgerClosedAt?: SortOrder
+    sender?: SortOrderInput | SortOrder
+    receiver?: SortOrderInput | SortOrder
+    amount?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    archivedAt?: SortOrder
+    _count?: StreamArchiveCountOrderByAggregateInput
+    _avg?: StreamArchiveAvgOrderByAggregateInput
+    _max?: StreamArchiveMaxOrderByAggregateInput
+    _min?: StreamArchiveMinOrderByAggregateInput
+    _sum?: StreamArchiveSumOrderByAggregateInput
+  }
+
+  export type StreamArchiveScalarWhereWithAggregatesInput = {
+    AND?: StreamArchiveScalarWhereWithAggregatesInput | StreamArchiveScalarWhereWithAggregatesInput[]
+    OR?: StreamArchiveScalarWhereWithAggregatesInput[]
+    NOT?: StreamArchiveScalarWhereWithAggregatesInput | StreamArchiveScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"StreamArchive"> | string
+    eventType?: StringWithAggregatesFilter<"StreamArchive"> | string
+    streamId?: StringWithAggregatesFilter<"StreamArchive"> | string
+    txHash?: StringWithAggregatesFilter<"StreamArchive"> | string
+    ledger?: IntWithAggregatesFilter<"StreamArchive"> | number
+    ledgerClosedAt?: StringWithAggregatesFilter<"StreamArchive"> | string
+    sender?: StringNullableWithAggregatesFilter<"StreamArchive"> | string | null
+    receiver?: StringNullableWithAggregatesFilter<"StreamArchive"> | string | null
+    amount?: BigIntNullableWithAggregatesFilter<"StreamArchive"> | bigint | number | null
+    metadata?: StringNullableWithAggregatesFilter<"StreamArchive"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"StreamArchive"> | Date | string
+    archivedAt?: DateTimeWithAggregatesFilter<"StreamArchive"> | Date | string
+  }
+
   export type StreamCreateInput = {
     id: string
     sender: string
@@ -4398,6 +6749,202 @@ export namespace Prisma {
     amount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     metadata?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StreamSnapshotCreateInput = {
+    id?: string
+    streamId: string
+    sender: string
+    receiver: string
+    tokenAddress: string
+    amountPerSecond: bigint | number
+    totalAmount: bigint | number
+    status: $Enums.StreamStatus
+    snapshotMonth: string
+    createdAt?: Date | string
+  }
+
+  export type StreamSnapshotUncheckedCreateInput = {
+    id?: string
+    streamId: string
+    sender: string
+    receiver: string
+    tokenAddress: string
+    amountPerSecond: bigint | number
+    totalAmount: bigint | number
+    status: $Enums.StreamStatus
+    snapshotMonth: string
+    createdAt?: Date | string
+  }
+
+  export type StreamSnapshotUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    streamId?: StringFieldUpdateOperationsInput | string
+    sender?: StringFieldUpdateOperationsInput | string
+    receiver?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: StringFieldUpdateOperationsInput | string
+    amountPerSecond?: BigIntFieldUpdateOperationsInput | bigint | number
+    totalAmount?: BigIntFieldUpdateOperationsInput | bigint | number
+    status?: EnumStreamStatusFieldUpdateOperationsInput | $Enums.StreamStatus
+    snapshotMonth?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StreamSnapshotUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    streamId?: StringFieldUpdateOperationsInput | string
+    sender?: StringFieldUpdateOperationsInput | string
+    receiver?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: StringFieldUpdateOperationsInput | string
+    amountPerSecond?: BigIntFieldUpdateOperationsInput | bigint | number
+    totalAmount?: BigIntFieldUpdateOperationsInput | bigint | number
+    status?: EnumStreamStatusFieldUpdateOperationsInput | $Enums.StreamStatus
+    snapshotMonth?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StreamSnapshotCreateManyInput = {
+    id?: string
+    streamId: string
+    sender: string
+    receiver: string
+    tokenAddress: string
+    amountPerSecond: bigint | number
+    totalAmount: bigint | number
+    status: $Enums.StreamStatus
+    snapshotMonth: string
+    createdAt?: Date | string
+  }
+
+  export type StreamSnapshotUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    streamId?: StringFieldUpdateOperationsInput | string
+    sender?: StringFieldUpdateOperationsInput | string
+    receiver?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: StringFieldUpdateOperationsInput | string
+    amountPerSecond?: BigIntFieldUpdateOperationsInput | bigint | number
+    totalAmount?: BigIntFieldUpdateOperationsInput | bigint | number
+    status?: EnumStreamStatusFieldUpdateOperationsInput | $Enums.StreamStatus
+    snapshotMonth?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StreamSnapshotUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    streamId?: StringFieldUpdateOperationsInput | string
+    sender?: StringFieldUpdateOperationsInput | string
+    receiver?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: StringFieldUpdateOperationsInput | string
+    amountPerSecond?: BigIntFieldUpdateOperationsInput | bigint | number
+    totalAmount?: BigIntFieldUpdateOperationsInput | bigint | number
+    status?: EnumStreamStatusFieldUpdateOperationsInput | $Enums.StreamStatus
+    snapshotMonth?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StreamArchiveCreateInput = {
+    id?: string
+    eventType: string
+    streamId: string
+    txHash: string
+    ledger: number
+    ledgerClosedAt: string
+    sender?: string | null
+    receiver?: string | null
+    amount?: bigint | number | null
+    metadata?: string | null
+    createdAt: Date | string
+    archivedAt?: Date | string
+  }
+
+  export type StreamArchiveUncheckedCreateInput = {
+    id?: string
+    eventType: string
+    streamId: string
+    txHash: string
+    ledger: number
+    ledgerClosedAt: string
+    sender?: string | null
+    receiver?: string | null
+    amount?: bigint | number | null
+    metadata?: string | null
+    createdAt: Date | string
+    archivedAt?: Date | string
+  }
+
+  export type StreamArchiveUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: StringFieldUpdateOperationsInput | string
+    streamId?: StringFieldUpdateOperationsInput | string
+    txHash?: StringFieldUpdateOperationsInput | string
+    ledger?: IntFieldUpdateOperationsInput | number
+    ledgerClosedAt?: StringFieldUpdateOperationsInput | string
+    sender?: NullableStringFieldUpdateOperationsInput | string | null
+    receiver?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StreamArchiveUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: StringFieldUpdateOperationsInput | string
+    streamId?: StringFieldUpdateOperationsInput | string
+    txHash?: StringFieldUpdateOperationsInput | string
+    ledger?: IntFieldUpdateOperationsInput | number
+    ledgerClosedAt?: StringFieldUpdateOperationsInput | string
+    sender?: NullableStringFieldUpdateOperationsInput | string | null
+    receiver?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StreamArchiveCreateManyInput = {
+    id?: string
+    eventType: string
+    streamId: string
+    txHash: string
+    ledger: number
+    ledgerClosedAt: string
+    sender?: string | null
+    receiver?: string | null
+    amount?: bigint | number | null
+    metadata?: string | null
+    createdAt: Date | string
+    archivedAt?: Date | string
+  }
+
+  export type StreamArchiveUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: StringFieldUpdateOperationsInput | string
+    streamId?: StringFieldUpdateOperationsInput | string
+    txHash?: StringFieldUpdateOperationsInput | string
+    ledger?: IntFieldUpdateOperationsInput | number
+    ledgerClosedAt?: StringFieldUpdateOperationsInput | string
+    sender?: NullableStringFieldUpdateOperationsInput | string | null
+    receiver?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type StreamArchiveUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: StringFieldUpdateOperationsInput | string
+    streamId?: StringFieldUpdateOperationsInput | string
+    txHash?: StringFieldUpdateOperationsInput | string
+    ledger?: IntFieldUpdateOperationsInput | number
+    ledgerClosedAt?: StringFieldUpdateOperationsInput | string
+    sender?: NullableStringFieldUpdateOperationsInput | string | null
+    receiver?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -4711,6 +7258,115 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type StreamSnapshotStreamIdSnapshotMonthCompoundUniqueInput = {
+    streamId: string
+    snapshotMonth: string
+  }
+
+  export type StreamSnapshotCountOrderByAggregateInput = {
+    id?: SortOrder
+    streamId?: SortOrder
+    sender?: SortOrder
+    receiver?: SortOrder
+    tokenAddress?: SortOrder
+    amountPerSecond?: SortOrder
+    totalAmount?: SortOrder
+    status?: SortOrder
+    snapshotMonth?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type StreamSnapshotAvgOrderByAggregateInput = {
+    amountPerSecond?: SortOrder
+    totalAmount?: SortOrder
+  }
+
+  export type StreamSnapshotMaxOrderByAggregateInput = {
+    id?: SortOrder
+    streamId?: SortOrder
+    sender?: SortOrder
+    receiver?: SortOrder
+    tokenAddress?: SortOrder
+    amountPerSecond?: SortOrder
+    totalAmount?: SortOrder
+    status?: SortOrder
+    snapshotMonth?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type StreamSnapshotMinOrderByAggregateInput = {
+    id?: SortOrder
+    streamId?: SortOrder
+    sender?: SortOrder
+    receiver?: SortOrder
+    tokenAddress?: SortOrder
+    amountPerSecond?: SortOrder
+    totalAmount?: SortOrder
+    status?: SortOrder
+    snapshotMonth?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type StreamSnapshotSumOrderByAggregateInput = {
+    amountPerSecond?: SortOrder
+    totalAmount?: SortOrder
+  }
+
+  export type StreamArchiveCountOrderByAggregateInput = {
+    id?: SortOrder
+    eventType?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
+    ledger?: SortOrder
+    ledgerClosedAt?: SortOrder
+    sender?: SortOrder
+    receiver?: SortOrder
+    amount?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type StreamArchiveAvgOrderByAggregateInput = {
+    ledger?: SortOrder
+    amount?: SortOrder
+  }
+
+  export type StreamArchiveMaxOrderByAggregateInput = {
+    id?: SortOrder
+    eventType?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
+    ledger?: SortOrder
+    ledgerClosedAt?: SortOrder
+    sender?: SortOrder
+    receiver?: SortOrder
+    amount?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type StreamArchiveMinOrderByAggregateInput = {
+    id?: SortOrder
+    eventType?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
+    ledger?: SortOrder
+    ledgerClosedAt?: SortOrder
+    sender?: SortOrder
+    receiver?: SortOrder
+    amount?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+    archivedAt?: SortOrder
+  }
+
+  export type StreamArchiveSumOrderByAggregateInput = {
+    ledger?: SortOrder
+    amount?: SortOrder
+  }
+
   export type StringFieldUpdateOperationsInput = {
     set?: string
   }
@@ -4986,6 +7642,14 @@ export namespace Prisma {
      * @deprecated Use EventLogDefaultArgs instead
      */
     export type EventLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = EventLogDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use StreamSnapshotDefaultArgs instead
+     */
+    export type StreamSnapshotArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = StreamSnapshotDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use StreamArchiveDefaultArgs instead
+     */
+    export type StreamArchiveArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = StreamArchiveDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

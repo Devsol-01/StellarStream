@@ -51,6 +51,43 @@ model EventLog {
   @@index([ledger])
 }
 
+// Monthly snapshots of stream states
+model StreamSnapshot {
+  id              String       @id @default(cuid())
+  streamId        String
+  sender          String
+  receiver        String
+  tokenAddress    String
+  amountPerSecond BigInt
+  totalAmount     BigInt
+  status          StreamStatus
+  snapshotMonth   String // Format: YYYY-MM
+  createdAt       DateTime     @default(now())
+
+  @@unique([streamId, snapshotMonth])
+  @@index([streamId])
+  @@index([snapshotMonth])
+}
+
+// Archived event logs (older than 3 months)
+model StreamArchive {
+  id             String   @id @default(cuid())
+  eventType      String
+  streamId       String
+  txHash         String
+  ledger         Int
+  ledgerClosedAt String
+  sender         String?
+  receiver       String?
+  amount         BigInt?
+  metadata       String?
+  createdAt      DateTime
+  archivedAt     DateTime @default(now())
+
+  @@index([streamId])
+  @@index([createdAt])
+}
+
 enum StreamStatus {
   ACTIVE
   PAUSED

@@ -151,6 +151,34 @@ exports.Prisma.EventLogScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.StreamSnapshotScalarFieldEnum = {
+  id: 'id',
+  streamId: 'streamId',
+  sender: 'sender',
+  receiver: 'receiver',
+  tokenAddress: 'tokenAddress',
+  amountPerSecond: 'amountPerSecond',
+  totalAmount: 'totalAmount',
+  status: 'status',
+  snapshotMonth: 'snapshotMonth',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.StreamArchiveScalarFieldEnum = {
+  id: 'id',
+  eventType: 'eventType',
+  streamId: 'streamId',
+  txHash: 'txHash',
+  ledger: 'ledger',
+  ledgerClosedAt: 'ledgerClosedAt',
+  sender: 'sender',
+  receiver: 'receiver',
+  amount: 'amount',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  archivedAt: 'archivedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -175,7 +203,9 @@ exports.StreamStatus = exports.$Enums.StreamStatus = {
 exports.Prisma.ModelName = {
   Stream: 'Stream',
   SyncState: 'SyncState',
-  EventLog: 'EventLog'
+  EventLog: 'EventLog',
+  StreamSnapshot: 'StreamSnapshot',
+  StreamArchive: 'StreamArchive'
 };
 
 /**
