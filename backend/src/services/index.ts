@@ -7,6 +7,7 @@ export {
   toObjectOrNull,
 } from "./stream-lifecycle-service.js";
 
+export { LedgerVerificationService } from "./ledger-verification.service.js";
 export { AuditLogService } from "./audit-log.service.js";
 export {
   BatchMetadataService,
@@ -17,3 +18,4 @@ export {
 
 export { SnapshotService } from "./snapshot.service.js";
 export { scheduleSnapshotMaintenance, runMaintenanceNow } from "./snapshot.scheduler.js";
+export { WebhookService } from "./webhook.service.js";

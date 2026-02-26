@@ -1,4 +1,8 @@
 import express, { Express, Request, Response } from 'express';
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+import { WebSocketService } from './services/websocket.service';
+import testRoutes from './api/test.js';
 import helmet from 'helmet';
 import cors from 'cors';
 import apiRouter from './api';
@@ -14,8 +18,17 @@ import healthRoutes from './api/health.routes.js';
 import { scheduleSnapshotMaintenance } from './services/snapshot.scheduler.js';
 
 const app: Express = express();
+const server = createServer(app);
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    methods: ["GET", "POST"]
+  }
+});
+
 const PORT = process.env.PORT ?? 3000;
 
+const wsService = new WebSocketService(io);
 // Security: Helmet for secure HTTP headers
 app.use(helmet({
   contentSecurityPolicy: {
@@ -39,7 +52,7 @@ const allowedOrigins = process.env.FRONTEND_URL
   : ['http://localhost:5173'];
 
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
@@ -60,10 +73,30 @@ app.use(authMiddleware);
 // Register API routes
 app.use('/api', apiRouter);
 
+app.use('/api/test', testRoutes);
+
 app.get('/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', message: 'StellarStream Backend is running' });
+  res.json({ 
+    status: 'ok', 
+    message: 'StellarStream Backend is running',
+    websocket: true,
+    connectedUsers: wsService.getConnectedUsers().length
+  });
 });
 
+app.get('/ws-status', (_req: Request, res: Response) => {
+  res.json({
+    connectedUsers: wsService.getConnectedUsers(),
+    userConnections: Object.fromEntries(
+      wsService.getConnectedUsers().map(addr => [
+        addr,
+        wsService.getUserSocketCount(addr)
+      ])
+    )
+  });
+});
+
+server.listen(PORT, () => {
 app.get('/stats', rateLimitMiddleware, getStats);
 app.get('/search', rateLimitMiddleware, getSearch);
 
@@ -71,6 +104,9 @@ const authRouter = express.Router();
 authRouter.get('/nonce', rateLimitMiddleware, getNonce);
 authRouter.get('/me', rateLimitMiddleware, requireWalletAuth, getMe);
 app.use('/api/v1/auth', authRouter);
+
+app.use(batchRoutes);
+app.use(healthRoutes);
 
 async function start(): Promise<void> {
   await ensureRedis();
@@ -107,6 +143,15 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 start().catch((err) => {
   console.error('Failed to start server:', err);
   process.exit(1);
+// Batch metadata endpoint for bulk streaming queries
+app.use(batchRoutes);
+app.use(healthRoutes);
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`🔌 WebSocket server is ready for connections`);
+  console.log(`🧪 Test endpoints available at /api/test/*`);
 });
 
 export default app;
+export { wsService };

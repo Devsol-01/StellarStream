@@ -124,12 +124,24 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 
 exports.Prisma.StreamScalarFieldEnum = {
   id: 'id',
+  streamId: 'streamId',
+  txHash: 'txHash',
   sender: 'sender',
   receiver: 'receiver',
   tokenAddress: 'tokenAddress',
-  amountPerSecond: 'amountPerSecond',
-  totalAmount: 'totalAmount',
-  status: 'status'
+  amount: 'amount',
+  duration: 'duration',
+  status: 'status',
+  withdrawn: 'withdrawn'
+};
+
+exports.Prisma.WebhookScalarFieldEnum = {
+  id: 'id',
+  url: 'url',
+  description: 'description',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SyncStateScalarFieldEnum = {
@@ -179,6 +191,12 @@ exports.Prisma.StreamArchiveScalarFieldEnum = {
   archivedAt: 'archivedAt'
 };
 
+exports.Prisma.LedgerHashScalarFieldEnum = {
+  sequence: 'sequence',
+  hash: 'hash',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -202,10 +220,12 @@ exports.StreamStatus = exports.$Enums.StreamStatus = {
 
 exports.Prisma.ModelName = {
   Stream: 'Stream',
+  Webhook: 'Webhook',
   SyncState: 'SyncState',
   EventLog: 'EventLog',
   StreamSnapshot: 'StreamSnapshot',
   StreamArchive: 'StreamArchive'
+  LedgerHash: 'LedgerHash'
 };
 
 /**
