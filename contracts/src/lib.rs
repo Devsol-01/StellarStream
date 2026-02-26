@@ -301,12 +301,6 @@ impl StellarStreamContract {
 
         // Validate vault if provided
         let vault_shares = if let Some(ref vault) = vault_address {
-            // Check if vault is approved
-            // Vault approval check removed - assume all vaults are valid
-            if vault.is_some() {
-                return Err(Error::Unauthorized);
-            }
-
             // Transfer tokens to contract first
             let token_client = token::Client::new(&env, &token);
             token_client.transfer(&sender, &env.current_contract_address(), &total_amount);
@@ -815,87 +809,6 @@ impl StellarStreamContract {
                 .unwrap_or((stream.total_amount * effective_elapsed) / duration)
             }
         }
-    }
-
-    // ========== RBAC Functions ==========
-
-    /// Grant a role to an address (Admin only)
-    pub fn grant_role(env: Env, admin: Address, target: Address, role: Role) {
-        admin.require_auth();
-
-        // Check if caller has Admin role
-        if !Self::has_role(&env, &admin, Role::Admin) {
-            panic!("{}", Error::Unauthorized as u32);
-        }
-
-        // Grant the role
-        env.storage()
-            .instance()
-            .set(&DataKey::Role(target.clone(), role.clone()), &true);
-
-        // Emit event
-        env.events().publish((symbol_short!("grant"), target), role);
-    }
-
-    /// Revoke a role from an address (Admin only)
-    pub fn revoke_role(env: Env, admin: Address, target: Address, role: Role) {
-        admin.require_auth();
-
-        // Check if caller has Admin role
-        if !Self::has_role(&env, &admin, Role::Admin) {
-            return; // Error::Unauthorized;
-        }
-
-        // Revoke the role
-        env.storage()
-            .instance()
-            .remove(&DataKey::Role(target.clone(), role.clone()));
-
-        // Emit event
-        env.events()
-            .publish((symbol_short!("revoke"), target), role);
-    }
-
-    /// Check if an address has a specific role
-    pub fn check_role(env: Env, address: Address, role: Role) -> bool {
-        Self::has_role(&env, &address, role)
-    }
-
-    /// Internal helper to check if an address has a role
-    fn has_role(env: &Env, address: &Address, role: Role) -> bool {
-        env.storage()
-            .instance()
-            .get(&DataKey::Role(address.clone(), role))
-            .unwrap_or(false)
-    }
-
-    // ========== Contract Upgrade Functions ==========
-
-    /// Upgrade the contract to a new WASM hash
-    /// Only addresses with Admin role can perform this operation
-    pub fn upgrade(env: Env, admin: Address, new_wasm_hash: soroban_sdk::BytesN<32>) {
-        admin.require_auth();
-
-        // Check if caller has Admin role
-        if !Self::has_role(&env, &admin, Role::Admin) {
-            return; // Error::Unauthorized;
-        }
-
-        // Update the contract WASM
-        env.deployer()
-            .update_current_contract_wasm(new_wasm_hash.clone());
-
-        // Emit upgrade event with new WASM hash
-        env.events()
-            .publish((symbol_short!("upgrade"), admin), new_wasm_hash);
-    }
-
-    /// Get the current admin address (for backward compatibility)
-    pub fn get_admin(env: Env) -> Address {
-        env.storage()
-            .instance()
-            .get(&DataKey::Admin)
-            .expect("Admin not set")
     }
 
     // --- CONTRIBUTOR PULL-REQUEST PAYMENTS ---
