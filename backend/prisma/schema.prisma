@@ -205,27 +205,45 @@ model Webhook {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  deliveries WebhookDelivery[]
+
   @@index([eventType])
   @@index([isActive])
 }
 
 // Webhook delivery attempts for retry logic
 model WebhookDelivery {
-  id          String   @id @default(cuid())
-  webhookId   String
-  eventType   String
-  payload     Json
-  status      String   @default("pending") // pending, success, failed
-  attempts    Int      @default(0)
-  maxRetries  Int      @default(5)
-  nextRetryAt DateTime?
-  lastError   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String    @id @default(cuid())
+  webhookId        String
+  eventType        String
+  payload          Json
+  // pending | delivering | success | dead_letter
+  status           String    @default("pending")
+  attempts         Int       @default(0)
+  maxRetries       Int       @default(5)
+  nextRetryAt      DateTime?
+  lastError        String?
+  lastStatusCode   Int?
+  lastAttemptAt    DateTime?
+  deliveredAt      DateTime?
+  // Set when the delivery lands in the dead letter queue, either by exhausting
+  // maxRetries or by receiving a non-retryable response.
+  deadLetteredAt   DateTime?
+  deadLetterReason String?
+  // Claim fields — a worker marks rows `delivering` before sending so that
+  // concurrent workers never dispatch the same delivery twice.
+  lockedAt         DateTime?
+  lockedBy         String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
 
   @@index([webhookId, status])
   @@index([nextRetryAt])
   @@index([createdAt])
+  @@index([status, nextRetryAt])
+  @@index([status, lockedAt])
 }
 
 // Tracks the last synced blockchain ledger sequence
