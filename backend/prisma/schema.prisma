@@ -1217,4 +1217,3 @@ model ExportAuditLog {
   @@index([createdAt])
   @@index([userId, createdAt(sort: Desc)])
 }
-}
