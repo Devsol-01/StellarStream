@@ -528,6 +528,59 @@ model NotificationSubscription {
 enum NotificationPlatform {
   discord
   telegram
+  email
+}
+
+// User notification preferences — granular control over which notifications
+// are delivered via which channels (#1004)
+model NotificationPreference {
+  id             String   @id @default(cuid())
+  stellarAddress String                // Stellar address of the user
+  email          String?               // Email address for email notifications
+  emailVerified  Boolean  @default(false) // Whether email has been verified
+  platform       NotificationPlatform  // discord | telegram | email
+  // Notification type toggles
+  paymentConfirmations Boolean @default(true)  // Payment confirmation emails
+  streamStatusUpdates  Boolean @default(true)  // Stream created/paused/cancelled
+  securityAlerts       Boolean @default(true)  // Login alerts, permission changes
+  weeklySummaries      Boolean @default(false) // Weekly summary of activity
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([stellarAddress, platform])
+  @@index([stellarAddress])
+  @@index([platform])
+}
+
+// Email delivery tracking — records every email sent with its status
+model EmailDelivery {
+  id             String   @id @default(cuid())
+  stellarAddress String               // Recipient Stellar address
+  email          String               // Recipient email address
+  template       String               // payment_confirmation | stream_status | security_alert | weekly_summary
+  subject        String               // Email subject line
+  status         EmailDeliveryStatus  @default(SENT) // sent | delivered | opened | bounced | failed
+  errorMessage   String?              // Error message if failed
+  metadata       Json?                // Template-specific data (txHash, streamId, etc.)
+  sentAt         DateTime             @default(now())
+  deliveredAt    DateTime?
+  openedAt       DateTime?
+  createdAt      DateTime             @default(now())
+
+  @@index([stellarAddress])
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([sentAt])
+}
+
+enum EmailDeliveryStatus {
+  SENT
+  DELIVERED
+  OPENED
+  BOUNCED
+  FAILED
 }
 
 // Invoice links for Nebula-Pay payment link generator (#1377)
