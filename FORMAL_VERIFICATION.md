@@ -8,6 +8,12 @@ exercised by property-based (fuzzing) and unit test runners built directly into
 each contract crate — no external solver required.
 
 ---
+    
+
+
+
+
+
 
 ## Table of Contents
 
@@ -143,6 +149,10 @@ Total specs: **26** | Total verified iterations: **~61,000**
 ---
 
 ## Running Verification Locally
+
+### Organization Management Integration
+
+The Organization Management feature (v1.0.0) includes formal verification patterns for multi-tenancy invariants and RBAC enforcement through property-based testing using fast-check.
 
 ### All contracts (recommended)
 
