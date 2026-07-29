@@ -9,6 +9,7 @@ mod oracle;
 mod rbac;
 mod storage;
 mod types;
+mod upgrade;
 mod vault;
 mod voting;
 
