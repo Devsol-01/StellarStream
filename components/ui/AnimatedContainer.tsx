@@ -106,9 +106,11 @@ export function AnimatedContainer({
         ...(shouldAnimate && duration !== 400 ? { animationDuration: `${duration}ms` } : {}),
     }
 
+        const TagComponent = Tag as any
+
     return (
-        <Tag
-            ref={ref as React.RefObject<HTMLElement>}
+        <TagComponent
+            ref={ref}
             className={cn(
                 shouldAnimate && isVisible && animationClasses[animation],
                 shouldAnimate && !isVisible && "opacity-0",
@@ -117,7 +119,7 @@ export function AnimatedContainer({
             style={style}
         >
             {children}
-        </Tag>
+        </TagComponent>
     )
 }
 
