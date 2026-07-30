@@ -23,6 +23,7 @@ import dustAuditRouter from "./dust-audit.routes.js";
 import recipientRouter from "./recipient.routes.js";
 import complianceRouter from "./compliance.routes.js";
 import complianceReportsRouter from "./compliance-reports.routes.js";
+import reportsRouter from "./reports.routes.js";
 import auditLogRoutes from "./audit-log.routes.js";
 import clawbackRoutes from "./clawback.routes.js";
 import dashboardRouter from "./dashboard.routes.js";
@@ -53,6 +54,7 @@ router.use("/dust-audit", dustAuditRouter);
 router.use("/recipient", recipientRouter);
 router.use("/compliance", complianceRouter);
 router.use("/compliance/reports", complianceReportsRouter);
+router.use("/orgs/:gAddress/reports", reportsRouter);
 router.use("/v2/streams/:streamId/clawback", clawbackRoutes);
 router.use("/geo", geoRouter); // Geolocation routes
 

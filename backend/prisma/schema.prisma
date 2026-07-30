@@ -1217,3 +1217,96 @@ model ExportAuditLog {
   @@index([createdAt])
   @@index([userId, createdAt(sort: Desc)])
 }
+// ── Reconciliation Reports ────────────────────────────────────────────────────
+
+enum ReportType {
+  daily_summary
+  monthly_statement
+  failed_payment
+  fee_analysis
+  tax_report
+}
+
+enum ReportStatus {
+  pending
+  generating
+  generated
+  failed
+  archived
+}
+
+// Main report entity storing report metadata, statistics, and reconciliation data
+model Report {
+  id                    String       @id @default(cuid())
+  organizationId        String       @map("organizationId")
+  reportType            ReportType   @map("reportType")
+  periodStart           DateTime     @map("periodStart")
+  periodEnd             DateTime     @map("periodEnd")
+  generatedAt           DateTime     @map("generatedAt")
+  generatedBy           String       @map("generatedBy")
+  status                ReportStatus @default(pending)
+  // fileUrls: { pdf?, xlsx?, json?, csv? }
+  fileUrls              Json         @default("{}")
+  // summary: { transactionCount, totalVolume, failureCount?, feeTotal? }
+  summary               Json
+  // reconciliationStatus: { totalExpected, totalActual, variance, discrepanciesFound, explanations? }
+  reconciliationStatus  Json         @map("reconciliationStatus")
+  // emailDeliveryStatus: { sent, sentAt?, recipients[], failureReason? }
+  emailDeliveryStatus   Json?        @map("emailDeliveryStatus")
+  // auditLog: embedded JSON audit trail (array of audit entries)
+  auditLog              Json         @default("[]")
+  // Soft delete timestamp (null = active, not null = deleted)
+  deletedAt             DateTime?    @map("deletedAt")
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  auditLogs             ReportAuditLog[]
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([reportType, organizationId])
+  @@index([status])
+  @@index([organizationId])
+  @@map("Report")
+}
+
+// Configuration for report generation schedules and preferences per organization
+model ReportConfiguration {
+  id                    String       @id @default(cuid())
+  organizationId        String       @map("organizationId")
+  reportType            ReportType   @map("reportType")
+  enabled               Boolean      @default(true)
+  // schedule: { frequency, timeUtc?, dayOfMonth? }
+  schedule              Json
+  // exportFormats: array of formats (pdf, xlsx, json, csv)
+  exportFormats         String[]     @default(["pdf", "xlsx"])
+  // emailConfig: { enabled, recipients, includePreview, attachmentFormats }
+  emailConfig           Json?        @map("emailConfig")
+  // storageConfig: { provider, bucket, retentionDays }
+  storageConfig         Json
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@unique([organizationId, reportType])
+  @@index([organizationId, reportType])
+  @@index([organizationId])
+  @@index([enabled])
+  @@map("ReportConfiguration")
+}
+
+// Immutable audit trail of report operations for compliance and debugging
+model ReportAuditLog {
+  id                    String       @id @default(cuid())
+  reportId              String
+  report                Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  action                String       // generated, failed, emailed, deleted, verified
+  actor                 String       // user ID or 'system'
+  timestamp             DateTime     @default(now())
+  // details: operation-specific context as JSON
+  details               Json?
+  createdAt             DateTime     @default(now())
+
+  @@index([reportId, timestamp(sort: Desc)])
+  @@index([timestamp(sort: Desc)])
+  @@index([action])
+  @@map("ReportAuditLog")
+}
