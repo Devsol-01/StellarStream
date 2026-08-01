@@ -25,6 +25,7 @@ import complianceRouter from "./compliance.routes.js";
 import auditLogRoutes from "./audit-log.routes.js";
 import clawbackRoutes from "./clawback.routes.js";
 import dashboardRouter from "./dashboard.routes.js";
+import disputeRouter from "./dispute.routes.js";
 
 const router = Router();
 
@@ -54,6 +55,9 @@ router.use("/audit", auditLogRoutes);
 
 // ── Dashboard Routes (real-time updates) ──────────────────────────────────────
 router.use("/dashboard", dashboardRouter);
+
+// ── Payment Dispute Resolution Routes (#DISPUTES) ─────────────────────────────
+router.use("/disputes", disputeRouter);
 
 const auditLogService = new AuditLogService();
 const chainVerificationService = new AuditChainVerificationService();

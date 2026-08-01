@@ -839,3 +839,73 @@ model AdminAuditLog {
   @@index([path, timestamp(sort: Desc)])
   @@map("admin_audit_log")
 }
+
+// ── Payment Dispute Resolution System (#DISPUTES) ────────────────────────────
+
+// A payment dispute filed against a stream or transaction
+model PaymentDispute {
+  id                String    @id @default(cuid())
+  disputeRef        String    @unique // Human-readable reference e.g. DSP-2026-XXXXXX
+  streamId          String?   // Reference to the payment stream
+  txHash            String?   // Reference to the on-chain transaction
+  filerAddress      String    // Address that filed the dispute
+  respondentAddress String    // Counterparty address
+  reason            String    // Dispute category/reason
+  description       String?   // Detailed description
+  amount            String    @default("0") // Disputed amount (string to avoid precision loss)
+  tokenAddress      String?   // Asset/token involved
+  status            String    @default("FILED") // FILED, EVIDENCE_REVIEW, RESOLVED, REJECTED, CLOSED
+  decision          String?   // GRANTED, DENIED, PARTIAL (null while unresolved)
+  resolutionNotes   String?   // Notes attached on resolution
+  resolvedBy        String?   // Address that resolved the dispute
+  resolvedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  evidence DisputeEvidence[]
+  history  DisputeHistory[]
+
+  @@index([filerAddress])
+  @@index([respondentAddress])
+  @@index([status])
+  @@index([streamId])
+  @@index([txHash])
+  @@index([createdAt(sort: Desc)])
+  @@map("PaymentDispute")
+}
+
+// Evidence attachments supporting a payment dispute
+model DisputeEvidence {
+  id              String    @id @default(cuid())
+  disputeId       String
+  dispute         PaymentDispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  uploaderAddress String    // Address that uploaded the evidence
+  fileName        String    // Original file name
+  fileUrl         String    // Stored file URL / object key
+  mimeType        String?   // e.g. image/png, application/pdf
+  fileSize        Int       @default(0) // Bytes
+  description     String?   // Optional evidence description
+  createdAt       DateTime  @default(now())
+
+  @@index([disputeId])
+  @@index([uploaderAddress])
+  @@map("DisputeEvidence")
+}
+
+// Immutable timeline of dispute actions and status transitions
+model DisputeHistory {
+  id           String    @id @default(cuid())
+  disputeId    String
+  dispute      PaymentDispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  actorAddress String    // Address that performed the action
+  action       String    // FILED, EVIDENCE_ADDED, STATUS_CHANGED, RESOLVED, REJECTED, CLOSED, NOTE_ADDED
+  fromStatus   String?
+  toStatus     String?
+  comment      String?   // Optional human-readable note
+  createdAt    DateTime  @default(now())
+
+  @@index([disputeId])
+  @@index([action])
+  @@index([createdAt(sort: Desc)])
+  @@map("DisputeHistory")
+}
