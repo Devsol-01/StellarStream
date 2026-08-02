@@ -685,6 +685,49 @@ exports.Prisma.AdminAuditLogScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PaymentDisputeScalarFieldEnum = {
+  id: 'id',
+  disputeRef: 'disputeRef',
+  streamId: 'streamId',
+  txHash: 'txHash',
+  filerAddress: 'filerAddress',
+  respondentAddress: 'respondentAddress',
+  reason: 'reason',
+  description: 'description',
+  amount: 'amount',
+  tokenAddress: 'tokenAddress',
+  status: 'status',
+  decision: 'decision',
+  resolutionNotes: 'resolutionNotes',
+  resolvedBy: 'resolvedBy',
+  resolvedAt: 'resolvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.DisputeEvidenceScalarFieldEnum = {
+  id: 'id',
+  disputeId: 'disputeId',
+  uploaderAddress: 'uploaderAddress',
+  fileName: 'fileName',
+  fileUrl: 'fileUrl',
+  mimeType: 'mimeType',
+  fileSize: 'fileSize',
+  description: 'description',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DisputeHistoryScalarFieldEnum = {
+  id: 'id',
+  disputeId: 'disputeId',
+  actorAddress: 'actorAddress',
+  action: 'action',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  comment: 'comment',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -780,7 +823,10 @@ exports.Prisma.ModelName = {
   StreamTemplate: 'StreamTemplate',
   SplitLink: 'SplitLink',
   OfacAuditLog: 'OfacAuditLog',
-  AdminAuditLog: 'AdminAuditLog'
+  AdminAuditLog: 'AdminAuditLog',
+  PaymentDispute: 'PaymentDispute',
+  DisputeEvidence: 'DisputeEvidence',
+  DisputeHistory: 'DisputeHistory'
 };
 
 /**

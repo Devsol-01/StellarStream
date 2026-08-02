@@ -233,6 +233,21 @@ export type OfacAuditLog = $Result.DefaultSelection<Prisma.$OfacAuditLogPayload>
  * 
  */
 export type AdminAuditLog = $Result.DefaultSelection<Prisma.$AdminAuditLogPayload>
+/**
+ * Model PaymentDispute
+ * 
+ */
+export type PaymentDispute = $Result.DefaultSelection<Prisma.$PaymentDisputePayload>
+/**
+ * Model DisputeEvidence
+ * 
+ */
+export type DisputeEvidence = $Result.DefaultSelection<Prisma.$DisputeEvidencePayload>
+/**
+ * Model DisputeHistory
+ * 
+ */
+export type DisputeHistory = $Result.DefaultSelection<Prisma.$DisputeHistoryPayload>
 
 /**
  * Enums
@@ -856,6 +871,36 @@ export class PrismaClient<
     * ```
     */
   get adminAuditLog(): Prisma.AdminAuditLogDelegate<ExtArgs>;
+
+  /**
+   * `prisma.paymentDispute`: Exposes CRUD operations for the **PaymentDispute** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PaymentDisputes
+    * const paymentDisputes = await prisma.paymentDispute.findMany()
+    * ```
+    */
+  get paymentDispute(): Prisma.PaymentDisputeDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeEvidence`: Exposes CRUD operations for the **DisputeEvidence** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeEvidences
+    * const disputeEvidences = await prisma.disputeEvidence.findMany()
+    * ```
+    */
+  get disputeEvidence(): Prisma.DisputeEvidenceDelegate<ExtArgs>;
+
+  /**
+   * `prisma.disputeHistory`: Exposes CRUD operations for the **DisputeHistory** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DisputeHistories
+    * const disputeHistories = await prisma.disputeHistory.findMany()
+    * ```
+    */
+  get disputeHistory(): Prisma.DisputeHistoryDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -1340,7 +1385,10 @@ export namespace Prisma {
     StreamTemplate: 'StreamTemplate',
     SplitLink: 'SplitLink',
     OfacAuditLog: 'OfacAuditLog',
-    AdminAuditLog: 'AdminAuditLog'
+    AdminAuditLog: 'AdminAuditLog',
+    PaymentDispute: 'PaymentDispute',
+    DisputeEvidence: 'DisputeEvidence',
+    DisputeHistory: 'DisputeHistory'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1356,7 +1404,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "paymentCategory" | "paymentMetadata" | "paymentCategoryRule" | "stream" | "contractEvent" | "tokenPrice" | "webhook" | "webhookDelivery" | "syncState" | "eventLog" | "streamSnapshot" | "streamArchive" | "bridgeLog" | "proposal" | "event" | "organizationMember" | "apiKey" | "ledgerHash" | "syncMetadata" | "clawbackHistory" | "notificationSubscription" | "invoiceLink" | "affiliate" | "globalStats" | "globalStats_V3" | "tvlSnapshot" | "asset" | "autopilotSchedule" | "assetConfig" | "archivedDisbursement" | "disbursement" | "assetMapping" | "priceHistory" | "protocolInefficiencyReport" | "splitLog" | "monitoredTransaction" | "disbursementDraft" | "disbursementDraftVersion" | "multisigProposal" | "cachedAsset" | "streamTemplate" | "splitLink" | "ofacAuditLog" | "adminAuditLog"
+      modelProps: "paymentCategory" | "paymentMetadata" | "paymentCategoryRule" | "stream" | "contractEvent" | "tokenPrice" | "webhook" | "webhookDelivery" | "syncState" | "eventLog" | "streamSnapshot" | "streamArchive" | "bridgeLog" | "proposal" | "event" | "organizationMember" | "apiKey" | "ledgerHash" | "syncMetadata" | "clawbackHistory" | "notificationSubscription" | "invoiceLink" | "affiliate" | "globalStats" | "globalStats_V3" | "tvlSnapshot" | "asset" | "autopilotSchedule" | "assetConfig" | "archivedDisbursement" | "disbursement" | "assetMapping" | "priceHistory" | "protocolInefficiencyReport" | "splitLog" | "monitoredTransaction" | "disbursementDraft" | "disbursementDraftVersion" | "multisigProposal" | "cachedAsset" | "streamTemplate" | "splitLink" | "ofacAuditLog" | "adminAuditLog" | "paymentDispute" | "disputeEvidence" | "disputeHistory"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4440,6 +4488,216 @@ export namespace Prisma {
           }
         }
       }
+      PaymentDispute: {
+        payload: Prisma.$PaymentDisputePayload<ExtArgs>
+        fields: Prisma.PaymentDisputeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PaymentDisputeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentDisputePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PaymentDisputeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentDisputePayload>
+          }
+          findFirst: {
+            args: Prisma.PaymentDisputeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentDisputePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PaymentDisputeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentDisputePayload>
+          }
+          findMany: {
+            args: Prisma.PaymentDisputeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentDisputePayload>[]
+          }
+          create: {
+            args: Prisma.PaymentDisputeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentDisputePayload>
+          }
+          createMany: {
+            args: Prisma.PaymentDisputeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PaymentDisputeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentDisputePayload>[]
+          }
+          delete: {
+            args: Prisma.PaymentDisputeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentDisputePayload>
+          }
+          update: {
+            args: Prisma.PaymentDisputeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentDisputePayload>
+          }
+          deleteMany: {
+            args: Prisma.PaymentDisputeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PaymentDisputeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PaymentDisputeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentDisputePayload>
+          }
+          aggregate: {
+            args: Prisma.PaymentDisputeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePaymentDispute>
+          }
+          groupBy: {
+            args: Prisma.PaymentDisputeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PaymentDisputeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PaymentDisputeCountArgs<ExtArgs>
+            result: $Utils.Optional<PaymentDisputeCountAggregateOutputType> | number
+          }
+        }
+      }
+      DisputeEvidence: {
+        payload: Prisma.$DisputeEvidencePayload<ExtArgs>
+        fields: Prisma.DisputeEvidenceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeEvidenceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeEvidencePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeEvidenceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeEvidencePayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeEvidenceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeEvidencePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeEvidenceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeEvidencePayload>
+          }
+          findMany: {
+            args: Prisma.DisputeEvidenceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeEvidencePayload>[]
+          }
+          create: {
+            args: Prisma.DisputeEvidenceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeEvidencePayload>
+          }
+          createMany: {
+            args: Prisma.DisputeEvidenceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeEvidenceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeEvidencePayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeEvidenceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeEvidencePayload>
+          }
+          update: {
+            args: Prisma.DisputeEvidenceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeEvidencePayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeEvidenceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeEvidenceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeEvidenceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeEvidencePayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeEvidenceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeEvidence>
+          }
+          groupBy: {
+            args: Prisma.DisputeEvidenceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeEvidenceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeEvidenceCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeEvidenceCountAggregateOutputType> | number
+          }
+        }
+      }
+      DisputeHistory: {
+        payload: Prisma.$DisputeHistoryPayload<ExtArgs>
+        fields: Prisma.DisputeHistoryFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DisputeHistoryFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHistoryPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DisputeHistoryFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHistoryPayload>
+          }
+          findFirst: {
+            args: Prisma.DisputeHistoryFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHistoryPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DisputeHistoryFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHistoryPayload>
+          }
+          findMany: {
+            args: Prisma.DisputeHistoryFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHistoryPayload>[]
+          }
+          create: {
+            args: Prisma.DisputeHistoryCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHistoryPayload>
+          }
+          createMany: {
+            args: Prisma.DisputeHistoryCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DisputeHistoryCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHistoryPayload>[]
+          }
+          delete: {
+            args: Prisma.DisputeHistoryDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHistoryPayload>
+          }
+          update: {
+            args: Prisma.DisputeHistoryUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHistoryPayload>
+          }
+          deleteMany: {
+            args: Prisma.DisputeHistoryDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DisputeHistoryUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.DisputeHistoryUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DisputeHistoryPayload>
+          }
+          aggregate: {
+            args: Prisma.DisputeHistoryAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDisputeHistory>
+          }
+          groupBy: {
+            args: Prisma.DisputeHistoryGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DisputeHistoryGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DisputeHistoryCountArgs<ExtArgs>
+            result: $Utils.Optional<DisputeHistoryCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -4673,6 +4931,46 @@ export namespace Prisma {
    */
   export type DisbursementDraftCountOutputTypeCountVersionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DisbursementDraftVersionWhereInput
+  }
+
+
+  /**
+   * Count Type PaymentDisputeCountOutputType
+   */
+
+  export type PaymentDisputeCountOutputType = {
+    evidence: number
+    history: number
+  }
+
+  export type PaymentDisputeCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    evidence?: boolean | PaymentDisputeCountOutputTypeCountEvidenceArgs
+    history?: boolean | PaymentDisputeCountOutputTypeCountHistoryArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PaymentDisputeCountOutputType without action
+   */
+  export type PaymentDisputeCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDisputeCountOutputType
+     */
+    select?: PaymentDisputeCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PaymentDisputeCountOutputType without action
+   */
+  export type PaymentDisputeCountOutputTypeCountEvidenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeEvidenceWhereInput
+  }
+
+  /**
+   * PaymentDisputeCountOutputType without action
+   */
+  export type PaymentDisputeCountOutputTypeCountHistoryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeHistoryWhereInput
   }
 
 
@@ -47474,6 +47772,3106 @@ export namespace Prisma {
 
 
   /**
+   * Model PaymentDispute
+   */
+
+  export type AggregatePaymentDispute = {
+    _count: PaymentDisputeCountAggregateOutputType | null
+    _min: PaymentDisputeMinAggregateOutputType | null
+    _max: PaymentDisputeMaxAggregateOutputType | null
+  }
+
+  export type PaymentDisputeMinAggregateOutputType = {
+    id: string | null
+    disputeRef: string | null
+    streamId: string | null
+    txHash: string | null
+    filerAddress: string | null
+    respondentAddress: string | null
+    reason: string | null
+    description: string | null
+    amount: string | null
+    tokenAddress: string | null
+    status: string | null
+    decision: string | null
+    resolutionNotes: string | null
+    resolvedBy: string | null
+    resolvedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PaymentDisputeMaxAggregateOutputType = {
+    id: string | null
+    disputeRef: string | null
+    streamId: string | null
+    txHash: string | null
+    filerAddress: string | null
+    respondentAddress: string | null
+    reason: string | null
+    description: string | null
+    amount: string | null
+    tokenAddress: string | null
+    status: string | null
+    decision: string | null
+    resolutionNotes: string | null
+    resolvedBy: string | null
+    resolvedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PaymentDisputeCountAggregateOutputType = {
+    id: number
+    disputeRef: number
+    streamId: number
+    txHash: number
+    filerAddress: number
+    respondentAddress: number
+    reason: number
+    description: number
+    amount: number
+    tokenAddress: number
+    status: number
+    decision: number
+    resolutionNotes: number
+    resolvedBy: number
+    resolvedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PaymentDisputeMinAggregateInputType = {
+    id?: true
+    disputeRef?: true
+    streamId?: true
+    txHash?: true
+    filerAddress?: true
+    respondentAddress?: true
+    reason?: true
+    description?: true
+    amount?: true
+    tokenAddress?: true
+    status?: true
+    decision?: true
+    resolutionNotes?: true
+    resolvedBy?: true
+    resolvedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PaymentDisputeMaxAggregateInputType = {
+    id?: true
+    disputeRef?: true
+    streamId?: true
+    txHash?: true
+    filerAddress?: true
+    respondentAddress?: true
+    reason?: true
+    description?: true
+    amount?: true
+    tokenAddress?: true
+    status?: true
+    decision?: true
+    resolutionNotes?: true
+    resolvedBy?: true
+    resolvedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PaymentDisputeCountAggregateInputType = {
+    id?: true
+    disputeRef?: true
+    streamId?: true
+    txHash?: true
+    filerAddress?: true
+    respondentAddress?: true
+    reason?: true
+    description?: true
+    amount?: true
+    tokenAddress?: true
+    status?: true
+    decision?: true
+    resolutionNotes?: true
+    resolvedBy?: true
+    resolvedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PaymentDisputeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PaymentDispute to aggregate.
+     */
+    where?: PaymentDisputeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentDisputes to fetch.
+     */
+    orderBy?: PaymentDisputeOrderByWithRelationInput | PaymentDisputeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PaymentDisputeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentDisputes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentDisputes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PaymentDisputes
+    **/
+    _count?: true | PaymentDisputeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PaymentDisputeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PaymentDisputeMaxAggregateInputType
+  }
+
+  export type GetPaymentDisputeAggregateType<T extends PaymentDisputeAggregateArgs> = {
+        [P in keyof T & keyof AggregatePaymentDispute]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePaymentDispute[P]>
+      : GetScalarType<T[P], AggregatePaymentDispute[P]>
+  }
+
+
+
+
+  export type PaymentDisputeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PaymentDisputeWhereInput
+    orderBy?: PaymentDisputeOrderByWithAggregationInput | PaymentDisputeOrderByWithAggregationInput[]
+    by: PaymentDisputeScalarFieldEnum[] | PaymentDisputeScalarFieldEnum
+    having?: PaymentDisputeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PaymentDisputeCountAggregateInputType | true
+    _min?: PaymentDisputeMinAggregateInputType
+    _max?: PaymentDisputeMaxAggregateInputType
+  }
+
+  export type PaymentDisputeGroupByOutputType = {
+    id: string
+    disputeRef: string
+    streamId: string | null
+    txHash: string | null
+    filerAddress: string
+    respondentAddress: string
+    reason: string
+    description: string | null
+    amount: string
+    tokenAddress: string | null
+    status: string
+    decision: string | null
+    resolutionNotes: string | null
+    resolvedBy: string | null
+    resolvedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PaymentDisputeCountAggregateOutputType | null
+    _min: PaymentDisputeMinAggregateOutputType | null
+    _max: PaymentDisputeMaxAggregateOutputType | null
+  }
+
+  type GetPaymentDisputeGroupByPayload<T extends PaymentDisputeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PaymentDisputeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PaymentDisputeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PaymentDisputeGroupByOutputType[P]>
+            : GetScalarType<T[P], PaymentDisputeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PaymentDisputeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    disputeRef?: boolean
+    streamId?: boolean
+    txHash?: boolean
+    filerAddress?: boolean
+    respondentAddress?: boolean
+    reason?: boolean
+    description?: boolean
+    amount?: boolean
+    tokenAddress?: boolean
+    status?: boolean
+    decision?: boolean
+    resolutionNotes?: boolean
+    resolvedBy?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    evidence?: boolean | PaymentDispute$evidenceArgs<ExtArgs>
+    history?: boolean | PaymentDispute$historyArgs<ExtArgs>
+    _count?: boolean | PaymentDisputeCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["paymentDispute"]>
+
+  export type PaymentDisputeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    disputeRef?: boolean
+    streamId?: boolean
+    txHash?: boolean
+    filerAddress?: boolean
+    respondentAddress?: boolean
+    reason?: boolean
+    description?: boolean
+    amount?: boolean
+    tokenAddress?: boolean
+    status?: boolean
+    decision?: boolean
+    resolutionNotes?: boolean
+    resolvedBy?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["paymentDispute"]>
+
+  export type PaymentDisputeSelectScalar = {
+    id?: boolean
+    disputeRef?: boolean
+    streamId?: boolean
+    txHash?: boolean
+    filerAddress?: boolean
+    respondentAddress?: boolean
+    reason?: boolean
+    description?: boolean
+    amount?: boolean
+    tokenAddress?: boolean
+    status?: boolean
+    decision?: boolean
+    resolutionNotes?: boolean
+    resolvedBy?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PaymentDisputeInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    evidence?: boolean | PaymentDispute$evidenceArgs<ExtArgs>
+    history?: boolean | PaymentDispute$historyArgs<ExtArgs>
+    _count?: boolean | PaymentDisputeCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PaymentDisputeIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $PaymentDisputePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PaymentDispute"
+    objects: {
+      evidence: Prisma.$DisputeEvidencePayload<ExtArgs>[]
+      history: Prisma.$DisputeHistoryPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      disputeRef: string
+      streamId: string | null
+      txHash: string | null
+      filerAddress: string
+      respondentAddress: string
+      reason: string
+      description: string | null
+      amount: string
+      tokenAddress: string | null
+      status: string
+      decision: string | null
+      resolutionNotes: string | null
+      resolvedBy: string | null
+      resolvedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["paymentDispute"]>
+    composites: {}
+  }
+
+  type PaymentDisputeGetPayload<S extends boolean | null | undefined | PaymentDisputeDefaultArgs> = $Result.GetResult<Prisma.$PaymentDisputePayload, S>
+
+  type PaymentDisputeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PaymentDisputeFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PaymentDisputeCountAggregateInputType | true
+    }
+
+  export interface PaymentDisputeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PaymentDispute'], meta: { name: 'PaymentDispute' } }
+    /**
+     * Find zero or one PaymentDispute that matches the filter.
+     * @param {PaymentDisputeFindUniqueArgs} args - Arguments to find a PaymentDispute
+     * @example
+     * // Get one PaymentDispute
+     * const paymentDispute = await prisma.paymentDispute.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PaymentDisputeFindUniqueArgs>(args: SelectSubset<T, PaymentDisputeFindUniqueArgs<ExtArgs>>): Prisma__PaymentDisputeClient<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PaymentDispute that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PaymentDisputeFindUniqueOrThrowArgs} args - Arguments to find a PaymentDispute
+     * @example
+     * // Get one PaymentDispute
+     * const paymentDispute = await prisma.paymentDispute.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PaymentDisputeFindUniqueOrThrowArgs>(args: SelectSubset<T, PaymentDisputeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PaymentDisputeClient<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PaymentDispute that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentDisputeFindFirstArgs} args - Arguments to find a PaymentDispute
+     * @example
+     * // Get one PaymentDispute
+     * const paymentDispute = await prisma.paymentDispute.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PaymentDisputeFindFirstArgs>(args?: SelectSubset<T, PaymentDisputeFindFirstArgs<ExtArgs>>): Prisma__PaymentDisputeClient<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PaymentDispute that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentDisputeFindFirstOrThrowArgs} args - Arguments to find a PaymentDispute
+     * @example
+     * // Get one PaymentDispute
+     * const paymentDispute = await prisma.paymentDispute.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PaymentDisputeFindFirstOrThrowArgs>(args?: SelectSubset<T, PaymentDisputeFindFirstOrThrowArgs<ExtArgs>>): Prisma__PaymentDisputeClient<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PaymentDisputes that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentDisputeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PaymentDisputes
+     * const paymentDisputes = await prisma.paymentDispute.findMany()
+     * 
+     * // Get first 10 PaymentDisputes
+     * const paymentDisputes = await prisma.paymentDispute.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const paymentDisputeWithIdOnly = await prisma.paymentDispute.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PaymentDisputeFindManyArgs>(args?: SelectSubset<T, PaymentDisputeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PaymentDispute.
+     * @param {PaymentDisputeCreateArgs} args - Arguments to create a PaymentDispute.
+     * @example
+     * // Create one PaymentDispute
+     * const PaymentDispute = await prisma.paymentDispute.create({
+     *   data: {
+     *     // ... data to create a PaymentDispute
+     *   }
+     * })
+     * 
+     */
+    create<T extends PaymentDisputeCreateArgs>(args: SelectSubset<T, PaymentDisputeCreateArgs<ExtArgs>>): Prisma__PaymentDisputeClient<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PaymentDisputes.
+     * @param {PaymentDisputeCreateManyArgs} args - Arguments to create many PaymentDisputes.
+     * @example
+     * // Create many PaymentDisputes
+     * const paymentDispute = await prisma.paymentDispute.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PaymentDisputeCreateManyArgs>(args?: SelectSubset<T, PaymentDisputeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PaymentDisputes and returns the data saved in the database.
+     * @param {PaymentDisputeCreateManyAndReturnArgs} args - Arguments to create many PaymentDisputes.
+     * @example
+     * // Create many PaymentDisputes
+     * const paymentDispute = await prisma.paymentDispute.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PaymentDisputes and only return the `id`
+     * const paymentDisputeWithIdOnly = await prisma.paymentDispute.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PaymentDisputeCreateManyAndReturnArgs>(args?: SelectSubset<T, PaymentDisputeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PaymentDispute.
+     * @param {PaymentDisputeDeleteArgs} args - Arguments to delete one PaymentDispute.
+     * @example
+     * // Delete one PaymentDispute
+     * const PaymentDispute = await prisma.paymentDispute.delete({
+     *   where: {
+     *     // ... filter to delete one PaymentDispute
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PaymentDisputeDeleteArgs>(args: SelectSubset<T, PaymentDisputeDeleteArgs<ExtArgs>>): Prisma__PaymentDisputeClient<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PaymentDispute.
+     * @param {PaymentDisputeUpdateArgs} args - Arguments to update one PaymentDispute.
+     * @example
+     * // Update one PaymentDispute
+     * const paymentDispute = await prisma.paymentDispute.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PaymentDisputeUpdateArgs>(args: SelectSubset<T, PaymentDisputeUpdateArgs<ExtArgs>>): Prisma__PaymentDisputeClient<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PaymentDisputes.
+     * @param {PaymentDisputeDeleteManyArgs} args - Arguments to filter PaymentDisputes to delete.
+     * @example
+     * // Delete a few PaymentDisputes
+     * const { count } = await prisma.paymentDispute.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PaymentDisputeDeleteManyArgs>(args?: SelectSubset<T, PaymentDisputeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PaymentDisputes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentDisputeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PaymentDisputes
+     * const paymentDispute = await prisma.paymentDispute.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PaymentDisputeUpdateManyArgs>(args: SelectSubset<T, PaymentDisputeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PaymentDispute.
+     * @param {PaymentDisputeUpsertArgs} args - Arguments to update or create a PaymentDispute.
+     * @example
+     * // Update or create a PaymentDispute
+     * const paymentDispute = await prisma.paymentDispute.upsert({
+     *   create: {
+     *     // ... data to create a PaymentDispute
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PaymentDispute we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PaymentDisputeUpsertArgs>(args: SelectSubset<T, PaymentDisputeUpsertArgs<ExtArgs>>): Prisma__PaymentDisputeClient<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PaymentDisputes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentDisputeCountArgs} args - Arguments to filter PaymentDisputes to count.
+     * @example
+     * // Count the number of PaymentDisputes
+     * const count = await prisma.paymentDispute.count({
+     *   where: {
+     *     // ... the filter for the PaymentDisputes we want to count
+     *   }
+     * })
+    **/
+    count<T extends PaymentDisputeCountArgs>(
+      args?: Subset<T, PaymentDisputeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PaymentDisputeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PaymentDispute.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentDisputeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PaymentDisputeAggregateArgs>(args: Subset<T, PaymentDisputeAggregateArgs>): Prisma.PrismaPromise<GetPaymentDisputeAggregateType<T>>
+
+    /**
+     * Group by PaymentDispute.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentDisputeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PaymentDisputeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PaymentDisputeGroupByArgs['orderBy'] }
+        : { orderBy?: PaymentDisputeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PaymentDisputeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPaymentDisputeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PaymentDispute model
+   */
+  readonly fields: PaymentDisputeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PaymentDispute.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PaymentDisputeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    evidence<T extends PaymentDispute$evidenceArgs<ExtArgs> = {}>(args?: Subset<T, PaymentDispute$evidenceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "findMany"> | Null>
+    history<T extends PaymentDispute$historyArgs<ExtArgs> = {}>(args?: Subset<T, PaymentDispute$historyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PaymentDispute model
+   */ 
+  interface PaymentDisputeFieldRefs {
+    readonly id: FieldRef<"PaymentDispute", 'String'>
+    readonly disputeRef: FieldRef<"PaymentDispute", 'String'>
+    readonly streamId: FieldRef<"PaymentDispute", 'String'>
+    readonly txHash: FieldRef<"PaymentDispute", 'String'>
+    readonly filerAddress: FieldRef<"PaymentDispute", 'String'>
+    readonly respondentAddress: FieldRef<"PaymentDispute", 'String'>
+    readonly reason: FieldRef<"PaymentDispute", 'String'>
+    readonly description: FieldRef<"PaymentDispute", 'String'>
+    readonly amount: FieldRef<"PaymentDispute", 'String'>
+    readonly tokenAddress: FieldRef<"PaymentDispute", 'String'>
+    readonly status: FieldRef<"PaymentDispute", 'String'>
+    readonly decision: FieldRef<"PaymentDispute", 'String'>
+    readonly resolutionNotes: FieldRef<"PaymentDispute", 'String'>
+    readonly resolvedBy: FieldRef<"PaymentDispute", 'String'>
+    readonly resolvedAt: FieldRef<"PaymentDispute", 'DateTime'>
+    readonly createdAt: FieldRef<"PaymentDispute", 'DateTime'>
+    readonly updatedAt: FieldRef<"PaymentDispute", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PaymentDispute findUnique
+   */
+  export type PaymentDisputeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentDisputeInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentDispute to fetch.
+     */
+    where: PaymentDisputeWhereUniqueInput
+  }
+
+  /**
+   * PaymentDispute findUniqueOrThrow
+   */
+  export type PaymentDisputeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentDisputeInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentDispute to fetch.
+     */
+    where: PaymentDisputeWhereUniqueInput
+  }
+
+  /**
+   * PaymentDispute findFirst
+   */
+  export type PaymentDisputeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentDisputeInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentDispute to fetch.
+     */
+    where?: PaymentDisputeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentDisputes to fetch.
+     */
+    orderBy?: PaymentDisputeOrderByWithRelationInput | PaymentDisputeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PaymentDisputes.
+     */
+    cursor?: PaymentDisputeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentDisputes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentDisputes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentDisputes.
+     */
+    distinct?: PaymentDisputeScalarFieldEnum | PaymentDisputeScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentDispute findFirstOrThrow
+   */
+  export type PaymentDisputeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentDisputeInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentDispute to fetch.
+     */
+    where?: PaymentDisputeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentDisputes to fetch.
+     */
+    orderBy?: PaymentDisputeOrderByWithRelationInput | PaymentDisputeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PaymentDisputes.
+     */
+    cursor?: PaymentDisputeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentDisputes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentDisputes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentDisputes.
+     */
+    distinct?: PaymentDisputeScalarFieldEnum | PaymentDisputeScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentDispute findMany
+   */
+  export type PaymentDisputeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentDisputeInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentDisputes to fetch.
+     */
+    where?: PaymentDisputeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentDisputes to fetch.
+     */
+    orderBy?: PaymentDisputeOrderByWithRelationInput | PaymentDisputeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PaymentDisputes.
+     */
+    cursor?: PaymentDisputeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentDisputes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentDisputes.
+     */
+    skip?: number
+    distinct?: PaymentDisputeScalarFieldEnum | PaymentDisputeScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentDispute create
+   */
+  export type PaymentDisputeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentDisputeInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PaymentDispute.
+     */
+    data: XOR<PaymentDisputeCreateInput, PaymentDisputeUncheckedCreateInput>
+  }
+
+  /**
+   * PaymentDispute createMany
+   */
+  export type PaymentDisputeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PaymentDisputes.
+     */
+    data: PaymentDisputeCreateManyInput | PaymentDisputeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PaymentDispute createManyAndReturn
+   */
+  export type PaymentDisputeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PaymentDisputes.
+     */
+    data: PaymentDisputeCreateManyInput | PaymentDisputeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PaymentDispute update
+   */
+  export type PaymentDisputeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentDisputeInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PaymentDispute.
+     */
+    data: XOR<PaymentDisputeUpdateInput, PaymentDisputeUncheckedUpdateInput>
+    /**
+     * Choose, which PaymentDispute to update.
+     */
+    where: PaymentDisputeWhereUniqueInput
+  }
+
+  /**
+   * PaymentDispute updateMany
+   */
+  export type PaymentDisputeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PaymentDisputes.
+     */
+    data: XOR<PaymentDisputeUpdateManyMutationInput, PaymentDisputeUncheckedUpdateManyInput>
+    /**
+     * Filter which PaymentDisputes to update
+     */
+    where?: PaymentDisputeWhereInput
+  }
+
+  /**
+   * PaymentDispute upsert
+   */
+  export type PaymentDisputeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentDisputeInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PaymentDispute to update in case it exists.
+     */
+    where: PaymentDisputeWhereUniqueInput
+    /**
+     * In case the PaymentDispute found by the `where` argument doesn't exist, create a new PaymentDispute with this data.
+     */
+    create: XOR<PaymentDisputeCreateInput, PaymentDisputeUncheckedCreateInput>
+    /**
+     * In case the PaymentDispute was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PaymentDisputeUpdateInput, PaymentDisputeUncheckedUpdateInput>
+  }
+
+  /**
+   * PaymentDispute delete
+   */
+  export type PaymentDisputeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentDisputeInclude<ExtArgs> | null
+    /**
+     * Filter which PaymentDispute to delete.
+     */
+    where: PaymentDisputeWhereUniqueInput
+  }
+
+  /**
+   * PaymentDispute deleteMany
+   */
+  export type PaymentDisputeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PaymentDisputes to delete
+     */
+    where?: PaymentDisputeWhereInput
+  }
+
+  /**
+   * PaymentDispute.evidence
+   */
+  export type PaymentDispute$evidenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+    where?: DisputeEvidenceWhereInput
+    orderBy?: DisputeEvidenceOrderByWithRelationInput | DisputeEvidenceOrderByWithRelationInput[]
+    cursor?: DisputeEvidenceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputeEvidenceScalarFieldEnum | DisputeEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentDispute.history
+   */
+  export type PaymentDispute$historyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+    where?: DisputeHistoryWhereInput
+    orderBy?: DisputeHistoryOrderByWithRelationInput | DisputeHistoryOrderByWithRelationInput[]
+    cursor?: DisputeHistoryWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DisputeHistoryScalarFieldEnum | DisputeHistoryScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentDispute without action
+   */
+  export type PaymentDisputeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentDispute
+     */
+    select?: PaymentDisputeSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentDisputeInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DisputeEvidence
+   */
+
+  export type AggregateDisputeEvidence = {
+    _count: DisputeEvidenceCountAggregateOutputType | null
+    _avg: DisputeEvidenceAvgAggregateOutputType | null
+    _sum: DisputeEvidenceSumAggregateOutputType | null
+    _min: DisputeEvidenceMinAggregateOutputType | null
+    _max: DisputeEvidenceMaxAggregateOutputType | null
+  }
+
+  export type DisputeEvidenceAvgAggregateOutputType = {
+    fileSize: number | null
+  }
+
+  export type DisputeEvidenceSumAggregateOutputType = {
+    fileSize: number | null
+  }
+
+  export type DisputeEvidenceMinAggregateOutputType = {
+    id: string | null
+    disputeId: string | null
+    uploaderAddress: string | null
+    fileName: string | null
+    fileUrl: string | null
+    mimeType: string | null
+    fileSize: number | null
+    description: string | null
+    createdAt: Date | null
+  }
+
+  export type DisputeEvidenceMaxAggregateOutputType = {
+    id: string | null
+    disputeId: string | null
+    uploaderAddress: string | null
+    fileName: string | null
+    fileUrl: string | null
+    mimeType: string | null
+    fileSize: number | null
+    description: string | null
+    createdAt: Date | null
+  }
+
+  export type DisputeEvidenceCountAggregateOutputType = {
+    id: number
+    disputeId: number
+    uploaderAddress: number
+    fileName: number
+    fileUrl: number
+    mimeType: number
+    fileSize: number
+    description: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DisputeEvidenceAvgAggregateInputType = {
+    fileSize?: true
+  }
+
+  export type DisputeEvidenceSumAggregateInputType = {
+    fileSize?: true
+  }
+
+  export type DisputeEvidenceMinAggregateInputType = {
+    id?: true
+    disputeId?: true
+    uploaderAddress?: true
+    fileName?: true
+    fileUrl?: true
+    mimeType?: true
+    fileSize?: true
+    description?: true
+    createdAt?: true
+  }
+
+  export type DisputeEvidenceMaxAggregateInputType = {
+    id?: true
+    disputeId?: true
+    uploaderAddress?: true
+    fileName?: true
+    fileUrl?: true
+    mimeType?: true
+    fileSize?: true
+    description?: true
+    createdAt?: true
+  }
+
+  export type DisputeEvidenceCountAggregateInputType = {
+    id?: true
+    disputeId?: true
+    uploaderAddress?: true
+    fileName?: true
+    fileUrl?: true
+    mimeType?: true
+    fileSize?: true
+    description?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DisputeEvidenceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeEvidence to aggregate.
+     */
+    where?: DisputeEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeEvidences to fetch.
+     */
+    orderBy?: DisputeEvidenceOrderByWithRelationInput | DisputeEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeEvidences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeEvidences
+    **/
+    _count?: true | DisputeEvidenceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DisputeEvidenceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DisputeEvidenceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeEvidenceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeEvidenceMaxAggregateInputType
+  }
+
+  export type GetDisputeEvidenceAggregateType<T extends DisputeEvidenceAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeEvidence]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeEvidence[P]>
+      : GetScalarType<T[P], AggregateDisputeEvidence[P]>
+  }
+
+
+
+
+  export type DisputeEvidenceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeEvidenceWhereInput
+    orderBy?: DisputeEvidenceOrderByWithAggregationInput | DisputeEvidenceOrderByWithAggregationInput[]
+    by: DisputeEvidenceScalarFieldEnum[] | DisputeEvidenceScalarFieldEnum
+    having?: DisputeEvidenceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeEvidenceCountAggregateInputType | true
+    _avg?: DisputeEvidenceAvgAggregateInputType
+    _sum?: DisputeEvidenceSumAggregateInputType
+    _min?: DisputeEvidenceMinAggregateInputType
+    _max?: DisputeEvidenceMaxAggregateInputType
+  }
+
+  export type DisputeEvidenceGroupByOutputType = {
+    id: string
+    disputeId: string
+    uploaderAddress: string
+    fileName: string
+    fileUrl: string
+    mimeType: string | null
+    fileSize: number
+    description: string | null
+    createdAt: Date
+    _count: DisputeEvidenceCountAggregateOutputType | null
+    _avg: DisputeEvidenceAvgAggregateOutputType | null
+    _sum: DisputeEvidenceSumAggregateOutputType | null
+    _min: DisputeEvidenceMinAggregateOutputType | null
+    _max: DisputeEvidenceMaxAggregateOutputType | null
+  }
+
+  type GetDisputeEvidenceGroupByPayload<T extends DisputeEvidenceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeEvidenceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeEvidenceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeEvidenceGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeEvidenceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeEvidenceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    disputeId?: boolean
+    uploaderAddress?: boolean
+    fileName?: boolean
+    fileUrl?: boolean
+    mimeType?: boolean
+    fileSize?: boolean
+    description?: boolean
+    createdAt?: boolean
+    dispute?: boolean | PaymentDisputeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeEvidence"]>
+
+  export type DisputeEvidenceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    disputeId?: boolean
+    uploaderAddress?: boolean
+    fileName?: boolean
+    fileUrl?: boolean
+    mimeType?: boolean
+    fileSize?: boolean
+    description?: boolean
+    createdAt?: boolean
+    dispute?: boolean | PaymentDisputeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeEvidence"]>
+
+  export type DisputeEvidenceSelectScalar = {
+    id?: boolean
+    disputeId?: boolean
+    uploaderAddress?: boolean
+    fileName?: boolean
+    fileUrl?: boolean
+    mimeType?: boolean
+    fileSize?: boolean
+    description?: boolean
+    createdAt?: boolean
+  }
+
+  export type DisputeEvidenceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dispute?: boolean | PaymentDisputeDefaultArgs<ExtArgs>
+  }
+  export type DisputeEvidenceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dispute?: boolean | PaymentDisputeDefaultArgs<ExtArgs>
+  }
+
+  export type $DisputeEvidencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeEvidence"
+    objects: {
+      dispute: Prisma.$PaymentDisputePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      disputeId: string
+      uploaderAddress: string
+      fileName: string
+      fileUrl: string
+      mimeType: string | null
+      fileSize: number
+      description: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["disputeEvidence"]>
+    composites: {}
+  }
+
+  type DisputeEvidenceGetPayload<S extends boolean | null | undefined | DisputeEvidenceDefaultArgs> = $Result.GetResult<Prisma.$DisputeEvidencePayload, S>
+
+  type DisputeEvidenceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeEvidenceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeEvidenceCountAggregateInputType | true
+    }
+
+  export interface DisputeEvidenceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeEvidence'], meta: { name: 'DisputeEvidence' } }
+    /**
+     * Find zero or one DisputeEvidence that matches the filter.
+     * @param {DisputeEvidenceFindUniqueArgs} args - Arguments to find a DisputeEvidence
+     * @example
+     * // Get one DisputeEvidence
+     * const disputeEvidence = await prisma.disputeEvidence.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeEvidenceFindUniqueArgs>(args: SelectSubset<T, DisputeEvidenceFindUniqueArgs<ExtArgs>>): Prisma__DisputeEvidenceClient<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeEvidence that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeEvidenceFindUniqueOrThrowArgs} args - Arguments to find a DisputeEvidence
+     * @example
+     * // Get one DisputeEvidence
+     * const disputeEvidence = await prisma.disputeEvidence.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeEvidenceFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeEvidenceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeEvidenceClient<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeEvidence that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeEvidenceFindFirstArgs} args - Arguments to find a DisputeEvidence
+     * @example
+     * // Get one DisputeEvidence
+     * const disputeEvidence = await prisma.disputeEvidence.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeEvidenceFindFirstArgs>(args?: SelectSubset<T, DisputeEvidenceFindFirstArgs<ExtArgs>>): Prisma__DisputeEvidenceClient<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeEvidence that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeEvidenceFindFirstOrThrowArgs} args - Arguments to find a DisputeEvidence
+     * @example
+     * // Get one DisputeEvidence
+     * const disputeEvidence = await prisma.disputeEvidence.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeEvidenceFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeEvidenceFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeEvidenceClient<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeEvidences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeEvidenceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeEvidences
+     * const disputeEvidences = await prisma.disputeEvidence.findMany()
+     * 
+     * // Get first 10 DisputeEvidences
+     * const disputeEvidences = await prisma.disputeEvidence.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeEvidenceWithIdOnly = await prisma.disputeEvidence.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeEvidenceFindManyArgs>(args?: SelectSubset<T, DisputeEvidenceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeEvidence.
+     * @param {DisputeEvidenceCreateArgs} args - Arguments to create a DisputeEvidence.
+     * @example
+     * // Create one DisputeEvidence
+     * const DisputeEvidence = await prisma.disputeEvidence.create({
+     *   data: {
+     *     // ... data to create a DisputeEvidence
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeEvidenceCreateArgs>(args: SelectSubset<T, DisputeEvidenceCreateArgs<ExtArgs>>): Prisma__DisputeEvidenceClient<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeEvidences.
+     * @param {DisputeEvidenceCreateManyArgs} args - Arguments to create many DisputeEvidences.
+     * @example
+     * // Create many DisputeEvidences
+     * const disputeEvidence = await prisma.disputeEvidence.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeEvidenceCreateManyArgs>(args?: SelectSubset<T, DisputeEvidenceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeEvidences and returns the data saved in the database.
+     * @param {DisputeEvidenceCreateManyAndReturnArgs} args - Arguments to create many DisputeEvidences.
+     * @example
+     * // Create many DisputeEvidences
+     * const disputeEvidence = await prisma.disputeEvidence.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeEvidences and only return the `id`
+     * const disputeEvidenceWithIdOnly = await prisma.disputeEvidence.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeEvidenceCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeEvidenceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeEvidence.
+     * @param {DisputeEvidenceDeleteArgs} args - Arguments to delete one DisputeEvidence.
+     * @example
+     * // Delete one DisputeEvidence
+     * const DisputeEvidence = await prisma.disputeEvidence.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeEvidence
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeEvidenceDeleteArgs>(args: SelectSubset<T, DisputeEvidenceDeleteArgs<ExtArgs>>): Prisma__DisputeEvidenceClient<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeEvidence.
+     * @param {DisputeEvidenceUpdateArgs} args - Arguments to update one DisputeEvidence.
+     * @example
+     * // Update one DisputeEvidence
+     * const disputeEvidence = await prisma.disputeEvidence.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeEvidenceUpdateArgs>(args: SelectSubset<T, DisputeEvidenceUpdateArgs<ExtArgs>>): Prisma__DisputeEvidenceClient<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeEvidences.
+     * @param {DisputeEvidenceDeleteManyArgs} args - Arguments to filter DisputeEvidences to delete.
+     * @example
+     * // Delete a few DisputeEvidences
+     * const { count } = await prisma.disputeEvidence.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeEvidenceDeleteManyArgs>(args?: SelectSubset<T, DisputeEvidenceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeEvidences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeEvidenceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeEvidences
+     * const disputeEvidence = await prisma.disputeEvidence.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeEvidenceUpdateManyArgs>(args: SelectSubset<T, DisputeEvidenceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeEvidence.
+     * @param {DisputeEvidenceUpsertArgs} args - Arguments to update or create a DisputeEvidence.
+     * @example
+     * // Update or create a DisputeEvidence
+     * const disputeEvidence = await prisma.disputeEvidence.upsert({
+     *   create: {
+     *     // ... data to create a DisputeEvidence
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeEvidence we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeEvidenceUpsertArgs>(args: SelectSubset<T, DisputeEvidenceUpsertArgs<ExtArgs>>): Prisma__DisputeEvidenceClient<$Result.GetResult<Prisma.$DisputeEvidencePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeEvidences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeEvidenceCountArgs} args - Arguments to filter DisputeEvidences to count.
+     * @example
+     * // Count the number of DisputeEvidences
+     * const count = await prisma.disputeEvidence.count({
+     *   where: {
+     *     // ... the filter for the DisputeEvidences we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeEvidenceCountArgs>(
+      args?: Subset<T, DisputeEvidenceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeEvidenceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeEvidence.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeEvidenceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeEvidenceAggregateArgs>(args: Subset<T, DisputeEvidenceAggregateArgs>): Prisma.PrismaPromise<GetDisputeEvidenceAggregateType<T>>
+
+    /**
+     * Group by DisputeEvidence.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeEvidenceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeEvidenceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeEvidenceGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeEvidenceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeEvidenceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeEvidenceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeEvidence model
+   */
+  readonly fields: DisputeEvidenceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeEvidence.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeEvidenceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dispute<T extends PaymentDisputeDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PaymentDisputeDefaultArgs<ExtArgs>>): Prisma__PaymentDisputeClient<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeEvidence model
+   */ 
+  interface DisputeEvidenceFieldRefs {
+    readonly id: FieldRef<"DisputeEvidence", 'String'>
+    readonly disputeId: FieldRef<"DisputeEvidence", 'String'>
+    readonly uploaderAddress: FieldRef<"DisputeEvidence", 'String'>
+    readonly fileName: FieldRef<"DisputeEvidence", 'String'>
+    readonly fileUrl: FieldRef<"DisputeEvidence", 'String'>
+    readonly mimeType: FieldRef<"DisputeEvidence", 'String'>
+    readonly fileSize: FieldRef<"DisputeEvidence", 'Int'>
+    readonly description: FieldRef<"DisputeEvidence", 'String'>
+    readonly createdAt: FieldRef<"DisputeEvidence", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeEvidence findUnique
+   */
+  export type DisputeEvidenceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeEvidence to fetch.
+     */
+    where: DisputeEvidenceWhereUniqueInput
+  }
+
+  /**
+   * DisputeEvidence findUniqueOrThrow
+   */
+  export type DisputeEvidenceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeEvidence to fetch.
+     */
+    where: DisputeEvidenceWhereUniqueInput
+  }
+
+  /**
+   * DisputeEvidence findFirst
+   */
+  export type DisputeEvidenceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeEvidence to fetch.
+     */
+    where?: DisputeEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeEvidences to fetch.
+     */
+    orderBy?: DisputeEvidenceOrderByWithRelationInput | DisputeEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeEvidences.
+     */
+    cursor?: DisputeEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeEvidences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeEvidences.
+     */
+    distinct?: DisputeEvidenceScalarFieldEnum | DisputeEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeEvidence findFirstOrThrow
+   */
+  export type DisputeEvidenceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeEvidence to fetch.
+     */
+    where?: DisputeEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeEvidences to fetch.
+     */
+    orderBy?: DisputeEvidenceOrderByWithRelationInput | DisputeEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeEvidences.
+     */
+    cursor?: DisputeEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeEvidences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeEvidences.
+     */
+    distinct?: DisputeEvidenceScalarFieldEnum | DisputeEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeEvidence findMany
+   */
+  export type DisputeEvidenceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeEvidences to fetch.
+     */
+    where?: DisputeEvidenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeEvidences to fetch.
+     */
+    orderBy?: DisputeEvidenceOrderByWithRelationInput | DisputeEvidenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeEvidences.
+     */
+    cursor?: DisputeEvidenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeEvidences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeEvidences.
+     */
+    skip?: number
+    distinct?: DisputeEvidenceScalarFieldEnum | DisputeEvidenceScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeEvidence create
+   */
+  export type DisputeEvidenceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeEvidence.
+     */
+    data: XOR<DisputeEvidenceCreateInput, DisputeEvidenceUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeEvidence createMany
+   */
+  export type DisputeEvidenceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeEvidences.
+     */
+    data: DisputeEvidenceCreateManyInput | DisputeEvidenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeEvidence createManyAndReturn
+   */
+  export type DisputeEvidenceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeEvidences.
+     */
+    data: DisputeEvidenceCreateManyInput | DisputeEvidenceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputeEvidence update
+   */
+  export type DisputeEvidenceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeEvidence.
+     */
+    data: XOR<DisputeEvidenceUpdateInput, DisputeEvidenceUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeEvidence to update.
+     */
+    where: DisputeEvidenceWhereUniqueInput
+  }
+
+  /**
+   * DisputeEvidence updateMany
+   */
+  export type DisputeEvidenceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeEvidences.
+     */
+    data: XOR<DisputeEvidenceUpdateManyMutationInput, DisputeEvidenceUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeEvidences to update
+     */
+    where?: DisputeEvidenceWhereInput
+  }
+
+  /**
+   * DisputeEvidence upsert
+   */
+  export type DisputeEvidenceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeEvidence to update in case it exists.
+     */
+    where: DisputeEvidenceWhereUniqueInput
+    /**
+     * In case the DisputeEvidence found by the `where` argument doesn't exist, create a new DisputeEvidence with this data.
+     */
+    create: XOR<DisputeEvidenceCreateInput, DisputeEvidenceUncheckedCreateInput>
+    /**
+     * In case the DisputeEvidence was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeEvidenceUpdateInput, DisputeEvidenceUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeEvidence delete
+   */
+  export type DisputeEvidenceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeEvidence to delete.
+     */
+    where: DisputeEvidenceWhereUniqueInput
+  }
+
+  /**
+   * DisputeEvidence deleteMany
+   */
+  export type DisputeEvidenceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeEvidences to delete
+     */
+    where?: DisputeEvidenceWhereInput
+  }
+
+  /**
+   * DisputeEvidence without action
+   */
+  export type DisputeEvidenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeEvidence
+     */
+    select?: DisputeEvidenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeEvidenceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DisputeHistory
+   */
+
+  export type AggregateDisputeHistory = {
+    _count: DisputeHistoryCountAggregateOutputType | null
+    _min: DisputeHistoryMinAggregateOutputType | null
+    _max: DisputeHistoryMaxAggregateOutputType | null
+  }
+
+  export type DisputeHistoryMinAggregateOutputType = {
+    id: string | null
+    disputeId: string | null
+    actorAddress: string | null
+    action: string | null
+    fromStatus: string | null
+    toStatus: string | null
+    comment: string | null
+    createdAt: Date | null
+  }
+
+  export type DisputeHistoryMaxAggregateOutputType = {
+    id: string | null
+    disputeId: string | null
+    actorAddress: string | null
+    action: string | null
+    fromStatus: string | null
+    toStatus: string | null
+    comment: string | null
+    createdAt: Date | null
+  }
+
+  export type DisputeHistoryCountAggregateOutputType = {
+    id: number
+    disputeId: number
+    actorAddress: number
+    action: number
+    fromStatus: number
+    toStatus: number
+    comment: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DisputeHistoryMinAggregateInputType = {
+    id?: true
+    disputeId?: true
+    actorAddress?: true
+    action?: true
+    fromStatus?: true
+    toStatus?: true
+    comment?: true
+    createdAt?: true
+  }
+
+  export type DisputeHistoryMaxAggregateInputType = {
+    id?: true
+    disputeId?: true
+    actorAddress?: true
+    action?: true
+    fromStatus?: true
+    toStatus?: true
+    comment?: true
+    createdAt?: true
+  }
+
+  export type DisputeHistoryCountAggregateInputType = {
+    id?: true
+    disputeId?: true
+    actorAddress?: true
+    action?: true
+    fromStatus?: true
+    toStatus?: true
+    comment?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DisputeHistoryAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeHistory to aggregate.
+     */
+    where?: DisputeHistoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHistories to fetch.
+     */
+    orderBy?: DisputeHistoryOrderByWithRelationInput | DisputeHistoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DisputeHistoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHistories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHistories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DisputeHistories
+    **/
+    _count?: true | DisputeHistoryCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DisputeHistoryMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DisputeHistoryMaxAggregateInputType
+  }
+
+  export type GetDisputeHistoryAggregateType<T extends DisputeHistoryAggregateArgs> = {
+        [P in keyof T & keyof AggregateDisputeHistory]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDisputeHistory[P]>
+      : GetScalarType<T[P], AggregateDisputeHistory[P]>
+  }
+
+
+
+
+  export type DisputeHistoryGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DisputeHistoryWhereInput
+    orderBy?: DisputeHistoryOrderByWithAggregationInput | DisputeHistoryOrderByWithAggregationInput[]
+    by: DisputeHistoryScalarFieldEnum[] | DisputeHistoryScalarFieldEnum
+    having?: DisputeHistoryScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DisputeHistoryCountAggregateInputType | true
+    _min?: DisputeHistoryMinAggregateInputType
+    _max?: DisputeHistoryMaxAggregateInputType
+  }
+
+  export type DisputeHistoryGroupByOutputType = {
+    id: string
+    disputeId: string
+    actorAddress: string
+    action: string
+    fromStatus: string | null
+    toStatus: string | null
+    comment: string | null
+    createdAt: Date
+    _count: DisputeHistoryCountAggregateOutputType | null
+    _min: DisputeHistoryMinAggregateOutputType | null
+    _max: DisputeHistoryMaxAggregateOutputType | null
+  }
+
+  type GetDisputeHistoryGroupByPayload<T extends DisputeHistoryGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DisputeHistoryGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DisputeHistoryGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DisputeHistoryGroupByOutputType[P]>
+            : GetScalarType<T[P], DisputeHistoryGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DisputeHistorySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    disputeId?: boolean
+    actorAddress?: boolean
+    action?: boolean
+    fromStatus?: boolean
+    toStatus?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    dispute?: boolean | PaymentDisputeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeHistory"]>
+
+  export type DisputeHistorySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    disputeId?: boolean
+    actorAddress?: boolean
+    action?: boolean
+    fromStatus?: boolean
+    toStatus?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    dispute?: boolean | PaymentDisputeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["disputeHistory"]>
+
+  export type DisputeHistorySelectScalar = {
+    id?: boolean
+    disputeId?: boolean
+    actorAddress?: boolean
+    action?: boolean
+    fromStatus?: boolean
+    toStatus?: boolean
+    comment?: boolean
+    createdAt?: boolean
+  }
+
+  export type DisputeHistoryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dispute?: boolean | PaymentDisputeDefaultArgs<ExtArgs>
+  }
+  export type DisputeHistoryIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dispute?: boolean | PaymentDisputeDefaultArgs<ExtArgs>
+  }
+
+  export type $DisputeHistoryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DisputeHistory"
+    objects: {
+      dispute: Prisma.$PaymentDisputePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      disputeId: string
+      actorAddress: string
+      action: string
+      fromStatus: string | null
+      toStatus: string | null
+      comment: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["disputeHistory"]>
+    composites: {}
+  }
+
+  type DisputeHistoryGetPayload<S extends boolean | null | undefined | DisputeHistoryDefaultArgs> = $Result.GetResult<Prisma.$DisputeHistoryPayload, S>
+
+  type DisputeHistoryCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<DisputeHistoryFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: DisputeHistoryCountAggregateInputType | true
+    }
+
+  export interface DisputeHistoryDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DisputeHistory'], meta: { name: 'DisputeHistory' } }
+    /**
+     * Find zero or one DisputeHistory that matches the filter.
+     * @param {DisputeHistoryFindUniqueArgs} args - Arguments to find a DisputeHistory
+     * @example
+     * // Get one DisputeHistory
+     * const disputeHistory = await prisma.disputeHistory.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DisputeHistoryFindUniqueArgs>(args: SelectSubset<T, DisputeHistoryFindUniqueArgs<ExtArgs>>): Prisma__DisputeHistoryClient<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one DisputeHistory that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {DisputeHistoryFindUniqueOrThrowArgs} args - Arguments to find a DisputeHistory
+     * @example
+     * // Get one DisputeHistory
+     * const disputeHistory = await prisma.disputeHistory.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DisputeHistoryFindUniqueOrThrowArgs>(args: SelectSubset<T, DisputeHistoryFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DisputeHistoryClient<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first DisputeHistory that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHistoryFindFirstArgs} args - Arguments to find a DisputeHistory
+     * @example
+     * // Get one DisputeHistory
+     * const disputeHistory = await prisma.disputeHistory.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DisputeHistoryFindFirstArgs>(args?: SelectSubset<T, DisputeHistoryFindFirstArgs<ExtArgs>>): Prisma__DisputeHistoryClient<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first DisputeHistory that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHistoryFindFirstOrThrowArgs} args - Arguments to find a DisputeHistory
+     * @example
+     * // Get one DisputeHistory
+     * const disputeHistory = await prisma.disputeHistory.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DisputeHistoryFindFirstOrThrowArgs>(args?: SelectSubset<T, DisputeHistoryFindFirstOrThrowArgs<ExtArgs>>): Prisma__DisputeHistoryClient<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more DisputeHistories that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHistoryFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DisputeHistories
+     * const disputeHistories = await prisma.disputeHistory.findMany()
+     * 
+     * // Get first 10 DisputeHistories
+     * const disputeHistories = await prisma.disputeHistory.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const disputeHistoryWithIdOnly = await prisma.disputeHistory.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DisputeHistoryFindManyArgs>(args?: SelectSubset<T, DisputeHistoryFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a DisputeHistory.
+     * @param {DisputeHistoryCreateArgs} args - Arguments to create a DisputeHistory.
+     * @example
+     * // Create one DisputeHistory
+     * const DisputeHistory = await prisma.disputeHistory.create({
+     *   data: {
+     *     // ... data to create a DisputeHistory
+     *   }
+     * })
+     * 
+     */
+    create<T extends DisputeHistoryCreateArgs>(args: SelectSubset<T, DisputeHistoryCreateArgs<ExtArgs>>): Prisma__DisputeHistoryClient<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many DisputeHistories.
+     * @param {DisputeHistoryCreateManyArgs} args - Arguments to create many DisputeHistories.
+     * @example
+     * // Create many DisputeHistories
+     * const disputeHistory = await prisma.disputeHistory.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DisputeHistoryCreateManyArgs>(args?: SelectSubset<T, DisputeHistoryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DisputeHistories and returns the data saved in the database.
+     * @param {DisputeHistoryCreateManyAndReturnArgs} args - Arguments to create many DisputeHistories.
+     * @example
+     * // Create many DisputeHistories
+     * const disputeHistory = await prisma.disputeHistory.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DisputeHistories and only return the `id`
+     * const disputeHistoryWithIdOnly = await prisma.disputeHistory.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DisputeHistoryCreateManyAndReturnArgs>(args?: SelectSubset<T, DisputeHistoryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a DisputeHistory.
+     * @param {DisputeHistoryDeleteArgs} args - Arguments to delete one DisputeHistory.
+     * @example
+     * // Delete one DisputeHistory
+     * const DisputeHistory = await prisma.disputeHistory.delete({
+     *   where: {
+     *     // ... filter to delete one DisputeHistory
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DisputeHistoryDeleteArgs>(args: SelectSubset<T, DisputeHistoryDeleteArgs<ExtArgs>>): Prisma__DisputeHistoryClient<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one DisputeHistory.
+     * @param {DisputeHistoryUpdateArgs} args - Arguments to update one DisputeHistory.
+     * @example
+     * // Update one DisputeHistory
+     * const disputeHistory = await prisma.disputeHistory.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DisputeHistoryUpdateArgs>(args: SelectSubset<T, DisputeHistoryUpdateArgs<ExtArgs>>): Prisma__DisputeHistoryClient<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more DisputeHistories.
+     * @param {DisputeHistoryDeleteManyArgs} args - Arguments to filter DisputeHistories to delete.
+     * @example
+     * // Delete a few DisputeHistories
+     * const { count } = await prisma.disputeHistory.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DisputeHistoryDeleteManyArgs>(args?: SelectSubset<T, DisputeHistoryDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DisputeHistories.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHistoryUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DisputeHistories
+     * const disputeHistory = await prisma.disputeHistory.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DisputeHistoryUpdateManyArgs>(args: SelectSubset<T, DisputeHistoryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one DisputeHistory.
+     * @param {DisputeHistoryUpsertArgs} args - Arguments to update or create a DisputeHistory.
+     * @example
+     * // Update or create a DisputeHistory
+     * const disputeHistory = await prisma.disputeHistory.upsert({
+     *   create: {
+     *     // ... data to create a DisputeHistory
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DisputeHistory we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DisputeHistoryUpsertArgs>(args: SelectSubset<T, DisputeHistoryUpsertArgs<ExtArgs>>): Prisma__DisputeHistoryClient<$Result.GetResult<Prisma.$DisputeHistoryPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of DisputeHistories.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHistoryCountArgs} args - Arguments to filter DisputeHistories to count.
+     * @example
+     * // Count the number of DisputeHistories
+     * const count = await prisma.disputeHistory.count({
+     *   where: {
+     *     // ... the filter for the DisputeHistories we want to count
+     *   }
+     * })
+    **/
+    count<T extends DisputeHistoryCountArgs>(
+      args?: Subset<T, DisputeHistoryCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DisputeHistoryCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DisputeHistory.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHistoryAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DisputeHistoryAggregateArgs>(args: Subset<T, DisputeHistoryAggregateArgs>): Prisma.PrismaPromise<GetDisputeHistoryAggregateType<T>>
+
+    /**
+     * Group by DisputeHistory.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DisputeHistoryGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DisputeHistoryGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DisputeHistoryGroupByArgs['orderBy'] }
+        : { orderBy?: DisputeHistoryGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DisputeHistoryGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDisputeHistoryGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DisputeHistory model
+   */
+  readonly fields: DisputeHistoryFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DisputeHistory.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DisputeHistoryClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dispute<T extends PaymentDisputeDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PaymentDisputeDefaultArgs<ExtArgs>>): Prisma__PaymentDisputeClient<$Result.GetResult<Prisma.$PaymentDisputePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DisputeHistory model
+   */ 
+  interface DisputeHistoryFieldRefs {
+    readonly id: FieldRef<"DisputeHistory", 'String'>
+    readonly disputeId: FieldRef<"DisputeHistory", 'String'>
+    readonly actorAddress: FieldRef<"DisputeHistory", 'String'>
+    readonly action: FieldRef<"DisputeHistory", 'String'>
+    readonly fromStatus: FieldRef<"DisputeHistory", 'String'>
+    readonly toStatus: FieldRef<"DisputeHistory", 'String'>
+    readonly comment: FieldRef<"DisputeHistory", 'String'>
+    readonly createdAt: FieldRef<"DisputeHistory", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DisputeHistory findUnique
+   */
+  export type DisputeHistoryFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHistory to fetch.
+     */
+    where: DisputeHistoryWhereUniqueInput
+  }
+
+  /**
+   * DisputeHistory findUniqueOrThrow
+   */
+  export type DisputeHistoryFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHistory to fetch.
+     */
+    where: DisputeHistoryWhereUniqueInput
+  }
+
+  /**
+   * DisputeHistory findFirst
+   */
+  export type DisputeHistoryFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHistory to fetch.
+     */
+    where?: DisputeHistoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHistories to fetch.
+     */
+    orderBy?: DisputeHistoryOrderByWithRelationInput | DisputeHistoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeHistories.
+     */
+    cursor?: DisputeHistoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHistories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHistories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeHistories.
+     */
+    distinct?: DisputeHistoryScalarFieldEnum | DisputeHistoryScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeHistory findFirstOrThrow
+   */
+  export type DisputeHistoryFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHistory to fetch.
+     */
+    where?: DisputeHistoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHistories to fetch.
+     */
+    orderBy?: DisputeHistoryOrderByWithRelationInput | DisputeHistoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DisputeHistories.
+     */
+    cursor?: DisputeHistoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHistories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHistories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DisputeHistories.
+     */
+    distinct?: DisputeHistoryScalarFieldEnum | DisputeHistoryScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeHistory findMany
+   */
+  export type DisputeHistoryFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+    /**
+     * Filter, which DisputeHistories to fetch.
+     */
+    where?: DisputeHistoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DisputeHistories to fetch.
+     */
+    orderBy?: DisputeHistoryOrderByWithRelationInput | DisputeHistoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DisputeHistories.
+     */
+    cursor?: DisputeHistoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DisputeHistories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DisputeHistories.
+     */
+    skip?: number
+    distinct?: DisputeHistoryScalarFieldEnum | DisputeHistoryScalarFieldEnum[]
+  }
+
+  /**
+   * DisputeHistory create
+   */
+  export type DisputeHistoryCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DisputeHistory.
+     */
+    data: XOR<DisputeHistoryCreateInput, DisputeHistoryUncheckedCreateInput>
+  }
+
+  /**
+   * DisputeHistory createMany
+   */
+  export type DisputeHistoryCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DisputeHistories.
+     */
+    data: DisputeHistoryCreateManyInput | DisputeHistoryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DisputeHistory createManyAndReturn
+   */
+  export type DisputeHistoryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many DisputeHistories.
+     */
+    data: DisputeHistoryCreateManyInput | DisputeHistoryCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DisputeHistory update
+   */
+  export type DisputeHistoryUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DisputeHistory.
+     */
+    data: XOR<DisputeHistoryUpdateInput, DisputeHistoryUncheckedUpdateInput>
+    /**
+     * Choose, which DisputeHistory to update.
+     */
+    where: DisputeHistoryWhereUniqueInput
+  }
+
+  /**
+   * DisputeHistory updateMany
+   */
+  export type DisputeHistoryUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DisputeHistories.
+     */
+    data: XOR<DisputeHistoryUpdateManyMutationInput, DisputeHistoryUncheckedUpdateManyInput>
+    /**
+     * Filter which DisputeHistories to update
+     */
+    where?: DisputeHistoryWhereInput
+  }
+
+  /**
+   * DisputeHistory upsert
+   */
+  export type DisputeHistoryUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DisputeHistory to update in case it exists.
+     */
+    where: DisputeHistoryWhereUniqueInput
+    /**
+     * In case the DisputeHistory found by the `where` argument doesn't exist, create a new DisputeHistory with this data.
+     */
+    create: XOR<DisputeHistoryCreateInput, DisputeHistoryUncheckedCreateInput>
+    /**
+     * In case the DisputeHistory was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DisputeHistoryUpdateInput, DisputeHistoryUncheckedUpdateInput>
+  }
+
+  /**
+   * DisputeHistory delete
+   */
+  export type DisputeHistoryDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+    /**
+     * Filter which DisputeHistory to delete.
+     */
+    where: DisputeHistoryWhereUniqueInput
+  }
+
+  /**
+   * DisputeHistory deleteMany
+   */
+  export type DisputeHistoryDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DisputeHistories to delete
+     */
+    where?: DisputeHistoryWhereInput
+  }
+
+  /**
+   * DisputeHistory without action
+   */
+  export type DisputeHistoryDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DisputeHistory
+     */
+    select?: DisputeHistorySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DisputeHistoryInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -48180,6 +51578,58 @@ export namespace Prisma {
   };
 
   export type AdminAuditLogScalarFieldEnum = (typeof AdminAuditLogScalarFieldEnum)[keyof typeof AdminAuditLogScalarFieldEnum]
+
+
+  export const PaymentDisputeScalarFieldEnum: {
+    id: 'id',
+    disputeRef: 'disputeRef',
+    streamId: 'streamId',
+    txHash: 'txHash',
+    filerAddress: 'filerAddress',
+    respondentAddress: 'respondentAddress',
+    reason: 'reason',
+    description: 'description',
+    amount: 'amount',
+    tokenAddress: 'tokenAddress',
+    status: 'status',
+    decision: 'decision',
+    resolutionNotes: 'resolutionNotes',
+    resolvedBy: 'resolvedBy',
+    resolvedAt: 'resolvedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PaymentDisputeScalarFieldEnum = (typeof PaymentDisputeScalarFieldEnum)[keyof typeof PaymentDisputeScalarFieldEnum]
+
+
+  export const DisputeEvidenceScalarFieldEnum: {
+    id: 'id',
+    disputeId: 'disputeId',
+    uploaderAddress: 'uploaderAddress',
+    fileName: 'fileName',
+    fileUrl: 'fileUrl',
+    mimeType: 'mimeType',
+    fileSize: 'fileSize',
+    description: 'description',
+    createdAt: 'createdAt'
+  };
+
+  export type DisputeEvidenceScalarFieldEnum = (typeof DisputeEvidenceScalarFieldEnum)[keyof typeof DisputeEvidenceScalarFieldEnum]
+
+
+  export const DisputeHistoryScalarFieldEnum: {
+    id: 'id',
+    disputeId: 'disputeId',
+    actorAddress: 'actorAddress',
+    action: 'action',
+    fromStatus: 'fromStatus',
+    toStatus: 'toStatus',
+    comment: 'comment',
+    createdAt: 'createdAt'
+  };
+
+  export type DisputeHistoryScalarFieldEnum = (typeof DisputeHistoryScalarFieldEnum)[keyof typeof DisputeHistoryScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -51810,6 +55260,271 @@ export namespace Prisma {
     error?: StringNullableWithAggregatesFilter<"AdminAuditLog"> | string | null
     changesSummary?: StringNullableWithAggregatesFilter<"AdminAuditLog"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"AdminAuditLog"> | Date | string
+  }
+
+  export type PaymentDisputeWhereInput = {
+    AND?: PaymentDisputeWhereInput | PaymentDisputeWhereInput[]
+    OR?: PaymentDisputeWhereInput[]
+    NOT?: PaymentDisputeWhereInput | PaymentDisputeWhereInput[]
+    id?: StringFilter<"PaymentDispute"> | string
+    disputeRef?: StringFilter<"PaymentDispute"> | string
+    streamId?: StringNullableFilter<"PaymentDispute"> | string | null
+    txHash?: StringNullableFilter<"PaymentDispute"> | string | null
+    filerAddress?: StringFilter<"PaymentDispute"> | string
+    respondentAddress?: StringFilter<"PaymentDispute"> | string
+    reason?: StringFilter<"PaymentDispute"> | string
+    description?: StringNullableFilter<"PaymentDispute"> | string | null
+    amount?: StringFilter<"PaymentDispute"> | string
+    tokenAddress?: StringNullableFilter<"PaymentDispute"> | string | null
+    status?: StringFilter<"PaymentDispute"> | string
+    decision?: StringNullableFilter<"PaymentDispute"> | string | null
+    resolutionNotes?: StringNullableFilter<"PaymentDispute"> | string | null
+    resolvedBy?: StringNullableFilter<"PaymentDispute"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"PaymentDispute"> | Date | string | null
+    createdAt?: DateTimeFilter<"PaymentDispute"> | Date | string
+    updatedAt?: DateTimeFilter<"PaymentDispute"> | Date | string
+    evidence?: DisputeEvidenceListRelationFilter
+    history?: DisputeHistoryListRelationFilter
+  }
+
+  export type PaymentDisputeOrderByWithRelationInput = {
+    id?: SortOrder
+    disputeRef?: SortOrder
+    streamId?: SortOrderInput | SortOrder
+    txHash?: SortOrderInput | SortOrder
+    filerAddress?: SortOrder
+    respondentAddress?: SortOrder
+    reason?: SortOrder
+    description?: SortOrderInput | SortOrder
+    amount?: SortOrder
+    tokenAddress?: SortOrderInput | SortOrder
+    status?: SortOrder
+    decision?: SortOrderInput | SortOrder
+    resolutionNotes?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    evidence?: DisputeEvidenceOrderByRelationAggregateInput
+    history?: DisputeHistoryOrderByRelationAggregateInput
+  }
+
+  export type PaymentDisputeWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    disputeRef?: string
+    AND?: PaymentDisputeWhereInput | PaymentDisputeWhereInput[]
+    OR?: PaymentDisputeWhereInput[]
+    NOT?: PaymentDisputeWhereInput | PaymentDisputeWhereInput[]
+    streamId?: StringNullableFilter<"PaymentDispute"> | string | null
+    txHash?: StringNullableFilter<"PaymentDispute"> | string | null
+    filerAddress?: StringFilter<"PaymentDispute"> | string
+    respondentAddress?: StringFilter<"PaymentDispute"> | string
+    reason?: StringFilter<"PaymentDispute"> | string
+    description?: StringNullableFilter<"PaymentDispute"> | string | null
+    amount?: StringFilter<"PaymentDispute"> | string
+    tokenAddress?: StringNullableFilter<"PaymentDispute"> | string | null
+    status?: StringFilter<"PaymentDispute"> | string
+    decision?: StringNullableFilter<"PaymentDispute"> | string | null
+    resolutionNotes?: StringNullableFilter<"PaymentDispute"> | string | null
+    resolvedBy?: StringNullableFilter<"PaymentDispute"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"PaymentDispute"> | Date | string | null
+    createdAt?: DateTimeFilter<"PaymentDispute"> | Date | string
+    updatedAt?: DateTimeFilter<"PaymentDispute"> | Date | string
+    evidence?: DisputeEvidenceListRelationFilter
+    history?: DisputeHistoryListRelationFilter
+  }, "id" | "disputeRef">
+
+  export type PaymentDisputeOrderByWithAggregationInput = {
+    id?: SortOrder
+    disputeRef?: SortOrder
+    streamId?: SortOrderInput | SortOrder
+    txHash?: SortOrderInput | SortOrder
+    filerAddress?: SortOrder
+    respondentAddress?: SortOrder
+    reason?: SortOrder
+    description?: SortOrderInput | SortOrder
+    amount?: SortOrder
+    tokenAddress?: SortOrderInput | SortOrder
+    status?: SortOrder
+    decision?: SortOrderInput | SortOrder
+    resolutionNotes?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PaymentDisputeCountOrderByAggregateInput
+    _max?: PaymentDisputeMaxOrderByAggregateInput
+    _min?: PaymentDisputeMinOrderByAggregateInput
+  }
+
+  export type PaymentDisputeScalarWhereWithAggregatesInput = {
+    AND?: PaymentDisputeScalarWhereWithAggregatesInput | PaymentDisputeScalarWhereWithAggregatesInput[]
+    OR?: PaymentDisputeScalarWhereWithAggregatesInput[]
+    NOT?: PaymentDisputeScalarWhereWithAggregatesInput | PaymentDisputeScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PaymentDispute"> | string
+    disputeRef?: StringWithAggregatesFilter<"PaymentDispute"> | string
+    streamId?: StringNullableWithAggregatesFilter<"PaymentDispute"> | string | null
+    txHash?: StringNullableWithAggregatesFilter<"PaymentDispute"> | string | null
+    filerAddress?: StringWithAggregatesFilter<"PaymentDispute"> | string
+    respondentAddress?: StringWithAggregatesFilter<"PaymentDispute"> | string
+    reason?: StringWithAggregatesFilter<"PaymentDispute"> | string
+    description?: StringNullableWithAggregatesFilter<"PaymentDispute"> | string | null
+    amount?: StringWithAggregatesFilter<"PaymentDispute"> | string
+    tokenAddress?: StringNullableWithAggregatesFilter<"PaymentDispute"> | string | null
+    status?: StringWithAggregatesFilter<"PaymentDispute"> | string
+    decision?: StringNullableWithAggregatesFilter<"PaymentDispute"> | string | null
+    resolutionNotes?: StringNullableWithAggregatesFilter<"PaymentDispute"> | string | null
+    resolvedBy?: StringNullableWithAggregatesFilter<"PaymentDispute"> | string | null
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"PaymentDispute"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PaymentDispute"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PaymentDispute"> | Date | string
+  }
+
+  export type DisputeEvidenceWhereInput = {
+    AND?: DisputeEvidenceWhereInput | DisputeEvidenceWhereInput[]
+    OR?: DisputeEvidenceWhereInput[]
+    NOT?: DisputeEvidenceWhereInput | DisputeEvidenceWhereInput[]
+    id?: StringFilter<"DisputeEvidence"> | string
+    disputeId?: StringFilter<"DisputeEvidence"> | string
+    uploaderAddress?: StringFilter<"DisputeEvidence"> | string
+    fileName?: StringFilter<"DisputeEvidence"> | string
+    fileUrl?: StringFilter<"DisputeEvidence"> | string
+    mimeType?: StringNullableFilter<"DisputeEvidence"> | string | null
+    fileSize?: IntFilter<"DisputeEvidence"> | number
+    description?: StringNullableFilter<"DisputeEvidence"> | string | null
+    createdAt?: DateTimeFilter<"DisputeEvidence"> | Date | string
+    dispute?: XOR<PaymentDisputeRelationFilter, PaymentDisputeWhereInput>
+  }
+
+  export type DisputeEvidenceOrderByWithRelationInput = {
+    id?: SortOrder
+    disputeId?: SortOrder
+    uploaderAddress?: SortOrder
+    fileName?: SortOrder
+    fileUrl?: SortOrder
+    mimeType?: SortOrderInput | SortOrder
+    fileSize?: SortOrder
+    description?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    dispute?: PaymentDisputeOrderByWithRelationInput
+  }
+
+  export type DisputeEvidenceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: DisputeEvidenceWhereInput | DisputeEvidenceWhereInput[]
+    OR?: DisputeEvidenceWhereInput[]
+    NOT?: DisputeEvidenceWhereInput | DisputeEvidenceWhereInput[]
+    disputeId?: StringFilter<"DisputeEvidence"> | string
+    uploaderAddress?: StringFilter<"DisputeEvidence"> | string
+    fileName?: StringFilter<"DisputeEvidence"> | string
+    fileUrl?: StringFilter<"DisputeEvidence"> | string
+    mimeType?: StringNullableFilter<"DisputeEvidence"> | string | null
+    fileSize?: IntFilter<"DisputeEvidence"> | number
+    description?: StringNullableFilter<"DisputeEvidence"> | string | null
+    createdAt?: DateTimeFilter<"DisputeEvidence"> | Date | string
+    dispute?: XOR<PaymentDisputeRelationFilter, PaymentDisputeWhereInput>
+  }, "id">
+
+  export type DisputeEvidenceOrderByWithAggregationInput = {
+    id?: SortOrder
+    disputeId?: SortOrder
+    uploaderAddress?: SortOrder
+    fileName?: SortOrder
+    fileUrl?: SortOrder
+    mimeType?: SortOrderInput | SortOrder
+    fileSize?: SortOrder
+    description?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DisputeEvidenceCountOrderByAggregateInput
+    _avg?: DisputeEvidenceAvgOrderByAggregateInput
+    _max?: DisputeEvidenceMaxOrderByAggregateInput
+    _min?: DisputeEvidenceMinOrderByAggregateInput
+    _sum?: DisputeEvidenceSumOrderByAggregateInput
+  }
+
+  export type DisputeEvidenceScalarWhereWithAggregatesInput = {
+    AND?: DisputeEvidenceScalarWhereWithAggregatesInput | DisputeEvidenceScalarWhereWithAggregatesInput[]
+    OR?: DisputeEvidenceScalarWhereWithAggregatesInput[]
+    NOT?: DisputeEvidenceScalarWhereWithAggregatesInput | DisputeEvidenceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DisputeEvidence"> | string
+    disputeId?: StringWithAggregatesFilter<"DisputeEvidence"> | string
+    uploaderAddress?: StringWithAggregatesFilter<"DisputeEvidence"> | string
+    fileName?: StringWithAggregatesFilter<"DisputeEvidence"> | string
+    fileUrl?: StringWithAggregatesFilter<"DisputeEvidence"> | string
+    mimeType?: StringNullableWithAggregatesFilter<"DisputeEvidence"> | string | null
+    fileSize?: IntWithAggregatesFilter<"DisputeEvidence"> | number
+    description?: StringNullableWithAggregatesFilter<"DisputeEvidence"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DisputeEvidence"> | Date | string
+  }
+
+  export type DisputeHistoryWhereInput = {
+    AND?: DisputeHistoryWhereInput | DisputeHistoryWhereInput[]
+    OR?: DisputeHistoryWhereInput[]
+    NOT?: DisputeHistoryWhereInput | DisputeHistoryWhereInput[]
+    id?: StringFilter<"DisputeHistory"> | string
+    disputeId?: StringFilter<"DisputeHistory"> | string
+    actorAddress?: StringFilter<"DisputeHistory"> | string
+    action?: StringFilter<"DisputeHistory"> | string
+    fromStatus?: StringNullableFilter<"DisputeHistory"> | string | null
+    toStatus?: StringNullableFilter<"DisputeHistory"> | string | null
+    comment?: StringNullableFilter<"DisputeHistory"> | string | null
+    createdAt?: DateTimeFilter<"DisputeHistory"> | Date | string
+    dispute?: XOR<PaymentDisputeRelationFilter, PaymentDisputeWhereInput>
+  }
+
+  export type DisputeHistoryOrderByWithRelationInput = {
+    id?: SortOrder
+    disputeId?: SortOrder
+    actorAddress?: SortOrder
+    action?: SortOrder
+    fromStatus?: SortOrderInput | SortOrder
+    toStatus?: SortOrderInput | SortOrder
+    comment?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    dispute?: PaymentDisputeOrderByWithRelationInput
+  }
+
+  export type DisputeHistoryWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: DisputeHistoryWhereInput | DisputeHistoryWhereInput[]
+    OR?: DisputeHistoryWhereInput[]
+    NOT?: DisputeHistoryWhereInput | DisputeHistoryWhereInput[]
+    disputeId?: StringFilter<"DisputeHistory"> | string
+    actorAddress?: StringFilter<"DisputeHistory"> | string
+    action?: StringFilter<"DisputeHistory"> | string
+    fromStatus?: StringNullableFilter<"DisputeHistory"> | string | null
+    toStatus?: StringNullableFilter<"DisputeHistory"> | string | null
+    comment?: StringNullableFilter<"DisputeHistory"> | string | null
+    createdAt?: DateTimeFilter<"DisputeHistory"> | Date | string
+    dispute?: XOR<PaymentDisputeRelationFilter, PaymentDisputeWhereInput>
+  }, "id">
+
+  export type DisputeHistoryOrderByWithAggregationInput = {
+    id?: SortOrder
+    disputeId?: SortOrder
+    actorAddress?: SortOrder
+    action?: SortOrder
+    fromStatus?: SortOrderInput | SortOrder
+    toStatus?: SortOrderInput | SortOrder
+    comment?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: DisputeHistoryCountOrderByAggregateInput
+    _max?: DisputeHistoryMaxOrderByAggregateInput
+    _min?: DisputeHistoryMinOrderByAggregateInput
+  }
+
+  export type DisputeHistoryScalarWhereWithAggregatesInput = {
+    AND?: DisputeHistoryScalarWhereWithAggregatesInput | DisputeHistoryScalarWhereWithAggregatesInput[]
+    OR?: DisputeHistoryScalarWhereWithAggregatesInput[]
+    NOT?: DisputeHistoryScalarWhereWithAggregatesInput | DisputeHistoryScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DisputeHistory"> | string
+    disputeId?: StringWithAggregatesFilter<"DisputeHistory"> | string
+    actorAddress?: StringWithAggregatesFilter<"DisputeHistory"> | string
+    action?: StringWithAggregatesFilter<"DisputeHistory"> | string
+    fromStatus?: StringNullableWithAggregatesFilter<"DisputeHistory"> | string | null
+    toStatus?: StringNullableWithAggregatesFilter<"DisputeHistory"> | string | null
+    comment?: StringNullableWithAggregatesFilter<"DisputeHistory"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DisputeHistory"> | Date | string
   }
 
   export type PaymentCategoryCreateInput = {
@@ -55765,6 +59480,313 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PaymentDisputeCreateInput = {
+    id?: string
+    disputeRef: string
+    streamId?: string | null
+    txHash?: string | null
+    filerAddress: string
+    respondentAddress: string
+    reason: string
+    description?: string | null
+    amount?: string
+    tokenAddress?: string | null
+    status?: string
+    decision?: string | null
+    resolutionNotes?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    evidence?: DisputeEvidenceCreateNestedManyWithoutDisputeInput
+    history?: DisputeHistoryCreateNestedManyWithoutDisputeInput
+  }
+
+  export type PaymentDisputeUncheckedCreateInput = {
+    id?: string
+    disputeRef: string
+    streamId?: string | null
+    txHash?: string | null
+    filerAddress: string
+    respondentAddress: string
+    reason: string
+    description?: string | null
+    amount?: string
+    tokenAddress?: string | null
+    status?: string
+    decision?: string | null
+    resolutionNotes?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    evidence?: DisputeEvidenceUncheckedCreateNestedManyWithoutDisputeInput
+    history?: DisputeHistoryUncheckedCreateNestedManyWithoutDisputeInput
+  }
+
+  export type PaymentDisputeUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeRef?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: NullableStringFieldUpdateOperationsInput | string | null
+    filerAddress?: StringFieldUpdateOperationsInput | string
+    respondentAddress?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    evidence?: DisputeEvidenceUpdateManyWithoutDisputeNestedInput
+    history?: DisputeHistoryUpdateManyWithoutDisputeNestedInput
+  }
+
+  export type PaymentDisputeUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeRef?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: NullableStringFieldUpdateOperationsInput | string | null
+    filerAddress?: StringFieldUpdateOperationsInput | string
+    respondentAddress?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    evidence?: DisputeEvidenceUncheckedUpdateManyWithoutDisputeNestedInput
+    history?: DisputeHistoryUncheckedUpdateManyWithoutDisputeNestedInput
+  }
+
+  export type PaymentDisputeCreateManyInput = {
+    id?: string
+    disputeRef: string
+    streamId?: string | null
+    txHash?: string | null
+    filerAddress: string
+    respondentAddress: string
+    reason: string
+    description?: string | null
+    amount?: string
+    tokenAddress?: string | null
+    status?: string
+    decision?: string | null
+    resolutionNotes?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PaymentDisputeUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeRef?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: NullableStringFieldUpdateOperationsInput | string | null
+    filerAddress?: StringFieldUpdateOperationsInput | string
+    respondentAddress?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentDisputeUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeRef?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: NullableStringFieldUpdateOperationsInput | string | null
+    filerAddress?: StringFieldUpdateOperationsInput | string
+    respondentAddress?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeEvidenceCreateInput = {
+    id?: string
+    uploaderAddress: string
+    fileName: string
+    fileUrl: string
+    mimeType?: string | null
+    fileSize?: number
+    description?: string | null
+    createdAt?: Date | string
+    dispute: PaymentDisputeCreateNestedOneWithoutEvidenceInput
+  }
+
+  export type DisputeEvidenceUncheckedCreateInput = {
+    id?: string
+    disputeId: string
+    uploaderAddress: string
+    fileName: string
+    fileUrl: string
+    mimeType?: string | null
+    fileSize?: number
+    description?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeEvidenceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    uploaderAddress?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    fileUrl?: StringFieldUpdateOperationsInput | string
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispute?: PaymentDisputeUpdateOneRequiredWithoutEvidenceNestedInput
+  }
+
+  export type DisputeEvidenceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeId?: StringFieldUpdateOperationsInput | string
+    uploaderAddress?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    fileUrl?: StringFieldUpdateOperationsInput | string
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeEvidenceCreateManyInput = {
+    id?: string
+    disputeId: string
+    uploaderAddress: string
+    fileName: string
+    fileUrl: string
+    mimeType?: string | null
+    fileSize?: number
+    description?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeEvidenceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    uploaderAddress?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    fileUrl?: StringFieldUpdateOperationsInput | string
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeEvidenceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeId?: StringFieldUpdateOperationsInput | string
+    uploaderAddress?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    fileUrl?: StringFieldUpdateOperationsInput | string
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHistoryCreateInput = {
+    id?: string
+    actorAddress: string
+    action: string
+    fromStatus?: string | null
+    toStatus?: string | null
+    comment?: string | null
+    createdAt?: Date | string
+    dispute: PaymentDisputeCreateNestedOneWithoutHistoryInput
+  }
+
+  export type DisputeHistoryUncheckedCreateInput = {
+    id?: string
+    disputeId: string
+    actorAddress: string
+    action: string
+    fromStatus?: string | null
+    toStatus?: string | null
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeHistoryUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorAddress?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    toStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    dispute?: PaymentDisputeUpdateOneRequiredWithoutHistoryNestedInput
+  }
+
+  export type DisputeHistoryUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeId?: StringFieldUpdateOperationsInput | string
+    actorAddress?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    toStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHistoryCreateManyInput = {
+    id?: string
+    disputeId: string
+    actorAddress: string
+    action: string
+    fromStatus?: string | null
+    toStatus?: string | null
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeHistoryUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorAddress?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    toStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHistoryUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeId?: StringFieldUpdateOperationsInput | string
+    actorAddress?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    toStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -58268,6 +62290,168 @@ export namespace Prisma {
     executionTimeMs?: SortOrder
   }
 
+  export type DisputeEvidenceListRelationFilter = {
+    every?: DisputeEvidenceWhereInput
+    some?: DisputeEvidenceWhereInput
+    none?: DisputeEvidenceWhereInput
+  }
+
+  export type DisputeHistoryListRelationFilter = {
+    every?: DisputeHistoryWhereInput
+    some?: DisputeHistoryWhereInput
+    none?: DisputeHistoryWhereInput
+  }
+
+  export type DisputeEvidenceOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DisputeHistoryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PaymentDisputeCountOrderByAggregateInput = {
+    id?: SortOrder
+    disputeRef?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
+    filerAddress?: SortOrder
+    respondentAddress?: SortOrder
+    reason?: SortOrder
+    description?: SortOrder
+    amount?: SortOrder
+    tokenAddress?: SortOrder
+    status?: SortOrder
+    decision?: SortOrder
+    resolutionNotes?: SortOrder
+    resolvedBy?: SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PaymentDisputeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    disputeRef?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
+    filerAddress?: SortOrder
+    respondentAddress?: SortOrder
+    reason?: SortOrder
+    description?: SortOrder
+    amount?: SortOrder
+    tokenAddress?: SortOrder
+    status?: SortOrder
+    decision?: SortOrder
+    resolutionNotes?: SortOrder
+    resolvedBy?: SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PaymentDisputeMinOrderByAggregateInput = {
+    id?: SortOrder
+    disputeRef?: SortOrder
+    streamId?: SortOrder
+    txHash?: SortOrder
+    filerAddress?: SortOrder
+    respondentAddress?: SortOrder
+    reason?: SortOrder
+    description?: SortOrder
+    amount?: SortOrder
+    tokenAddress?: SortOrder
+    status?: SortOrder
+    decision?: SortOrder
+    resolutionNotes?: SortOrder
+    resolvedBy?: SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PaymentDisputeRelationFilter = {
+    is?: PaymentDisputeWhereInput
+    isNot?: PaymentDisputeWhereInput
+  }
+
+  export type DisputeEvidenceCountOrderByAggregateInput = {
+    id?: SortOrder
+    disputeId?: SortOrder
+    uploaderAddress?: SortOrder
+    fileName?: SortOrder
+    fileUrl?: SortOrder
+    mimeType?: SortOrder
+    fileSize?: SortOrder
+    description?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeEvidenceAvgOrderByAggregateInput = {
+    fileSize?: SortOrder
+  }
+
+  export type DisputeEvidenceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    disputeId?: SortOrder
+    uploaderAddress?: SortOrder
+    fileName?: SortOrder
+    fileUrl?: SortOrder
+    mimeType?: SortOrder
+    fileSize?: SortOrder
+    description?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeEvidenceMinOrderByAggregateInput = {
+    id?: SortOrder
+    disputeId?: SortOrder
+    uploaderAddress?: SortOrder
+    fileName?: SortOrder
+    fileUrl?: SortOrder
+    mimeType?: SortOrder
+    fileSize?: SortOrder
+    description?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeEvidenceSumOrderByAggregateInput = {
+    fileSize?: SortOrder
+  }
+
+  export type DisputeHistoryCountOrderByAggregateInput = {
+    id?: SortOrder
+    disputeId?: SortOrder
+    actorAddress?: SortOrder
+    action?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeHistoryMaxOrderByAggregateInput = {
+    id?: SortOrder
+    disputeId?: SortOrder
+    actorAddress?: SortOrder
+    action?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DisputeHistoryMinOrderByAggregateInput = {
+    id?: SortOrder
+    disputeId?: SortOrder
+    actorAddress?: SortOrder
+    action?: SortOrder
+    fromStatus?: SortOrder
+    toStatus?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
   export type PaymentCategoryRuleCreateNestedManyWithoutCategoryInput = {
     create?: XOR<PaymentCategoryRuleCreateWithoutCategoryInput, PaymentCategoryRuleUncheckedCreateWithoutCategoryInput> | PaymentCategoryRuleCreateWithoutCategoryInput[] | PaymentCategoryRuleUncheckedCreateWithoutCategoryInput[]
     connectOrCreate?: PaymentCategoryRuleCreateOrConnectWithoutCategoryInput | PaymentCategoryRuleCreateOrConnectWithoutCategoryInput[]
@@ -58587,6 +62771,118 @@ export namespace Prisma {
     upsert?: DisbursementDraftUpsertWithoutVersionsInput
     connect?: DisbursementDraftWhereUniqueInput
     update?: XOR<XOR<DisbursementDraftUpdateToOneWithWhereWithoutVersionsInput, DisbursementDraftUpdateWithoutVersionsInput>, DisbursementDraftUncheckedUpdateWithoutVersionsInput>
+  }
+
+  export type DisputeEvidenceCreateNestedManyWithoutDisputeInput = {
+    create?: XOR<DisputeEvidenceCreateWithoutDisputeInput, DisputeEvidenceUncheckedCreateWithoutDisputeInput> | DisputeEvidenceCreateWithoutDisputeInput[] | DisputeEvidenceUncheckedCreateWithoutDisputeInput[]
+    connectOrCreate?: DisputeEvidenceCreateOrConnectWithoutDisputeInput | DisputeEvidenceCreateOrConnectWithoutDisputeInput[]
+    createMany?: DisputeEvidenceCreateManyDisputeInputEnvelope
+    connect?: DisputeEvidenceWhereUniqueInput | DisputeEvidenceWhereUniqueInput[]
+  }
+
+  export type DisputeHistoryCreateNestedManyWithoutDisputeInput = {
+    create?: XOR<DisputeHistoryCreateWithoutDisputeInput, DisputeHistoryUncheckedCreateWithoutDisputeInput> | DisputeHistoryCreateWithoutDisputeInput[] | DisputeHistoryUncheckedCreateWithoutDisputeInput[]
+    connectOrCreate?: DisputeHistoryCreateOrConnectWithoutDisputeInput | DisputeHistoryCreateOrConnectWithoutDisputeInput[]
+    createMany?: DisputeHistoryCreateManyDisputeInputEnvelope
+    connect?: DisputeHistoryWhereUniqueInput | DisputeHistoryWhereUniqueInput[]
+  }
+
+  export type DisputeEvidenceUncheckedCreateNestedManyWithoutDisputeInput = {
+    create?: XOR<DisputeEvidenceCreateWithoutDisputeInput, DisputeEvidenceUncheckedCreateWithoutDisputeInput> | DisputeEvidenceCreateWithoutDisputeInput[] | DisputeEvidenceUncheckedCreateWithoutDisputeInput[]
+    connectOrCreate?: DisputeEvidenceCreateOrConnectWithoutDisputeInput | DisputeEvidenceCreateOrConnectWithoutDisputeInput[]
+    createMany?: DisputeEvidenceCreateManyDisputeInputEnvelope
+    connect?: DisputeEvidenceWhereUniqueInput | DisputeEvidenceWhereUniqueInput[]
+  }
+
+  export type DisputeHistoryUncheckedCreateNestedManyWithoutDisputeInput = {
+    create?: XOR<DisputeHistoryCreateWithoutDisputeInput, DisputeHistoryUncheckedCreateWithoutDisputeInput> | DisputeHistoryCreateWithoutDisputeInput[] | DisputeHistoryUncheckedCreateWithoutDisputeInput[]
+    connectOrCreate?: DisputeHistoryCreateOrConnectWithoutDisputeInput | DisputeHistoryCreateOrConnectWithoutDisputeInput[]
+    createMany?: DisputeHistoryCreateManyDisputeInputEnvelope
+    connect?: DisputeHistoryWhereUniqueInput | DisputeHistoryWhereUniqueInput[]
+  }
+
+  export type DisputeEvidenceUpdateManyWithoutDisputeNestedInput = {
+    create?: XOR<DisputeEvidenceCreateWithoutDisputeInput, DisputeEvidenceUncheckedCreateWithoutDisputeInput> | DisputeEvidenceCreateWithoutDisputeInput[] | DisputeEvidenceUncheckedCreateWithoutDisputeInput[]
+    connectOrCreate?: DisputeEvidenceCreateOrConnectWithoutDisputeInput | DisputeEvidenceCreateOrConnectWithoutDisputeInput[]
+    upsert?: DisputeEvidenceUpsertWithWhereUniqueWithoutDisputeInput | DisputeEvidenceUpsertWithWhereUniqueWithoutDisputeInput[]
+    createMany?: DisputeEvidenceCreateManyDisputeInputEnvelope
+    set?: DisputeEvidenceWhereUniqueInput | DisputeEvidenceWhereUniqueInput[]
+    disconnect?: DisputeEvidenceWhereUniqueInput | DisputeEvidenceWhereUniqueInput[]
+    delete?: DisputeEvidenceWhereUniqueInput | DisputeEvidenceWhereUniqueInput[]
+    connect?: DisputeEvidenceWhereUniqueInput | DisputeEvidenceWhereUniqueInput[]
+    update?: DisputeEvidenceUpdateWithWhereUniqueWithoutDisputeInput | DisputeEvidenceUpdateWithWhereUniqueWithoutDisputeInput[]
+    updateMany?: DisputeEvidenceUpdateManyWithWhereWithoutDisputeInput | DisputeEvidenceUpdateManyWithWhereWithoutDisputeInput[]
+    deleteMany?: DisputeEvidenceScalarWhereInput | DisputeEvidenceScalarWhereInput[]
+  }
+
+  export type DisputeHistoryUpdateManyWithoutDisputeNestedInput = {
+    create?: XOR<DisputeHistoryCreateWithoutDisputeInput, DisputeHistoryUncheckedCreateWithoutDisputeInput> | DisputeHistoryCreateWithoutDisputeInput[] | DisputeHistoryUncheckedCreateWithoutDisputeInput[]
+    connectOrCreate?: DisputeHistoryCreateOrConnectWithoutDisputeInput | DisputeHistoryCreateOrConnectWithoutDisputeInput[]
+    upsert?: DisputeHistoryUpsertWithWhereUniqueWithoutDisputeInput | DisputeHistoryUpsertWithWhereUniqueWithoutDisputeInput[]
+    createMany?: DisputeHistoryCreateManyDisputeInputEnvelope
+    set?: DisputeHistoryWhereUniqueInput | DisputeHistoryWhereUniqueInput[]
+    disconnect?: DisputeHistoryWhereUniqueInput | DisputeHistoryWhereUniqueInput[]
+    delete?: DisputeHistoryWhereUniqueInput | DisputeHistoryWhereUniqueInput[]
+    connect?: DisputeHistoryWhereUniqueInput | DisputeHistoryWhereUniqueInput[]
+    update?: DisputeHistoryUpdateWithWhereUniqueWithoutDisputeInput | DisputeHistoryUpdateWithWhereUniqueWithoutDisputeInput[]
+    updateMany?: DisputeHistoryUpdateManyWithWhereWithoutDisputeInput | DisputeHistoryUpdateManyWithWhereWithoutDisputeInput[]
+    deleteMany?: DisputeHistoryScalarWhereInput | DisputeHistoryScalarWhereInput[]
+  }
+
+  export type DisputeEvidenceUncheckedUpdateManyWithoutDisputeNestedInput = {
+    create?: XOR<DisputeEvidenceCreateWithoutDisputeInput, DisputeEvidenceUncheckedCreateWithoutDisputeInput> | DisputeEvidenceCreateWithoutDisputeInput[] | DisputeEvidenceUncheckedCreateWithoutDisputeInput[]
+    connectOrCreate?: DisputeEvidenceCreateOrConnectWithoutDisputeInput | DisputeEvidenceCreateOrConnectWithoutDisputeInput[]
+    upsert?: DisputeEvidenceUpsertWithWhereUniqueWithoutDisputeInput | DisputeEvidenceUpsertWithWhereUniqueWithoutDisputeInput[]
+    createMany?: DisputeEvidenceCreateManyDisputeInputEnvelope
+    set?: DisputeEvidenceWhereUniqueInput | DisputeEvidenceWhereUniqueInput[]
+    disconnect?: DisputeEvidenceWhereUniqueInput | DisputeEvidenceWhereUniqueInput[]
+    delete?: DisputeEvidenceWhereUniqueInput | DisputeEvidenceWhereUniqueInput[]
+    connect?: DisputeEvidenceWhereUniqueInput | DisputeEvidenceWhereUniqueInput[]
+    update?: DisputeEvidenceUpdateWithWhereUniqueWithoutDisputeInput | DisputeEvidenceUpdateWithWhereUniqueWithoutDisputeInput[]
+    updateMany?: DisputeEvidenceUpdateManyWithWhereWithoutDisputeInput | DisputeEvidenceUpdateManyWithWhereWithoutDisputeInput[]
+    deleteMany?: DisputeEvidenceScalarWhereInput | DisputeEvidenceScalarWhereInput[]
+  }
+
+  export type DisputeHistoryUncheckedUpdateManyWithoutDisputeNestedInput = {
+    create?: XOR<DisputeHistoryCreateWithoutDisputeInput, DisputeHistoryUncheckedCreateWithoutDisputeInput> | DisputeHistoryCreateWithoutDisputeInput[] | DisputeHistoryUncheckedCreateWithoutDisputeInput[]
+    connectOrCreate?: DisputeHistoryCreateOrConnectWithoutDisputeInput | DisputeHistoryCreateOrConnectWithoutDisputeInput[]
+    upsert?: DisputeHistoryUpsertWithWhereUniqueWithoutDisputeInput | DisputeHistoryUpsertWithWhereUniqueWithoutDisputeInput[]
+    createMany?: DisputeHistoryCreateManyDisputeInputEnvelope
+    set?: DisputeHistoryWhereUniqueInput | DisputeHistoryWhereUniqueInput[]
+    disconnect?: DisputeHistoryWhereUniqueInput | DisputeHistoryWhereUniqueInput[]
+    delete?: DisputeHistoryWhereUniqueInput | DisputeHistoryWhereUniqueInput[]
+    connect?: DisputeHistoryWhereUniqueInput | DisputeHistoryWhereUniqueInput[]
+    update?: DisputeHistoryUpdateWithWhereUniqueWithoutDisputeInput | DisputeHistoryUpdateWithWhereUniqueWithoutDisputeInput[]
+    updateMany?: DisputeHistoryUpdateManyWithWhereWithoutDisputeInput | DisputeHistoryUpdateManyWithWhereWithoutDisputeInput[]
+    deleteMany?: DisputeHistoryScalarWhereInput | DisputeHistoryScalarWhereInput[]
+  }
+
+  export type PaymentDisputeCreateNestedOneWithoutEvidenceInput = {
+    create?: XOR<PaymentDisputeCreateWithoutEvidenceInput, PaymentDisputeUncheckedCreateWithoutEvidenceInput>
+    connectOrCreate?: PaymentDisputeCreateOrConnectWithoutEvidenceInput
+    connect?: PaymentDisputeWhereUniqueInput
+  }
+
+  export type PaymentDisputeUpdateOneRequiredWithoutEvidenceNestedInput = {
+    create?: XOR<PaymentDisputeCreateWithoutEvidenceInput, PaymentDisputeUncheckedCreateWithoutEvidenceInput>
+    connectOrCreate?: PaymentDisputeCreateOrConnectWithoutEvidenceInput
+    upsert?: PaymentDisputeUpsertWithoutEvidenceInput
+    connect?: PaymentDisputeWhereUniqueInput
+    update?: XOR<XOR<PaymentDisputeUpdateToOneWithWhereWithoutEvidenceInput, PaymentDisputeUpdateWithoutEvidenceInput>, PaymentDisputeUncheckedUpdateWithoutEvidenceInput>
+  }
+
+  export type PaymentDisputeCreateNestedOneWithoutHistoryInput = {
+    create?: XOR<PaymentDisputeCreateWithoutHistoryInput, PaymentDisputeUncheckedCreateWithoutHistoryInput>
+    connectOrCreate?: PaymentDisputeCreateOrConnectWithoutHistoryInput
+    connect?: PaymentDisputeWhereUniqueInput
+  }
+
+  export type PaymentDisputeUpdateOneRequiredWithoutHistoryNestedInput = {
+    create?: XOR<PaymentDisputeCreateWithoutHistoryInput, PaymentDisputeUncheckedCreateWithoutHistoryInput>
+    connectOrCreate?: PaymentDisputeCreateOrConnectWithoutHistoryInput
+    upsert?: PaymentDisputeUpsertWithoutHistoryInput
+    connect?: PaymentDisputeWhereUniqueInput
+    update?: XOR<XOR<PaymentDisputeUpdateToOneWithWhereWithoutHistoryInput, PaymentDisputeUpdateWithoutHistoryInput>, PaymentDisputeUncheckedUpdateWithoutHistoryInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -59545,6 +63841,329 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type DisputeEvidenceCreateWithoutDisputeInput = {
+    id?: string
+    uploaderAddress: string
+    fileName: string
+    fileUrl: string
+    mimeType?: string | null
+    fileSize?: number
+    description?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeEvidenceUncheckedCreateWithoutDisputeInput = {
+    id?: string
+    uploaderAddress: string
+    fileName: string
+    fileUrl: string
+    mimeType?: string | null
+    fileSize?: number
+    description?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeEvidenceCreateOrConnectWithoutDisputeInput = {
+    where: DisputeEvidenceWhereUniqueInput
+    create: XOR<DisputeEvidenceCreateWithoutDisputeInput, DisputeEvidenceUncheckedCreateWithoutDisputeInput>
+  }
+
+  export type DisputeEvidenceCreateManyDisputeInputEnvelope = {
+    data: DisputeEvidenceCreateManyDisputeInput | DisputeEvidenceCreateManyDisputeInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DisputeHistoryCreateWithoutDisputeInput = {
+    id?: string
+    actorAddress: string
+    action: string
+    fromStatus?: string | null
+    toStatus?: string | null
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeHistoryUncheckedCreateWithoutDisputeInput = {
+    id?: string
+    actorAddress: string
+    action: string
+    fromStatus?: string | null
+    toStatus?: string | null
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeHistoryCreateOrConnectWithoutDisputeInput = {
+    where: DisputeHistoryWhereUniqueInput
+    create: XOR<DisputeHistoryCreateWithoutDisputeInput, DisputeHistoryUncheckedCreateWithoutDisputeInput>
+  }
+
+  export type DisputeHistoryCreateManyDisputeInputEnvelope = {
+    data: DisputeHistoryCreateManyDisputeInput | DisputeHistoryCreateManyDisputeInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DisputeEvidenceUpsertWithWhereUniqueWithoutDisputeInput = {
+    where: DisputeEvidenceWhereUniqueInput
+    update: XOR<DisputeEvidenceUpdateWithoutDisputeInput, DisputeEvidenceUncheckedUpdateWithoutDisputeInput>
+    create: XOR<DisputeEvidenceCreateWithoutDisputeInput, DisputeEvidenceUncheckedCreateWithoutDisputeInput>
+  }
+
+  export type DisputeEvidenceUpdateWithWhereUniqueWithoutDisputeInput = {
+    where: DisputeEvidenceWhereUniqueInput
+    data: XOR<DisputeEvidenceUpdateWithoutDisputeInput, DisputeEvidenceUncheckedUpdateWithoutDisputeInput>
+  }
+
+  export type DisputeEvidenceUpdateManyWithWhereWithoutDisputeInput = {
+    where: DisputeEvidenceScalarWhereInput
+    data: XOR<DisputeEvidenceUpdateManyMutationInput, DisputeEvidenceUncheckedUpdateManyWithoutDisputeInput>
+  }
+
+  export type DisputeEvidenceScalarWhereInput = {
+    AND?: DisputeEvidenceScalarWhereInput | DisputeEvidenceScalarWhereInput[]
+    OR?: DisputeEvidenceScalarWhereInput[]
+    NOT?: DisputeEvidenceScalarWhereInput | DisputeEvidenceScalarWhereInput[]
+    id?: StringFilter<"DisputeEvidence"> | string
+    disputeId?: StringFilter<"DisputeEvidence"> | string
+    uploaderAddress?: StringFilter<"DisputeEvidence"> | string
+    fileName?: StringFilter<"DisputeEvidence"> | string
+    fileUrl?: StringFilter<"DisputeEvidence"> | string
+    mimeType?: StringNullableFilter<"DisputeEvidence"> | string | null
+    fileSize?: IntFilter<"DisputeEvidence"> | number
+    description?: StringNullableFilter<"DisputeEvidence"> | string | null
+    createdAt?: DateTimeFilter<"DisputeEvidence"> | Date | string
+  }
+
+  export type DisputeHistoryUpsertWithWhereUniqueWithoutDisputeInput = {
+    where: DisputeHistoryWhereUniqueInput
+    update: XOR<DisputeHistoryUpdateWithoutDisputeInput, DisputeHistoryUncheckedUpdateWithoutDisputeInput>
+    create: XOR<DisputeHistoryCreateWithoutDisputeInput, DisputeHistoryUncheckedCreateWithoutDisputeInput>
+  }
+
+  export type DisputeHistoryUpdateWithWhereUniqueWithoutDisputeInput = {
+    where: DisputeHistoryWhereUniqueInput
+    data: XOR<DisputeHistoryUpdateWithoutDisputeInput, DisputeHistoryUncheckedUpdateWithoutDisputeInput>
+  }
+
+  export type DisputeHistoryUpdateManyWithWhereWithoutDisputeInput = {
+    where: DisputeHistoryScalarWhereInput
+    data: XOR<DisputeHistoryUpdateManyMutationInput, DisputeHistoryUncheckedUpdateManyWithoutDisputeInput>
+  }
+
+  export type DisputeHistoryScalarWhereInput = {
+    AND?: DisputeHistoryScalarWhereInput | DisputeHistoryScalarWhereInput[]
+    OR?: DisputeHistoryScalarWhereInput[]
+    NOT?: DisputeHistoryScalarWhereInput | DisputeHistoryScalarWhereInput[]
+    id?: StringFilter<"DisputeHistory"> | string
+    disputeId?: StringFilter<"DisputeHistory"> | string
+    actorAddress?: StringFilter<"DisputeHistory"> | string
+    action?: StringFilter<"DisputeHistory"> | string
+    fromStatus?: StringNullableFilter<"DisputeHistory"> | string | null
+    toStatus?: StringNullableFilter<"DisputeHistory"> | string | null
+    comment?: StringNullableFilter<"DisputeHistory"> | string | null
+    createdAt?: DateTimeFilter<"DisputeHistory"> | Date | string
+  }
+
+  export type PaymentDisputeCreateWithoutEvidenceInput = {
+    id?: string
+    disputeRef: string
+    streamId?: string | null
+    txHash?: string | null
+    filerAddress: string
+    respondentAddress: string
+    reason: string
+    description?: string | null
+    amount?: string
+    tokenAddress?: string | null
+    status?: string
+    decision?: string | null
+    resolutionNotes?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    history?: DisputeHistoryCreateNestedManyWithoutDisputeInput
+  }
+
+  export type PaymentDisputeUncheckedCreateWithoutEvidenceInput = {
+    id?: string
+    disputeRef: string
+    streamId?: string | null
+    txHash?: string | null
+    filerAddress: string
+    respondentAddress: string
+    reason: string
+    description?: string | null
+    amount?: string
+    tokenAddress?: string | null
+    status?: string
+    decision?: string | null
+    resolutionNotes?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    history?: DisputeHistoryUncheckedCreateNestedManyWithoutDisputeInput
+  }
+
+  export type PaymentDisputeCreateOrConnectWithoutEvidenceInput = {
+    where: PaymentDisputeWhereUniqueInput
+    create: XOR<PaymentDisputeCreateWithoutEvidenceInput, PaymentDisputeUncheckedCreateWithoutEvidenceInput>
+  }
+
+  export type PaymentDisputeUpsertWithoutEvidenceInput = {
+    update: XOR<PaymentDisputeUpdateWithoutEvidenceInput, PaymentDisputeUncheckedUpdateWithoutEvidenceInput>
+    create: XOR<PaymentDisputeCreateWithoutEvidenceInput, PaymentDisputeUncheckedCreateWithoutEvidenceInput>
+    where?: PaymentDisputeWhereInput
+  }
+
+  export type PaymentDisputeUpdateToOneWithWhereWithoutEvidenceInput = {
+    where?: PaymentDisputeWhereInput
+    data: XOR<PaymentDisputeUpdateWithoutEvidenceInput, PaymentDisputeUncheckedUpdateWithoutEvidenceInput>
+  }
+
+  export type PaymentDisputeUpdateWithoutEvidenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeRef?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: NullableStringFieldUpdateOperationsInput | string | null
+    filerAddress?: StringFieldUpdateOperationsInput | string
+    respondentAddress?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    history?: DisputeHistoryUpdateManyWithoutDisputeNestedInput
+  }
+
+  export type PaymentDisputeUncheckedUpdateWithoutEvidenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeRef?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: NullableStringFieldUpdateOperationsInput | string | null
+    filerAddress?: StringFieldUpdateOperationsInput | string
+    respondentAddress?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    history?: DisputeHistoryUncheckedUpdateManyWithoutDisputeNestedInput
+  }
+
+  export type PaymentDisputeCreateWithoutHistoryInput = {
+    id?: string
+    disputeRef: string
+    streamId?: string | null
+    txHash?: string | null
+    filerAddress: string
+    respondentAddress: string
+    reason: string
+    description?: string | null
+    amount?: string
+    tokenAddress?: string | null
+    status?: string
+    decision?: string | null
+    resolutionNotes?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    evidence?: DisputeEvidenceCreateNestedManyWithoutDisputeInput
+  }
+
+  export type PaymentDisputeUncheckedCreateWithoutHistoryInput = {
+    id?: string
+    disputeRef: string
+    streamId?: string | null
+    txHash?: string | null
+    filerAddress: string
+    respondentAddress: string
+    reason: string
+    description?: string | null
+    amount?: string
+    tokenAddress?: string | null
+    status?: string
+    decision?: string | null
+    resolutionNotes?: string | null
+    resolvedBy?: string | null
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    evidence?: DisputeEvidenceUncheckedCreateNestedManyWithoutDisputeInput
+  }
+
+  export type PaymentDisputeCreateOrConnectWithoutHistoryInput = {
+    where: PaymentDisputeWhereUniqueInput
+    create: XOR<PaymentDisputeCreateWithoutHistoryInput, PaymentDisputeUncheckedCreateWithoutHistoryInput>
+  }
+
+  export type PaymentDisputeUpsertWithoutHistoryInput = {
+    update: XOR<PaymentDisputeUpdateWithoutHistoryInput, PaymentDisputeUncheckedUpdateWithoutHistoryInput>
+    create: XOR<PaymentDisputeCreateWithoutHistoryInput, PaymentDisputeUncheckedCreateWithoutHistoryInput>
+    where?: PaymentDisputeWhereInput
+  }
+
+  export type PaymentDisputeUpdateToOneWithWhereWithoutHistoryInput = {
+    where?: PaymentDisputeWhereInput
+    data: XOR<PaymentDisputeUpdateWithoutHistoryInput, PaymentDisputeUncheckedUpdateWithoutHistoryInput>
+  }
+
+  export type PaymentDisputeUpdateWithoutHistoryInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeRef?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: NullableStringFieldUpdateOperationsInput | string | null
+    filerAddress?: StringFieldUpdateOperationsInput | string
+    respondentAddress?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    evidence?: DisputeEvidenceUpdateManyWithoutDisputeNestedInput
+  }
+
+  export type PaymentDisputeUncheckedUpdateWithoutHistoryInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    disputeRef?: StringFieldUpdateOperationsInput | string
+    streamId?: NullableStringFieldUpdateOperationsInput | string | null
+    txHash?: NullableStringFieldUpdateOperationsInput | string | null
+    filerAddress?: StringFieldUpdateOperationsInput | string
+    respondentAddress?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    amount?: StringFieldUpdateOperationsInput | string
+    tokenAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    evidence?: DisputeEvidenceUncheckedUpdateManyWithoutDisputeNestedInput
+  }
+
   export type PaymentCategoryRuleCreateManyCategoryInput = {
     id?: string
     field: string
@@ -59789,6 +64408,90 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type DisputeEvidenceCreateManyDisputeInput = {
+    id?: string
+    uploaderAddress: string
+    fileName: string
+    fileUrl: string
+    mimeType?: string | null
+    fileSize?: number
+    description?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeHistoryCreateManyDisputeInput = {
+    id?: string
+    actorAddress: string
+    action: string
+    fromStatus?: string | null
+    toStatus?: string | null
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type DisputeEvidenceUpdateWithoutDisputeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    uploaderAddress?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    fileUrl?: StringFieldUpdateOperationsInput | string
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeEvidenceUncheckedUpdateWithoutDisputeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    uploaderAddress?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    fileUrl?: StringFieldUpdateOperationsInput | string
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeEvidenceUncheckedUpdateManyWithoutDisputeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    uploaderAddress?: StringFieldUpdateOperationsInput | string
+    fileName?: StringFieldUpdateOperationsInput | string
+    fileUrl?: StringFieldUpdateOperationsInput | string
+    mimeType?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHistoryUpdateWithoutDisputeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorAddress?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    toStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHistoryUncheckedUpdateWithoutDisputeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorAddress?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    toStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DisputeHistoryUncheckedUpdateManyWithoutDisputeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorAddress?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    fromStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    toStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -59802,6 +64505,10 @@ export namespace Prisma {
      * @deprecated Use DisbursementDraftCountOutputTypeDefaultArgs instead
      */
     export type DisbursementDraftCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisbursementDraftCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PaymentDisputeCountOutputTypeDefaultArgs instead
+     */
+    export type PaymentDisputeCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PaymentDisputeCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use PaymentCategoryDefaultArgs instead
      */
@@ -59978,6 +64685,18 @@ export namespace Prisma {
      * @deprecated Use AdminAuditLogDefaultArgs instead
      */
     export type AdminAuditLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AdminAuditLogDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PaymentDisputeDefaultArgs instead
+     */
+    export type PaymentDisputeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PaymentDisputeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeEvidenceDefaultArgs instead
+     */
+    export type DisputeEvidenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeEvidenceDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use DisputeHistoryDefaultArgs instead
+     */
+    export type DisputeHistoryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = DisputeHistoryDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany
