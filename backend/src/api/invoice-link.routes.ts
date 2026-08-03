@@ -15,7 +15,7 @@ router.post(
   requireWalletAuth,
   requireOfacCheck(),
   asyncHandler(async (req: Request, res: Response) => {
-    const { receiver, amount, tokenAddress, duration, description, pdfUrl, expiresAt } = req.body;
+    const { receiver, amount, tokenAddress, duration, description, customMessage, pdfUrl, expiresAt } = req.body;
     const sender = req.user?.address;
 
     if (!sender) {
@@ -35,6 +35,7 @@ router.post(
       tokenAddress,
       duration,
       description,
+      customMessage,
       pdfUrl,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
     });
@@ -81,6 +82,28 @@ router.get(
 
     const links = await invoiceLinkService.listInvoiceLinks(sender, limit, offset);
     res.json(links);
+  }),
+);
+
+/**
+ * GET /api/v1/invoice-links/analytics
+ * Get analytics for authenticated sender's invoice links
+ */
+router.get(
+  "/analytics",
+  requireWalletAuth,
+  asyncHandler(async (req: Request, res: Response) => {
+    const sender = req.user?.address;
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    if (!sender) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const analytics = await invoiceLinkService.getAnalytics(sender, limit, offset);
+    res.json(analytics);
   }),
 );
 

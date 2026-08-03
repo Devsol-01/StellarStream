@@ -1,55 +1,41 @@
 /**
  * Snapshot Scheduler
- * Runs monthly snapshot and archival tasks
+ * Runs hourly snapshots and monthly archival tasks
  */
 
-import { SnapshotService } from "../services/snapshot.service";
-import { logger } from "../logger";
+import { SnapshotService } from "../services/snapshot.service.js";
+import { logger } from "../logger.js";
+import cron from "node-cron";
 
 const snapshotService = new SnapshotService();
 
 /**
- * Schedule snapshot maintenance to run monthly
- * Runs on the 1st of each month at 2 AM
+ * Schedule hourly snapshot creation (at minute 5 of each hour)
+ * and monthly archival maintenance (1st of each month at 2 AM)
  */
 export function scheduleSnapshotMaintenance() {
-  const runMaintenance = async () => {
+  // Hourly snapshots - runs at minute 5 of each hour
+  cron.schedule("5 * * * *", async () => {
     try {
-      logger.info("Starting monthly snapshot maintenance");
-      const result = await snapshotService.runMaintenance();
-      logger.info("Monthly snapshot maintenance completed", result);
+      logger.info("Starting hourly snapshot creation");
+      const result = await snapshotService.createHourlySnapshots();
+      logger.info("Hourly snapshot creation completed", result);
     } catch (error) {
-      logger.error("Monthly snapshot maintenance failed", error);
+      logger.error("Hourly snapshot creation failed", error);
     }
-  };
+  });
 
-  // Calculate time until next run (1st of next month at 2 AM)
-  const scheduleNext = () => {
-    const now = new Date();
-    const nextRun = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      1,
-      2,
-      0,
-      0,
-      0
-    );
-    
-    const delay = nextRun.getTime() - now.getTime();
-    
-    logger.info("Scheduled next snapshot maintenance", {
-      nextRun: nextRun.toISOString(),
-      delayMs: delay,
-    });
+  // Monthly archival maintenance - runs on 1st of each month at 2 AM
+  cron.schedule("0 2 1 * * *", async () => {
+    try {
+      logger.info("Starting monthly archival maintenance");
+      const result = await snapshotService.runMaintenance();
+      logger.info("Monthly archival maintenance completed", result);
+    } catch (error) {
+      logger.error("Monthly archival maintenance failed", error);
+    }
+  });
 
-    setTimeout(async () => {
-      await runMaintenance();
-      scheduleNext(); // Schedule next run
-    }, delay);
-  };
-
-  scheduleNext();
   logger.info("Snapshot maintenance scheduler initialized");
 }
 
@@ -57,6 +43,12 @@ export function scheduleSnapshotMaintenance() {
  * Run maintenance immediately (for manual triggers or testing)
  */
 export async function runMaintenanceNow() {
-  const snapshotService = new SnapshotService();
   return snapshotService.runMaintenance();
+}
+
+/**
+ * Run hourly snapshots immediately (for manual triggers or testing)
+ */
+export async function runHourlySnapshotsNow() {
+  return snapshotService.createHourlySnapshots();
 }

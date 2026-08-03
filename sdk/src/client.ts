@@ -7,6 +7,9 @@ import {
   CreateStreamParams,
   WithdrawParams,
   CancelStreamParams,
+  InvoiceLink,
+  CreateInvoiceLinkParams,
+  InvoiceLinkAnalytics,
 } from "./types.js";
 
 export class NebulaClient {
@@ -124,12 +127,48 @@ export class NebulaClient {
   }
 
   /**
-   * Search streams
+   * Create a new invoice link (payment link)
    */
-  async searchStreams(query: string): Promise<Stream[]> {
-    const response = await this.client.get("/search", {
-      params: { q: query },
+  async createInvoiceLink(params: CreateInvoiceLinkParams): Promise<InvoiceLink> {
+    const response = await this.client.post("/invoice-links", params);
+    return response.data;
+  }
+
+  /**
+   * Get invoice link by slug
+   */
+  async getInvoiceLink(slug: string): Promise<InvoiceLink> {
+    const response = await this.client.get(`/invoice-links/${slug}`);
+    return response.data;
+  }
+
+  /**
+   * Get invoice links for the authenticated user
+   */
+  async getInvoiceLinks(limit: number = 50, offset: number = 0): Promise<InvoiceLink[]> {
+    const response = await this.client.get("/invoice-links", {
+      params: { limit, offset },
     });
     return response.data;
+  }
+
+  /**
+   * Get invoice link analytics
+   */
+  async getInvoiceLinkAnalytics(
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<InvoiceLinkAnalytics[]> {
+    const response = await this.client.get("/invoice-links/analytics", {
+      params: { limit, offset },
+    });
+    return response.data;
+  }
+
+  /**
+   * Delete an invoice link
+   */
+  async deleteInvoiceLink(id: string): Promise<void> {
+    await this.client.delete(`/invoice-links/${id}`);
   }
 }

@@ -1,0 +1,152 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  output     = "../src/generated/client"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User-defined payment categories for organizing streams and disbursements
+model PaymentCategory {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  color        String   @default("#6366f1") // hex color for UI
+  icon         String?                       // optional icon identifier
+  ownerAddress String                        // Stellar address of the creator
+  isDefault    Boolean  @default(false)      // system-level default categories
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rules         PaymentCategoryRule[]
+  streams       Stream[]
+  disbursements Disbursement[]
+
+  @@unique([ownerAddress, name])
+  @@index([ownerAddress])
+}
+
+// Flexible key-value metadata for streams, disbursements, and categories (#1385)
+model PaymentMetadata {
+  id           String   @id @default(cuid())
+  entityType   String // 'stream' | 'disbursement' | 'category'
+  entityId     String
+  key          String
+  value        String
+  ownerAddress String // Stellar address of the creator (for scoping + search)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([entityType, entityId, key]) // one value per key per entity
+  @@index([ownerAddress])
+  @@index([entityType, entityId])
+  @@index([key])
+  @@index([ownerAddress, key, value]) // supports search-by-metadata
+}
+
+// Auto-categorization rules attached to a PaymentCategory
+model PaymentCategoryRule {
+  id         String          @id @default(cuid())
+  categoryId String
+  category   PaymentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  // field: 'sender' | 'receiver' | 'tokenAddress' | 'amountMin' | 'amountMax'
+  field      String
+  // operator: 'equals' | 'contains' | 'startsWith' | 'gte' | 'lte'
+  operator   String
+  value      String
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([categoryId])
+}
+
+// Mirrors the Stream state from the Soroban smart contract
+model Stream {
+  id           String       @id @default(cuid())
+  streamId     String?      @unique // Contract-level Stream ID
+  txHash       String       @unique
+  version      Int          @default(1)
+  sender       String
+  receiver     String
+  contractId   String?      @map("contract_id")
+  tokenAddress String?
+  amount       String       // Store as string to handle large numbers safely
+  duration     Int?
+  status       StreamStatus @default(ACTIVE)
+  withdrawn    String?      @default("0")
+  legacy       Boolean      @default(false) // true = originated from V1 contract
+  migrated     Boolean      @default(false) // true = V1 stream superseded by V2
+  isPrivate    Boolean      @default(false)
+  yieldEnabled Boolean      @default(false) @map("yield_enabled")
+  vaultContractId String?
+  vaultShareBalance String?
+  vaultRatioScale String?
+  accruedInterest String    @default("0")
+  lastYieldAccrualAt DateTime?
+  isDust       Boolean      @default(false) // true = below MIN_VALUE_USD threshold
+  affiliateId  String?      // Affiliate who referred this stream (0.5% commission)
+  categoryId   String?      // Optional payment category
+  category     PaymentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  // Additional fields for contract state snapshots
+  startTime    DateTime?    @map("start_time")
+  endTime      DateTime?    @map("end_time")
+  cliffTime    Int?         @map("cliff_time")
+  isSoulbound  Boolean      @default(false) @map("is_soulbound")
+  isFrozen     Boolean      @default(false) @map("is_frozen")
+  pausedDuration Int?         @map("paused_duration")
+  vaultAddress String?      @map("vault_address")
+  vaultShares  String?      @map("vault_shares")
+  createdAt    DateTime     @default(now())
+
+  @@index([sender])
+  @@index([receiver])
+  @@index([status])
+  @@index([streamId])
+  @@index([contractId])
+  @@index([legacy])
+  @@index([yieldEnabled, status])
+  @@index([isDust])
+  @@index([affiliateId])
+  @@index([categoryId])
+  // #1148 — owner dashboard: latest streams for a user filtered by status
+  @@index([sender, status, createdAt(sort: Desc)])
+}
+
+// ── Hourly snapshots of contract states for historical analysis ───────────────────
+model ContractStateSnapshot {
+  id              String   @id @default(cuid())
+  streamId        String
+  contractId      String? // Contract address for cross-contract snapshots
+  snapshotTime    DateTime // Exact timestamp of snapshot
+  snapshotHour    String // YYYY-MM-DD-HH for efficient hourly queries (indexed)
+  sender          String
+  receiver        String
+  tokenAddress    String
+  totalAmount     BigInt
+  withdrawnAmount BigInt
+  cliffTime       BigInt
+  startTime       DateTime
+  endTime         DateTime
+  state           StreamStatus
+  curveType       Int // 0 = Linear, 1 = Exponential
+  isSoulbound     Boolean @default(false)
+  isFrozen        Boolean @default(false)
+  pausedDuration  BigInt @default(0)
+  vaultAddress    String?
+  vaultShares     BigInt?
+  metadataHash    String? // Hash of full metadata for integrity
+  compressedState String? // GZIP-compressed delta from previous snapshot
+  previousSnapshotId String? @map("previous_snapshot_id") // Link to previous for chain
+
+  @@index([streamId, snapshotTime(sort: Desc)])
+  @@index([snapshotHour])
+  @@index([contractId, snapshotTime(sort: Desc)])
+  @@index([sender, snapshotTime(sort: Desc)])
+  @@unique([streamId, snapshotHour])
+}

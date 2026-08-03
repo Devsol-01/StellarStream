@@ -1,5 +1,5 @@
 import { prisma } from "../lib/db.js";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 
 export interface CreateInvoiceLinkInput {
   sender: string;
@@ -8,6 +8,7 @@ export interface CreateInvoiceLinkInput {
   tokenAddress: string;
   duration: number;
   description?: string;
+  customMessage?: string;
   pdfUrl?: string;
   expiresAt?: Date;
 }
@@ -21,11 +22,28 @@ export interface InvoiceLinkResponse {
   tokenAddress: string;
   duration: number;
   description?: string;
+  customMessage?: string;
   pdfUrl?: string;
   xdrParams: string;
   status: string;
   expiresAt?: Date;
+  viewCount: number;
+  lastViewedAt?: Date;
   createdAt: Date;
+  updatedAt: Date;
+  shareUrl: string;
+}
+
+export interface InvoiceLinkAnalytics {
+  id: string;
+  slug: string;
+  amount: string;
+  tokenAddress: string;
+  status: string;
+  viewCount: number;
+  lastViewedAt?: Date;
+  createdAt: Date;
+  expiresAt?: Date;
   shareUrl: string;
 }
 
@@ -51,7 +69,7 @@ export class InvoiceLinkService {
   async createInvoiceLink(
     input: CreateInvoiceLinkInput,
   ): Promise<InvoiceLinkResponse> {
-    const slug = uuidv4().split("-")[0]; // Short UUID
+    const slug = randomUUID().split("-")[0]; // Short UUID
     const xdrParams = this.generateXdrParams(input);
 
     const link = await prisma.invoiceLink.create({
@@ -63,6 +81,7 @@ export class InvoiceLinkService {
         tokenAddress: input.tokenAddress,
         duration: input.duration,
         description: input.description,
+        customMessage: input.customMessage,
         pdfUrl: input.pdfUrl,
         xdrParams,
         status: "DRAFT",
@@ -74,7 +93,7 @@ export class InvoiceLinkService {
   }
 
   /**
-   * Retrieve invoice link by slug
+   * Retrieve invoice link by slug with view tracking
    */
   async getInvoiceLinkBySlug(slug: string): Promise<InvoiceLinkResponse | null> {
     const link = await prisma.invoiceLink.findUnique({
@@ -92,7 +111,64 @@ export class InvoiceLinkService {
       return null;
     }
 
-    return this.formatResponse(link);
+    // Track view (analytics) and get the updated record
+    await this.recordView(link.id, link.viewCount);
+    const updatedLink = await prisma.invoiceLink.findUnique({
+      where: { id: link.id },
+    });
+
+    return this.formatResponse(updatedLink ?? link);
+  }
+
+  /**
+   * Record a view on an invoice link for analytics
+   */
+  async recordView(linkId: string, currentViewCount: number): Promise<void> {
+    try {
+      await prisma.invoiceLink.update({
+        where: { id: linkId },
+        data: {
+          viewCount: currentViewCount + 1,
+          lastViewedAt: new Date(),
+        },
+      });
+    } catch {
+      // Non-critical: silently ignore view tracking failures
+    }
+  }
+
+  /**
+   * Get analytics for all invoice links owned by a sender
+   */
+  async getAnalytics(
+    sender: string,
+    limit: number = 50,
+    offset: number = 0,
+  ): Promise<InvoiceLinkAnalytics[]> {
+    const links = await prisma.invoiceLink.findMany({
+      where: { sender },
+      orderBy: { viewCount: "desc" },
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        slug: true,
+        amount: true,
+        tokenAddress: true,
+        status: true,
+        viewCount: true,
+        lastViewedAt: true,
+        createdAt: true,
+        expiresAt: true,
+      },
+    });
+
+    const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+
+    return links.map((link) => ({
+      ...link,
+      shareUrl: `${baseUrl}/invoice/${link.slug}`,
+    }));
   }
 
   /**
@@ -138,7 +214,7 @@ export class InvoiceLinkService {
   }
 
   /**
-   * Format response with share URL
+   * Format response with share URL and analytics
    */
   private formatResponse(link: any): InvoiceLinkResponse {
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -151,11 +227,15 @@ export class InvoiceLinkService {
       tokenAddress: link.tokenAddress,
       duration: link.duration,
       description: link.description,
+      customMessage: link.customMessage,
       pdfUrl: link.pdfUrl,
       xdrParams: link.xdrParams,
       status: link.status,
       expiresAt: link.expiresAt,
+      viewCount: link.viewCount ?? 0,
+      lastViewedAt: link.lastViewedAt,
       createdAt: link.createdAt,
+      updatedAt: link.updatedAt,
       shareUrl: `${baseUrl}/invoice/${link.slug}`,
     };
   }

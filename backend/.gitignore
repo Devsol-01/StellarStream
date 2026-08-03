@@ -8,3 +8,6 @@ coverage/
 *.tsbuildinfo
 
 /src/generated/prisma
+
+# Generated regulatory reports (secure local storage — never committed)
+/storage/compliance-reports/

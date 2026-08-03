@@ -198,5 +198,232 @@ async function getProtocolStats() {
     };
 }
 
+// ─── Dashboard Customization Endpoints ─────────────────────────────────────
+
+/**
+ * GET /api/v1/dashboard/layouts
+ * Get all dashboard layouts for the authenticated user
+ */
+router.get("/layouts", async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, error: "Unauthorized" });
+        }
+
+        const layouts = await prisma.dashboardLayout.findMany({
+            where: { userId },
+            include: { widgets: { orderBy: { position: "asc" } } },
+            orderBy: { isDefault: "desc" },
+        });
+
+        res.json({ success: true, data: layouts });
+    } catch (error) {
+        logger.error("Failed to fetch dashboard layouts", error);
+        res.status(500).json({ success: false, error: "Failed to fetch layouts" });
+    }
+});
+
+/**
+ * POST /api/v1/dashboard/layouts
+ * Create a new dashboard layout
+ */
+router.post("/layouts", async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, error: "Unauthorized" });
+        }
+
+        const { name, description, isDefault } = req.body;
+        if (!name || typeof name !== "string") {
+            return res.status(400).json({ success: false, error: "Layout name is required" });
+        }
+
+        const layout = await prisma.dashboardLayout.create({
+            data: {
+                userId,
+                name,
+                description: description || null,
+                isDefault: isDefault || false,
+            },
+        });
+
+        res.status(201).json({ success: true, data: layout });
+    } catch (error: any) {
+        if (error.code === "P2002") {
+            return res.status(409).json({ success: false, error: "Layout name already exists" });
+        }
+        logger.error("Failed to create dashboard layout", error);
+        res.status(500).json({ success: false, error: "Failed to create layout" });
+    }
+});
+
+/**
+ * PUT /api/v1/dashboard/layouts/:id
+ * Update a dashboard layout
+ */
+router.put("/layouts/:id", async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, error: "Unauthorized" });
+        }
+
+        const { id } = req.params;
+        const { name, description, isDefault } = req.body;
+
+        const layout = await prisma.dashboardLayout.findUnique({ where: { id } });
+        if (!layout || layout.userId !== userId) {
+            return res.status(404).json({ success: false, error: "Layout not found" });
+        }
+
+        const updated = await prisma.dashboardLayout.update({
+            where: { id },
+            data: {
+                ...(name && { name }),
+                ...(description !== undefined && { description }),
+                ...(isDefault !== undefined && { isDefault }),
+            },
+            include: { widgets: { orderBy: { position: "asc" } } },
+        });
+
+        res.json({ success: true, data: updated });
+    } catch (error: any) {
+        if (error.code === "P2002") {
+            return res.status(409).json({ success: false, error: "Layout name already exists" });
+        }
+        logger.error("Failed to update dashboard layout", error);
+        res.status(500).json({ success: false, error: "Failed to update layout" });
+    }
+});
+
+/**
+ * DELETE /api/v1/dashboard/layouts/:id
+ * Delete a dashboard layout
+ */
+router.delete("/layouts/:id", async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, error: "Unauthorized" });
+        }
+
+        const { id } = req.params;
+        const layout = await prisma.dashboardLayout.findUnique({ where: { id } });
+        if (!layout || layout.userId !== userId) {
+            return res.status(404).json({ success: false, error: "Layout not found" });
+        }
+
+        await prisma.dashboardLayout.delete({ where: { id } });
+        res.json({ success: true, message: "Layout deleted" });
+    } catch (error) {
+        logger.error("Failed to delete dashboard layout", error);
+        res.status(500).json({ success: false, error: "Failed to delete layout" });
+    }
+});
+
+/**
+ * POST /api/v1/dashboard/layouts/:id/widgets
+ * Add a widget to a layout
+ */
+router.post("/layouts/:id/widgets", async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, error: "Unauthorized" });
+        }
+
+        const { id } = req.params;
+        const { widgetType, position, size, config } = req.body;
+
+        const layout = await prisma.dashboardLayout.findUnique({ where: { id } });
+        if (!layout || layout.userId !== userId) {
+            return res.status(404).json({ success: false, error: "Layout not found" });
+        }
+
+        if (!widgetType) {
+            return res.status(400).json({ success: false, error: "Widget type is required" });
+        }
+
+        const widget = await prisma.dashboardWidget.create({
+            data: {
+                layoutId: id,
+                widgetType,
+                position: position ?? 0,
+                size: size || "medium",
+                config: config ? JSON.stringify(config) : null,
+            },
+        });
+
+        res.status(201).json({ success: true, data: widget });
+    } catch (error) {
+        logger.error("Failed to add widget", error);
+        res.status(500).json({ success: false, error: "Failed to add widget" });
+    }
+});
+
+/**
+ * PUT /api/v1/dashboard/layouts/:layoutId/widgets/:widgetId
+ * Update a widget configuration
+ */
+router.put("/layouts/:layoutId/widgets/:widgetId", async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, error: "Unauthorized" });
+        }
+
+        const { layoutId, widgetId } = req.params;
+        const { position, size, enabled, config } = req.body;
+
+        const layout = await prisma.dashboardLayout.findUnique({ where: { id: layoutId } });
+        if (!layout || layout.userId !== userId) {
+            return res.status(404).json({ success: false, error: "Layout not found" });
+        }
+
+        const widget = await prisma.dashboardWidget.update({
+            where: { id: widgetId },
+            data: {
+                ...(position !== undefined && { position }),
+                ...(size && { size }),
+                ...(enabled !== undefined && { enabled }),
+                ...(config !== undefined && { config: config ? JSON.stringify(config) : null }),
+            },
+        });
+
+        res.json({ success: true, data: widget });
+    } catch (error) {
+        logger.error("Failed to update widget", error);
+        res.status(500).json({ success: false, error: "Failed to update widget" });
+    }
+});
+
+/**
+ * DELETE /api/v1/dashboard/layouts/:layoutId/widgets/:widgetId
+ * Remove a widget from a layout
+ */
+router.delete("/layouts/:layoutId/widgets/:widgetId", async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ success: false, error: "Unauthorized" });
+        }
+
+        const { layoutId, widgetId } = req.params;
+
+        const layout = await prisma.dashboardLayout.findUnique({ where: { id: layoutId } });
+        if (!layout || layout.userId !== userId) {
+            return res.status(404).json({ success: false, error: "Layout not found" });
+        }
+
+        await prisma.dashboardWidget.delete({ where: { id: widgetId } });
+        res.json({ success: true, message: "Widget removed" });
+    } catch (error) {
+        logger.error("Failed to delete widget", error);
+        res.status(500).json({ success: false, error: "Failed to delete widget" });
+    }
+});
+
 export default router;
 

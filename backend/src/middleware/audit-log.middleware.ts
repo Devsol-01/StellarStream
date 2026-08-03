@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../lib/db.js';
 import { logger } from '../logger.js';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 /**
  * Data snapshot for before/after comparison
@@ -103,7 +103,7 @@ function truncateJsonString(data: unknown, maxSize: number = 5000): string {
  */
 export function auditLogMiddleware(req: Request, res: Response, next: NextFunction): void {
   const startTime = performance.now();
-  const entryId = uuidv4();
+  const entryId = randomUUID();
 
   // Initialize audit context
   req.auditLog = { entryId };
@@ -195,7 +195,7 @@ export function setAuditContext(
   context: Partial<AuditLogEntry>
 ): void {
   if (!req.auditLog) {
-    req.auditLog = { entryId: uuidv4() };
+    req.auditLog = { entryId: randomUUID() };
   }
 
   Object.assign(req.auditLog, context);

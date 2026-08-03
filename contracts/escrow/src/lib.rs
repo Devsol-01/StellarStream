@@ -14,6 +14,12 @@ use events::{
 };
 use storage::DataKey;
 
+// Issue #1387 — Formal verification: specs and runner
+#[cfg(any(test, feature = "formal-verification"))]
+pub mod formal_spec;
+#[cfg(test)]
+mod verify;
+
 #[cfg(test)]
 mod test;
 

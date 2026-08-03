@@ -1,10 +1,13 @@
 "use client";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutTemplate, Plus, Copy, Trash2, ArrowRight, X, CheckCircle2, Loader2 } from "lucide-react";
+import { LayoutTemplate, FileText, Plus, Copy, Trash2, ArrowRight, X, CheckCircle2, Loader2 } from "lucide-react";
 import { useTemplateLibrary, type StreamTemplate } from "@/lib/use-template-library";
 import { useWallet } from "@/lib/wallet-context";
 import { useRouter } from "next/navigation";
+import { MemoTemplateLibrary } from "@/components/MemoTemplateLibrary";
+
+type TemplateTab = "stream" | "memo";
 
 const ASSETS = ["USDC","USDT","DAI","ETH","WBTC"];
 const DURATIONS = ["1 Hour","1 Day","1 Week","1 Month","3 Months","1 Year"];
@@ -63,6 +66,7 @@ export default function TemplatesPage() {
   const { address: walletAddress } = useWallet();
   const { templates, loading, saveTemplate, deleteTemplate, duplicateTemplate } = useTemplateLibrary(walletAddress ?? undefined);
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<TemplateTab>("stream");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name:"", asset:"USDC", recipientAddress:"", splitEnabled:false, splitAddress:"", splitPercent:10, totalAmount:"", rateType:"per-hour" as typeof RATE_TYPES[number], durationPreset:"1 Month" });
 
@@ -87,15 +91,45 @@ export default function TemplatesPage() {
           </div>
           <div>
             <h1 className="font-heading text-2xl font-bold text-white">Template Library</h1>
-            <p className="font-body mt-1 text-sm text-white/50">Save and reuse split configurations for payroll or vendor payments.</p>
+            <p className="font-body mt-1 text-sm text-white/50">
+              {activeTab === "stream"
+                ? "Save and reuse split configurations for payroll or vendor payments."
+                : "Reusable payment memo text with variable placeholders."}
+            </p>
           </div>
         </div>
-        <button onClick={() => setShowForm((v) => !v)}
-          className="flex items-center gap-2 rounded-xl border border-[#8a00ff]/30 bg-[#8a00ff]/10 px-4 py-2.5 text-sm font-semibold text-[#c084fc] transition hover:bg-[#8a00ff]/20">
-          {showForm ? <><X className="h-4 w-4" /> Cancel</> : <><Plus className="h-4 w-4" /> Add Template</>}
-        </button>
+        {activeTab === "stream" && (
+          <button onClick={() => setShowForm((v) => !v)}
+            className="flex items-center gap-2 rounded-xl border border-[#8a00ff]/30 bg-[#8a00ff]/10 px-4 py-2.5 text-sm font-semibold text-[#c084fc] transition hover:bg-[#8a00ff]/20">
+            {showForm ? <><X className="h-4 w-4" /> Cancel</> : <><Plus className="h-4 w-4" /> Add Template</>}
+          </button>
+        )}
       </div>
 
+      {/* Tab switcher */}
+      <div className="flex gap-1.5 border-b border-white/10 pb-px">
+        {([
+          ["stream", "Stream Templates", LayoutTemplate],
+          ["memo", "Memo Templates", FileText],
+        ] as const).map(([tab, label, Icon]) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-semibold transition ${
+              activeTab === tab
+                ? "border-[#8a00ff] text-white"
+                : "border-transparent text-white/40 hover:text-white/70"
+            }`}
+          >
+            <Icon className="h-4 w-4" /> {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "memo" ? (
+        <MemoTemplateLibrary />
+      ) : (
+      <>
       {/* Inline add form */}
       <AnimatePresence>
         {showForm && (
@@ -168,6 +202,8 @@ export default function TemplatesPage() {
           </AnimatePresence>
         </div>
       ) : null}
+      </>
+      )}
     </div>
   );
 }

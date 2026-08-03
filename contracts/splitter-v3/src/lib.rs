@@ -11,6 +11,12 @@ use errors::Error;
 use events::{emit_individual_payment, emit_split_executed};
 use storage::DataKey;
 
+// Issue #1387 — Formal verification: specs and runner
+#[cfg(any(test, feature = "formal-verification"))]
+pub mod formal_spec;
+#[cfg(test)]
+mod verify;
+
 #[cfg(test)]
 mod test;
 

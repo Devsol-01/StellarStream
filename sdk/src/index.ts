@@ -8,6 +8,9 @@ import {
   CreateStreamParams,
   WithdrawParams,
   CancelStreamParams,
+  InvoiceLink,
+  CreateInvoiceLinkParams,
+  InvoiceLinkAnalytics,
 } from "./types.js";
 
 /**
@@ -111,10 +114,38 @@ export class Nebula {
   }
 
   /**
-   * Search streams
+   * Create a new invoice link (payment link)
    */
-  static async searchStreams(query: string): Promise<Stream[]> {
-    return this.client.searchStreams(query);
+  static async createInvoiceLink(params: CreateInvoiceLinkParams): Promise<InvoiceLink> {
+    return this.client.createInvoiceLink(params);
+  }
+
+  /**
+   * Get invoice link by slug
+   */
+  static async getInvoiceLink(slug: string): Promise<InvoiceLink> {
+    return this.client.getInvoiceLink(slug);
+  }
+
+  /**
+   * Get invoice links for the authenticated user
+   */
+  static async getInvoiceLinks(limit?: number, offset?: number): Promise<InvoiceLink[]> {
+    return this.client.getInvoiceLinks(limit, offset);
+  }
+
+  /**
+   * Get invoice link analytics
+   */
+  static async getInvoiceLinkAnalytics(limit?: number, offset?: number): Promise<InvoiceLinkAnalytics[]> {
+    return this.client.getInvoiceLinkAnalytics(limit, offset);
+  }
+
+  /**
+   * Delete an invoice link
+   */
+  static async deleteInvoiceLink(id: string): Promise<void> {
+    return this.client.deleteInvoiceLink(id);
   }
 }
 
@@ -127,6 +158,9 @@ export type {
   CreateStreamParams,
   WithdrawParams,
   CancelStreamParams,
+  InvoiceLink,
+  CreateInvoiceLinkParams,
+  InvoiceLinkAnalytics,
 };
 
 export { StreamStatus };

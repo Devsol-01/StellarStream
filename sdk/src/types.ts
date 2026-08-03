@@ -68,3 +68,43 @@ export interface WithdrawParams {
 export interface CancelStreamParams {
   streamId: string;
 }
+
+export interface InvoiceLink {
+  id: string;
+  slug: string;
+  sender: string;
+  receiver: string;
+  amount: string;
+  tokenAddress: string;
+  duration: number;
+  description?: string;
+  customMessage?: string;
+  status: string;
+  viewCount: number;
+  expiresAt?: Date;
+  createdAt: Date;
+  shareUrl: string;
+}
+
+export interface CreateInvoiceLinkParams {
+  receiver: string;
+  amount: string;
+  tokenAddress: string;
+  duration: number;
+  description?: string;
+  customMessage?: string;
+  expiresAt?: Date;
+}
+
+export interface InvoiceLinkAnalytics {
+  id: string;
+  slug: string;
+  amount: string;
+  tokenAddress: string;
+  status: string;
+  viewCount: number;
+  lastViewedAt?: Date;
+  createdAt: Date;
+  expiresAt?: Date;
+  shareUrl: string;
+}

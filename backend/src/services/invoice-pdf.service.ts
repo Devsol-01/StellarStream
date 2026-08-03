@@ -1,4 +1,6 @@
 import PDFDocument from "pdfkit";
+import { getInvoiceLabels } from "../i18n/invoice-labels.js";
+import type { SupportedLanguage } from "../i18n/error-localization.js";
 
 export interface InvoiceRecipient {
   address: string;
@@ -19,9 +21,19 @@ export interface InvoiceReportData {
   totalAmount: string;
   txHash?: string;
   note?: string;
+  /** BCP-47-ish language code for label translation. Defaults to "en". */
+  language?: SupportedLanguage;
+  /** Pre-tax total. When provided (together with taxAmount), a Subtotal/Tax/Total breakdown replaces the single TOTAL row. */
+  subtotal?: string;
+  /** Tax rate as a percentage (0-100), shown next to the TAX line. */
+  taxRate?: number;
+  taxAmount?: string;
+  /** Template overrides */
+  accentColor?: string;
+  footerText?: string;
 }
 
-const BRAND_CYAN = "#00f5ff";
+const DEFAULT_ACCENT = "#00f5ff";
 const DARK_BG = "#080814";
 const TEXT_PRIMARY = "#e0e0ff";
 const TEXT_MUTED = "#7878a0";
@@ -36,6 +48,9 @@ export function generateInvoicePDF(data: InvoiceReportData): Promise<Buffer> {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
+  const labels = getInvoiceLabels(data.language ?? "en");
+  const accent = data.accentColor ?? DEFAULT_ACCENT;
+
   const W = doc.page.width;   // 595
   const M = 50;               // margin
 
@@ -43,7 +58,7 @@ export function generateInvoicePDF(data: InvoiceReportData): Promise<Buffer> {
   doc.rect(0, 0, W, doc.page.height).fill(DARK_BG);
 
   // ── Top accent bar ──────────────────────────────────────────────────────────
-  doc.rect(0, 0, W, 4).fill(BRAND_CYAN);
+  doc.rect(0, 0, W, 4).fill(accent);
 
   // ── Logo / Org name ─────────────────────────────────────────────────────────
   let headerY = 24;
@@ -54,7 +69,7 @@ export function generateInvoicePDF(data: InvoiceReportData): Promise<Buffer> {
     doc
       .font("Helvetica-Bold")
       .fontSize(20)
-      .fillColor(BRAND_CYAN)
+      .fillColor(accent)
       .text(data.orgName, M, headerY + 8);
   }
 
@@ -63,25 +78,25 @@ export function generateInvoicePDF(data: InvoiceReportData): Promise<Buffer> {
     .font("Helvetica-Bold")
     .fontSize(22)
     .fillColor(TEXT_PRIMARY)
-    .text("INVOICE", W - M - 120, headerY + 4, { width: 120, align: "right" });
+    .text(labels.invoiceTitle, W - M - 120, headerY + 4, { width: 120, align: "right" });
 
   doc
     .font("Helvetica")
     .fontSize(9)
     .fillColor(TEXT_MUTED)
     .text(`#${data.invoiceNumber}`, W - M - 120, headerY + 30, { width: 120, align: "right" })
-    .text(`Issued: ${data.issuedAt}`, W - M - 120, headerY + 42, { width: 120, align: "right" });
+    .text(`${labels.issued}: ${data.issuedAt}`, W - M - 120, headerY + 42, { width: 120, align: "right" });
 
   // ── Divider ──────────────────────────────────────────────────────────────────
   const divY = 80;
-  doc.moveTo(M, divY).lineTo(W - M, divY).strokeColor(BRAND_CYAN).lineWidth(0.5).stroke();
+  doc.moveTo(M, divY).lineTo(W - M, divY).strokeColor(accent).lineWidth(0.5).stroke();
 
   // ── From / Asset meta ────────────────────────────────────────────────────────
   let y = divY + 14;
-  doc.font("Helvetica-Bold").fontSize(8).fillColor(TEXT_MUTED).text("FROM", M, y);
+  doc.font("Helvetica-Bold").fontSize(8).fillColor(TEXT_MUTED).text(labels.from, M, y);
   doc.font("Helvetica").fontSize(9).fillColor(TEXT_PRIMARY).text(data.sender, M, y + 12, { width: 260 });
 
-  doc.font("Helvetica-Bold").fontSize(8).fillColor(TEXT_MUTED).text("ASSET", W / 2, y);
+  doc.font("Helvetica-Bold").fontSize(8).fillColor(TEXT_MUTED).text(labels.asset, W / 2, y);
   doc.font("Helvetica").fontSize(9).fillColor(TEXT_PRIMARY).text(data.asset, W / 2, y + 12);
 
   y += 44;
@@ -98,9 +113,9 @@ export function generateInvoicePDF(data: InvoiceReportData): Promise<Buffer> {
     .font("Helvetica-Bold")
     .fontSize(8)
     .fillColor(TEXT_MUTED)
-    .text("RECIPIENT ADDRESS", colAddress + 6, y + 5)
-    .text("LABEL", colLabel + 6, y + 5)
-    .text("AMOUNT", colAmount, y + 5, { width: 80, align: "right" });
+    .text(labels.recipientAddress, colAddress + 6, y + 5)
+    .text(labels.label, colLabel + 6, y + 5)
+    .text(labels.amount, colAmount, y + 5, { width: 80, align: "right" });
 
   y += 18;
 
@@ -124,33 +139,49 @@ export function generateInvoicePDF(data: InvoiceReportData): Promise<Buffer> {
     doc
       .font("Helvetica-Bold")
       .fontSize(8)
-      .fillColor(BRAND_CYAN)
+      .fillColor(accent)
       .text(`${r.amount} ${data.asset}`, colAmount, y + 6, { width: 80, align: "right" });
 
     y += rowH;
   });
 
-  // ── Total row ────────────────────────────────────────────────────────────────
+  // ── Totals ───────────────────────────────────────────────────────────────────
   y += 4;
-  doc.moveTo(M, y).lineTo(W - M, y).strokeColor(BRAND_CYAN).opacity(0.4).lineWidth(0.4).stroke().opacity(1);
+  doc.moveTo(M, y).lineTo(W - M, y).strokeColor(accent).opacity(0.4).lineWidth(0.4).stroke().opacity(1);
   y += 8;
+
+  const hasTaxBreakdown = data.subtotal !== undefined && data.taxAmount !== undefined;
+
+  if (hasTaxBreakdown) {
+    const taxLabel = data.taxRate !== undefined ? `${labels.tax} (${data.taxRate}%)` : labels.tax;
+
+    doc.font("Helvetica").fontSize(8).fillColor(TEXT_MUTED).text(labels.subtotal, colAmount - 100, y, { width: 100, align: "right" });
+    doc.font("Helvetica").fontSize(8).fillColor(TEXT_PRIMARY).text(`${data.subtotal} ${data.asset}`, colAmount, y, { width: 80, align: "right" });
+    y += 14;
+
+    doc.font("Helvetica").fontSize(8).fillColor(TEXT_MUTED).text(taxLabel, colAmount - 100, y, { width: 100, align: "right" });
+    doc.font("Helvetica").fontSize(8).fillColor(TEXT_PRIMARY).text(`${data.taxAmount} ${data.asset}`, colAmount, y, { width: 80, align: "right" });
+    y += 16;
+
+    doc.moveTo(colAmount - 100, y - 4).lineTo(W - M, y - 4).strokeColor(TEXT_MUTED).opacity(0.2).lineWidth(0.3).stroke().opacity(1);
+  }
 
   doc
     .font("Helvetica-Bold")
     .fontSize(10)
     .fillColor(TEXT_PRIMARY)
-    .text("TOTAL", colAmount - 60, y, { width: 60, align: "right" });
+    .text(labels.total, colAmount - 60, y, { width: 60, align: "right" });
 
   doc
     .font("Helvetica-Bold")
     .fontSize(10)
-    .fillColor(BRAND_CYAN)
+    .fillColor(accent)
     .text(`${data.totalAmount} ${data.asset}`, colAmount, y, { width: 80, align: "right" });
 
   // ── Tx hash ──────────────────────────────────────────────────────────────────
   if (data.txHash) {
     y += 28;
-    doc.font("Helvetica-Bold").fontSize(8).fillColor(TEXT_MUTED).text("TX HASH", M, y);
+    doc.font("Helvetica-Bold").fontSize(8).fillColor(TEXT_MUTED).text(labels.txHash, M, y);
     doc.font("Courier").fontSize(7.5).fillColor(TEXT_PRIMARY).text(data.txHash, M, y + 12, { width: W - M * 2 });
     y += 24;
   }
@@ -163,13 +194,14 @@ export function generateInvoicePDF(data: InvoiceReportData): Promise<Buffer> {
 
   // ── Footer ───────────────────────────────────────────────────────────────────
   const footerY = doc.page.height - 30;
-  doc.rect(0, footerY - 4, W, 4).fill(BRAND_CYAN);
+  doc.rect(0, footerY - 4, W, 4).fill(accent);
+  const footerText = (data.footerText ?? labels.footer).replace("{date}", new Date().toISOString());
   doc
     .font("Helvetica")
     .fontSize(7)
     .fillColor(TEXT_MUTED)
     .text(
-      `Generated ${new Date().toISOString()} · StellarStream · Powered by Soroban`,
+      footerText,
       M,
       footerY + 6,
       { width: W - M * 2, align: "center" },

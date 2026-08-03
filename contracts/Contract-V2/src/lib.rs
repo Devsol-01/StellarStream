@@ -11,6 +11,12 @@ mod storage;
 pub mod types;
 mod v1_interface;
 
+// Issue #1387 — Formal verification: specs and runner
+#[cfg(any(test, feature = "formal-verification"))]
+pub mod formal_spec;
+#[cfg(test)]
+mod verify;
+
 use contracterror::Error;
 pub use types::{
     AdminTransferredEvent, BatchStreamsCreatedEvent, BeneficiaryTransferredV2Event, BpsRecipient,
