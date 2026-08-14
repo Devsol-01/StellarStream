@@ -293,7 +293,7 @@ export default function DashboardPage() {
           />
           <StatCard
             title="Total Volume"
-            value={stats.totalVolume !== "0" ? `${(BigInt(stats.totalVolume) / 10n ** 7n).toString()} XLM` : "0 XLM"}
+            value={stats.totalVolume !== "0" ? `${(Number(stats.totalVolume) / 10_000_000).toString()} XLM` : "0 XLM"}
             icon={DollarSign}
             color="bg-amber-500"
             delay={300}
