@@ -610,6 +610,8 @@ pub fn get_version(env: Env) -> u32
 ## 📞 Support & Resources
 
 ### Documentation
+- [User Guide](./docs/USER_GUIDE.md) — practical usage for senders, receivers, and developers new to Soroban
+- [API Reference](#api-reference)
 - [RBAC Implementation](./RBAC.md)
 - [Soulbound Streams](./SOULBOUND.md)
 - [OFAC Compliance](./OFAC_COMPLIANCE.md)
