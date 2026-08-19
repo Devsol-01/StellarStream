@@ -130,6 +130,21 @@ pub struct StreamRequest {
     pub metadata: Option<BytesN<32>>,
 }
 
+/// Optional stream configuration bundled together to keep the
+/// `create_stream_with_milestones` entry point within Soroban's
+/// maximum contract function parameter limit.
+///
+/// Bundling these three optional knobs into a single struct allows the
+/// milestone-aware creation entry point to stay under the 10-parameter cap
+/// while preserving the full set of configuration options.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamOptions {
+    pub curve_type: CurveType,
+    pub is_soulbound: bool,
+    pub vault_address: Option<Address>,
+}
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InterestDistribution {
