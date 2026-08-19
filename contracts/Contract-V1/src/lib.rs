@@ -55,6 +55,9 @@ mod advanced_test;
 #[cfg(all(test, feature = "voting_tests"))]
 mod voting_test;
 
+#[cfg(test)]
+mod bench_test;
+
 // #[cfg(test)]
 // mod interest_test;
 
@@ -494,6 +497,35 @@ impl StellarStreamContract {
 
     /// Create multiple streams in a single call.
     ///
+    /// This is not a loop over [`Self::create_stream`]: everything that would
+    /// otherwise be repeated per item is hoisted out of the loop so the
+    /// marginal cost of each extra stream in the batch is just its own
+    /// storage write, receipt, and event.
+    ///
+    /// - **Single authorization check.** `sender.require_auth()` runs once for
+    ///   the whole batch instead of once per stream.
+    /// - **Fail-fast validation.** Every request (time range, amount, cliff
+    ///   bounds, restricted receiver) is validated in a first pass, before any
+    ///   storage write or token transfer happens. An invalid item anywhere in
+    ///   the batch is rejected without having paid for the transfers or writes
+    ///   of the items ahead of it.
+    /// - **Cached restricted-address list.** The compliance list is read from
+    ///   storage once and reused for every request instead of once per item.
+    /// - **Cached stream counter.** `STREAM_COUNT` is read once, advanced in
+    ///   memory for the whole batch, and written back once instead of on every
+    ///   iteration.
+    /// - **Bulk token transfer.** Every request's principal (vault-bound or
+    ///   not) is summed and moved from `sender` to the contract in a single
+    ///   token transfer instead of one transfer per stream. A per-item
+    ///   transfer from the contract into its vault still happens for
+    ///   vault-bound requests, since each may target a different vault.
+    ///
+    /// The `Stream` record and NFT-style receipt for each requested stream
+    /// still require one storage write apiece — each occupies its own ledger
+    /// entry and can't be merged — so per-item cost does not go to zero, but
+    /// every cost that was previously duplicated across the batch is now paid
+    /// exactly once.
+    ///
     /// Returns `Error::BatchSizeExceeded` if the number of requests exceeds
     /// `MAX_RECIPIENTS`.
     pub fn create_batch_streams(
@@ -508,29 +540,111 @@ impl StellarStreamContract {
 
         sender.require_auth();
 
+        if requests.is_empty() {
+            return Ok(Vec::new(&env));
+        }
+
+        // Fail-fast validation pass: every request is checked, and the batch
+        // total is computed, before anything is written or transferred.
+        let restricted = Self::restricted_addresses(&env);
+        let mut total_amount: i128 = 0;
+        for req in requests.iter() {
+            if req.start_time >= req.end_time {
+                return Err(Error::InvalidTimeRange);
+            }
+            if req.amount <= 0 {
+                return Err(Error::InvalidAmount);
+            }
+            if req.cliff_time < req.start_time || req.cliff_time > req.end_time {
+                panic!("Cliff time must be between start and end time");
+            }
+            if restricted.contains(&req.receiver) {
+                soroban_sdk::panic_with_error!(&env, Error::AddressRestricted);
+            }
+            total_amount += req.amount;
+        }
+
+        // One transfer covers every request's principal instead of one per item.
+        let token_client = token::Client::new(&env, &token);
+        token_client.transfer(&sender, &env.current_contract_address(), &total_amount);
+
+        let mut next_id: u64 = env.storage().instance().get(&STREAM_COUNT).unwrap_or(0);
         let mut stream_ids: Vec<u64> = Vec::new(&env);
 
         for req in requests.iter() {
-            let milestones: Vec<Milestone> = Vec::new(&env);
-            let options = StreamOptions {
-                curve_type: CurveType::Linear,
-                is_soulbound: false,
-                vault_address: req.vault_address,
+            let stream_id = next_id;
+            next_id += 1;
+
+            // Contract already holds the funds from the bulk transfer above;
+            // vault-bound requests still need their own contract-to-vault leg.
+            let vault_shares = if let Some(ref vault) = req.vault_address {
+                vault::deposit_to_vault(&env, vault, &token, req.amount)
+                    .map_err(|_| Error::InvalidAmount)?
+            } else {
+                0
             };
-            let stream_id = Self::create_stream_internal(
-                env.clone(),
-                sender.clone(),
-                req.receiver,
-                token.clone(),
-                req.amount,
-                req.start_time,
-                req.cliff_time,
-                req.end_time,
-                milestones,
-                options,
-            )?;
+
+            let stream = Stream {
+                sender: sender.clone(),
+                receiver: req.receiver.clone(),
+                token: token.clone(),
+                total_amount: req.amount,
+                start_time: req.start_time,
+                cliff_time: req.cliff_time,
+                end_time: req.end_time,
+                withdrawn_amount: 0,
+                interest_strategy: 0,
+                vault_address: req.vault_address.clone(),
+                deposited_principal: req.amount,
+                metadata: None,
+                withdrawn: 0,
+                receipt_owner: req.receiver.clone(),
+                paused_time: 0,
+                total_paused_duration: 0,
+                milestones: Vec::new(&env),
+                curve_type: CurveType::Linear,
+                is_usd_pegged: false,
+                usd_amount: 0,
+                oracle_address: sender.clone(),
+                oracle_max_staleness: 0,
+                price_min: 0,
+                price_max: 0,
+                is_soulbound: false,
+                clawback_enabled: false,
+                arbiter: None,
+                is_frozen: false,
+                state: StreamState::Active,
+            };
+
+            env.storage()
+                .instance()
+                .set(&(STREAM_COUNT, stream_id), &stream);
+
+            if vault_shares > 0 {
+                env.storage()
+                    .instance()
+                    .set(&DataKey::VaultShares(stream_id), &vault_shares);
+            }
+
+            env.events().publish(
+                (symbol_short!("create"), sender.clone()),
+                StreamCreatedEvent {
+                    stream_id,
+                    sender: sender.clone(),
+                    receiver: req.receiver.clone(),
+                    token: token.clone(),
+                    total_amount: req.amount,
+                    start_time: req.start_time,
+                    end_time: req.end_time,
+                    timestamp: env.ledger().timestamp(),
+                },
+            );
+            Self::mint_receipt(&env, stream_id, &req.receiver);
+
             stream_ids.push_back(stream_id);
         }
+
+        env.storage().instance().set(&STREAM_COUNT, &next_id);
 
         Ok(stream_ids)
     }
@@ -657,12 +771,17 @@ impl StellarStreamContract {
     }
 
     pub fn is_address_restricted(env: Env, address: Address) -> bool {
-        let list: Vec<Address> = env
-            .storage()
+        Self::restricted_addresses(&env).contains(&address)
+    }
+
+    /// Load the restricted-address list once. Callers that need to check
+    /// several addresses (e.g. batch validation) should reuse the returned
+    /// `Vec` instead of re-reading storage per address.
+    fn restricted_addresses(env: &Env) -> Vec<Address> {
+        env.storage()
             .instance()
             .get(&RESTRICTED_ADDRESSES)
-            .unwrap_or(Vec::new(&env));
-        list.contains(address)
+            .unwrap_or(Vec::new(env))
     }
 
     pub fn unrestrict_address(env: Env, admin: Address, address: Address) {
@@ -1004,6 +1123,128 @@ impl StellarStreamContract {
         );
 
         Ok(to_withdraw)
+    }
+
+    /// Withdraw unlocked funds from multiple streams owned by `caller` in a
+    /// single call.
+    ///
+    /// Applies the same gas optimizations as [`Self::create_batch_streams`],
+    /// tuned for the fact that on Soroban a host-managed [`Vec`] read or
+    /// write is itself a metered operation, not a free native one — so the
+    /// optimization that matters most here is *not* allocating extra `Vec`s
+    /// to stage per-stream data, on top of the ones the batch already needs:
+    ///
+    /// - **Single authorization check.** `caller.require_auth()` runs once
+    ///   for the whole batch instead of once per stream.
+    /// - **One pass, write-then-transfer per stream.** Each stream is loaded,
+    ///   validated, and has its `withdrawn_amount` written in the same loop
+    ///   — matching the checks-effects-interactions order [`Self::withdraw`]
+    ///   already uses, so a reentrant call during a later transfer can't
+    ///   double-spend a stream whose balance was already updated. Soroban
+    ///   only commits storage writes if the whole invocation succeeds, so a
+    ///   bad stream anywhere in the batch still leaves the ledger exactly as
+    ///   if nothing had been written: failing fast doesn't require *staging*
+    ///   the batch in extra `Vec`s before writing, just rejecting it before
+    ///   any transfer is issued.
+    /// - **Transfers grouped per token.** Streams that share a token are
+    ///   summed into one running total (in a small `Vec` bounded by the
+    ///   number of *distinct* tokens, not by batch size) and paid out with a
+    ///   single transfer, since the destination (`caller`) is the same for
+    ///   all of them.
+    ///
+    /// Each stream's `withdrawn_amount` still requires its own storage write
+    /// (each stream is an independent ledger entry), so per-item cost does
+    /// not go to zero, but authorization and same-token transfers are now
+    /// paid for once instead of once per stream.
+    ///
+    /// Unlike [`Self::create_batch_streams`], this function's win doesn't
+    /// show up as a large drop in the CPU-instruction benchmarks in
+    /// `bench_test.rs`: per-stream storage I/O is the dominant, irreducible
+    /// cost here, and those benchmarks run under `mock_all_auths`, which
+    /// makes the auth-check consolidation look free even though real
+    /// signature verification is not. The real savings — one token-contract
+    /// invocation instead of `N` for a same-token batch, and one set of auth
+    /// entries instead of `N` in the transaction envelope — are measured
+    /// directly (by event count) in
+    /// `bench_batch_withdraw_emits_one_transfer_event_per_distinct_token`.
+    ///
+    /// Returns the amount withdrawn from each stream, in the same order as
+    /// `stream_ids`. Returns `Error::BatchSizeExceeded` if `stream_ids`
+    /// exceeds `MAX_RECIPIENTS`.
+    pub fn batch_withdraw(
+        env: Env,
+        caller: Address,
+        stream_ids: Vec<u64>,
+    ) -> Result<Vec<i128>, Error> {
+        if stream_ids.len() > Self::MAX_RECIPIENTS {
+            return Err(Error::BatchSizeExceeded);
+        }
+
+        caller.require_auth();
+
+        if stream_ids.is_empty() {
+            return Ok(Vec::new(&env));
+        }
+
+        let current_time = env.ledger().timestamp();
+
+        // Validate, write, and group-by-token in one pass. Writes happen
+        // before any transfer below, so a reentrant call can't observe a
+        // stream whose balance hasn't been updated yet.
+        let mut amounts: Vec<i128> = Vec::new(&env);
+        let mut tokens: Vec<Address> = Vec::new(&env);
+        let mut totals: Vec<i128> = Vec::new(&env);
+        for stream_id in stream_ids.iter() {
+            let mut stream: Stream = env
+                .storage()
+                .instance()
+                .get(&(STREAM_COUNT, stream_id))
+                .ok_or(Error::StreamNotFound)?;
+
+            if stream.receiver != caller {
+                return Err(Error::Unauthorized);
+            }
+            if stream.state == StreamState::Closed {
+                return Err(Error::AlreadyCancelled);
+            }
+            if stream.state == StreamState::Paused {
+                return Err(Error::StreamPaused);
+            }
+
+            let unlocked = Self::calculate_unlocked(&stream, current_time);
+            let to_withdraw = unlocked - stream.withdrawn_amount;
+            if to_withdraw <= 0 {
+                return Err(Error::InsufficientBalance);
+            }
+
+            stream.withdrawn_amount += to_withdraw;
+            let token = stream.token.clone();
+            env.storage()
+                .instance()
+                .set(&(STREAM_COUNT, stream_id), &stream);
+
+            match tokens.iter().position(|t| t == token) {
+                Some(idx) => {
+                    let running = totals.get(idx as u32).unwrap();
+                    totals.set(idx as u32, running + to_withdraw);
+                }
+                None => {
+                    tokens.push_back(token);
+                    totals.push_back(to_withdraw);
+                }
+            }
+
+            amounts.push_back(to_withdraw);
+        }
+
+        for i in 0..tokens.len() {
+            let token = tokens.get(i).unwrap();
+            let total = totals.get(i).unwrap();
+            let token_client = token::Client::new(&env, &token);
+            token_client.transfer(&env.current_contract_address(), &caller, &total);
+        }
+
+        Ok(amounts)
     }
 
     pub fn cancel(env: Env, stream_id: u64, caller: Address) -> Result<(), Error> {
