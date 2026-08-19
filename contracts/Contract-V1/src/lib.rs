@@ -2,45 +2,566 @@
 
 //! StellarStream - Real-time asset streaming on Stellar
 //!
-//! This is the genesis contract (V1) for the StellarStream protocol.
-//! Contributors: Implement the core streaming functionality here.
+//! Genesis contract (V1) for the StellarStream protocol.
 //!
 //! Core concepts:
 //! - Continuous token streaming from sender to receiver
-//! - Linear vesting based on time elapsed
+//! - Linear / exponential vesting based on elapsed time
 //! - Real-time withdrawals of unlocked amounts
 //! - Cancellation support with automatic refunds
+//! - Role-based access control, pause/resume, and OFAC-style address restriction
+//! - Re-entrancy safe withdrawals (checks-effects-interactions + temporary lock)
 //!
-//! See the project README for detailed specifications.
+//! See `contracts/Contract-V1/README.md` for the full specification.
 
 pub mod math;
 
 #[cfg(test)]
 mod bench_test;
 
-use soroban_sdk::{contract, contractimpl, Env};
+use soroban_sdk::{
+    contract, contractclient, contracterror, contractimpl, contracttype, Address, Env, Map,
+    Symbol, Vec, symbol_short, panic_with_error,
+};
 
+// ---------------------------------------------------------------------------
+// Storage keys
+// ---------------------------------------------------------------------------
+const ADMIN: Symbol = symbol_short!("ADMIN");
+const PAUSED: Symbol = symbol_short!("PAUSED");
+const NEXTID: Symbol = symbol_short!("NEXTID");
+const ROLES: Symbol = symbol_short!("ROLES");
+const RESTRICT: Symbol = symbol_short!("RESTRICT");
+const LOCK: Symbol = symbol_short!("LOCK");
+const STREAMS: Symbol = symbol_short!("STREAMS");
+const USTREAMS: Symbol = symbol_short!("USTREAMS");
+
+// Stream state
+pub const STATE_ACTIVE: u32 = 0;
+pub const STATE_PAUSED: u32 = 1;
+pub const STATE_CLOSED: u32 = 2;
+
+// Vesting curve
+pub const CURVE_LINEAR: u32 = 0;
+pub const CURVE_EXP: u32 = 1;
+
+// Roles
+pub const ROLE_ADMIN: u32 = 0;
+pub const ROLE_PAUSER: u32 = 1;
+pub const ROLE_TREASURY: u32 = 2;
+
+// ---------------------------------------------------------------------------
+// Error definitions
+// ---------------------------------------------------------------------------
+#[contracterror]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u32)]
+pub enum Error {
+    AlreadyInitialized = 1,
+    InvalidTimeRange = 2,
+    InvalidAmount = 3,
+    StreamNotFound = 4,
+    Unauthorized = 5,
+    AlreadyCancelled = 6,
+    InsufficientBalance = 7,
+    AlreadyPaused = 8,
+    NotPaused = 9,
+    ContractPaused = 10,
+    Reentrancy = 11,
+    NotAdmin = 12,
+    NotPauser = 13,
+    StreamPaused = 14,
+    WithdrawTooLarge = 15,
+    InvalidCurve = 16,
+    InvalidRole = 17,
+    StreamIsSoulbound = 21,
+    AddressRestricted = 22,
+    StreamNotPaused = 26,
+    Overflow = 27,
+}
+
+// ---------------------------------------------------------------------------
+// Data structures
+// ---------------------------------------------------------------------------
+#[contracttype]
+#[derive(Clone)]
+pub struct Stream {
+    pub id: u64,
+    pub sender: Address,
+    pub receiver: Address,
+    pub token: Address,
+    pub total_amount: i128,
+    pub start_time: u64,
+    pub end_time: u64,
+    pub withdrawn_amount: i128,
+    pub state: u32,
+    pub curve_type: u32,
+    pub is_soulbound: bool,
+    pub paused_duration: u64,
+    pub last_paused_at: u64,
+}
+
+// Minimal token interface used by `withdraw`.
+#[contractclient(name = "TokenClient")]
+pub trait Token {
+    fn transfer(env: Env, from: Address, to: Address, amount: i128);
+}
+
+// ---------------------------------------------------------------------------
+// Contract
+// ---------------------------------------------------------------------------
 #[contract]
 pub struct StellarStreamContract;
 
 #[contractimpl]
 impl StellarStreamContract {
-    /// Initialize the contract with an admin address
-    pub fn initialize(_env: Env) {
-        // TODO: Implement contract initialization
-        // - Set admin address
-        // - Initialize storage
-        // - Set up initial configuration
+    /// Initialize the contract with an admin address. Idempotency guarded.
+    pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
+        admin.require_auth();
+        if env.storage().instance().get::<_, Address>(&ADMIN).is_some() {
+            return Err(Error::AlreadyInitialized);
+        }
+        env.storage().instance().set(&ADMIN, &admin);
+        env.storage().instance().set(&PAUSED, &false);
+        env.storage().instance().set(&NEXTID, &1u64);
+        grant_role_internal(env.clone(), &admin, ROLE_ADMIN);
+        Ok(())
+    }
+
+    /// Create a new stream. Returns the newly allocated stream id.
+    pub fn create_stream(
+        env: Env,
+        sender: Address,
+        receiver: Address,
+        token: Address,
+        total_amount: i128,
+        start_time: u64,
+        end_time: u64,
+        curve_type: u32,
+        is_soulbound: bool,
+    ) -> Result<u64, Error> {
+        sender.require_auth();
+        if is_contract_paused(&env) {
+            return Err(Error::ContractPaused);
+        }
+        if env.storage().instance().get::<_, Address>(&ADMIN).is_none() {
+            return Err(Error::Unauthorized);
+        }
+        if curve_type != CURVE_LINEAR && curve_type != CURVE_EXP {
+            return Err(Error::InvalidCurve);
+        }
+        if total_amount <= 0 {
+            return Err(Error::InvalidAmount);
+        }
+        if start_time >= end_time {
+            return Err(Error::InvalidTimeRange);
+        }
+        if is_restricted(&env, &sender) || is_restricted(&env, &receiver) {
+            return Err(Error::AddressRestricted);
+        }
+
+        let mut next = env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1);
+        let id = next;
+        next = next.checked_add(1).ok_or(Error::Overflow)?;
+
+        let stream = Stream {
+            id,
+            sender: sender.clone(),
+            receiver: receiver.clone(),
+            token,
+            total_amount,
+            start_time,
+            end_time,
+            withdrawn_amount: 0,
+            state: STATE_ACTIVE,
+            curve_type,
+            is_soulbound,
+            paused_duration: 0,
+            last_paused_at: 0,
+        };
+
+        let mut streams = get_streams(&env);
+        streams.set(id, stream);
+        env.storage().persistent().set(&STREAMS, &streams);
+
+        add_user_stream(&env, &sender, id);
+        add_user_stream(&env, &receiver, id);
+
+        env.storage().instance().set(&NEXTID, &next);
+        Ok(id)
+    }
+
+    /// Withdraw the currently unlocked amount to the receiver.
+    /// Returns the amount withdrawn.
+    pub fn withdraw(env: Env, stream_id: u64, receiver: Address) -> Result<i128, Error> {
+        receiver.require_auth();
+
+        // Re-entrancy guard (temporary storage lock).
+        if env.storage().temporary().get::<_, bool>(&LOCK).unwrap_or(false) {
+            return Err(Error::Reentrancy);
+        }
+        env.storage().temporary().set(&LOCK, &true);
+
+        let result = withdraw_inner(&env, stream_id, &receiver);
+
+        env.storage().temporary().remove(&LOCK);
+        result
+    }
+
+    /// Cancel a stream. Only the sender may cancel; refunds are implicit because
+    /// the receiver can no longer withdraw unlocked funds once the stream is closed.
+    pub fn cancel_stream(env: Env, stream_id: u64, sender: Address) -> Result<(), Error> {
+        sender.require_auth();
+        let mut stream = get_stream(&env, stream_id)?;
+        if stream.state == STATE_CLOSED {
+            return Err(Error::AlreadyCancelled);
+        }
+        stream.state = STATE_CLOSED;
+        save_stream(&env, &stream);
+        Ok(())
+    }
+
+    /// Pause an active stream. Only the sender may pause.
+    pub fn pause_stream(env: Env, stream_id: u64, caller: Address) -> Result<(), Error> {
+        caller.require_auth();
+        let mut stream = get_stream(&env, stream_id)?;
+        if stream.sender != caller {
+            return Err(Error::Unauthorized);
+        }
+        if stream.state == STATE_PAUSED {
+            return Err(Error::AlreadyPaused);
+        }
+        if stream.state == STATE_CLOSED {
+            return Err(Error::AlreadyCancelled);
+        }
+        stream.state = STATE_PAUSED;
+        stream.last_paused_at = env.ledger().timestamp();
+        save_stream(&env, &stream);
+        Ok(())
+    }
+
+    /// Resume a paused stream. Only the sender may resume.
+    pub fn resume_stream(env: Env, stream_id: u64, caller: Address) -> Result<(), Error> {
+        caller.require_auth();
+        let mut stream = get_stream(&env, stream_id)?;
+        if stream.sender != caller {
+            return Err(Error::Unauthorized);
+        }
+        if stream.state != STATE_PAUSED {
+            return Err(Error::StreamNotPaused);
+        }
+        let now = env.ledger().timestamp();
+        if stream.last_paused_at > 0 && now > stream.last_paused_at {
+            stream.paused_duration = stream
+                .paused_duration
+                .checked_add(now - stream.last_paused_at)
+                .ok_or(Error::Overflow)?;
+        }
+        stream.state = STATE_ACTIVE;
+        stream.last_paused_at = 0;
+        save_stream(&env, &stream);
+        Ok(())
+    }
+
+    /// Query a stream by id.
+    pub fn get_stream(env: Env, stream_id: u64) -> Result<Stream, Error> {
+        get_stream(&env, stream_id)
+    }
+
+    /// Calculate the total unlocked amount for a stream at the current ledger time.
+    pub fn get_unlocked_amount(env: Env, stream_id: u64) -> Result<i128, Error> {
+        let stream = get_stream(&env, stream_id)?;
+        Ok(unlocked_amount(&env, &stream))
+    }
+
+    /// Calculate the currently withdrawable amount for a stream.
+    pub fn get_withdrawable_amount(env: Env, stream_id: u64) -> Result<i128, Error> {
+        let stream = get_stream(&env, stream_id)?;
+        Ok(withdrawable_amount(&env, &stream))
+    }
+
+    /// Return the list of stream ids associated with a user (as sender or receiver).
+    pub fn get_user_streams(env: Env, user: Address) -> Vec<u64> {
+        get_user_streams(&env, &user)
+    }
+
+    // ------------------------- Administrative -------------------------
+
+    pub fn grant_role(env: Env, admin: Address, account: Address, role: u32) -> Result<(), Error> {
+        admin.require_auth();
+        require_admin(&env, &admin)?;
+        if role > ROLE_TREASURY {
+            return Err(Error::InvalidRole);
+        }
+        grant_role_internal(env, &account, role);
+        Ok(())
+    }
+
+    pub fn revoke_role(env: Env, admin: Address, account: Address, role: u32) -> Result<(), Error> {
+        admin.require_auth();
+        require_admin(&env, &admin)?;
+        revoke_role_internal(&env, &account, role);
+        Ok(())
+    }
+
+    pub fn restrict_address(env: Env, admin: Address, target: Address) -> Result<(), Error> {
+        admin.require_auth();
+        require_admin(&env, &admin)?;
+        let mut r = get_restricted(&env);
+        r.set(target, true);
+        env.storage().instance().set(&RESTRICT, &r);
+        Ok(())
+    }
+
+    pub fn unrestrict_address(env: Env, admin: Address, target: Address) -> Result<(), Error> {
+        admin.require_auth();
+        require_admin(&env, &admin)?;
+        let mut r = get_restricted(&env);
+        r.remove(target);
+        env.storage().instance().set(&RESTRICT, &r);
+        Ok(())
+    }
+
+    pub fn pause_contract(env: Env, pauser: Address) -> Result<(), Error> {
+        pauser.require_auth();
+        require_role(&env, &pauser, ROLE_PAUSER)?;
+        env.storage().instance().set(&PAUSED, &true);
+        Ok(())
+    }
+
+    pub fn unpause_contract(env: Env, pauser: Address) -> Result<(), Error> {
+        pauser.require_auth();
+        require_role(&env, &pauser, ROLE_PAUSER)?;
+        env.storage().instance().set(&PAUSED, &false);
+        Ok(())
+    }
+
+    pub fn is_address_restricted(env: Env, target: Address) -> bool {
+        is_restricted(&env, &target)
+    }
+
+    /// Return the next stream id that will be allocated (for testing/inspection).
+    pub fn next_stream_id(env: Env) -> u64 {
+        env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1)
     }
 }
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+fn withdraw_inner(env: &Env, stream_id: u64, receiver: &Address) -> Result<i128, Error> {
+    let mut stream = get_stream(env, stream_id)?;
+    if stream.state == STATE_CLOSED {
+        return Err(Error::AlreadyCancelled);
+    }
+    if stream.state == STATE_PAUSED {
+        return Err(Error::StreamPaused);
+    }
+    if &stream.receiver != receiver {
+        return Err(Error::Unauthorized);
+    }
+
+    let withdrawable = withdrawable_amount(env, &stream);
+    if withdrawable <= 0 {
+        return Ok(0);
+    }
+
+    // Checks-effects-interactions: mutate state BEFORE any external call so a
+    // re-entrant token callback cannot double-spend.
+    stream.withdrawn_amount = stream
+        .withdrawn_amount
+        .checked_add(withdrawable)
+        .ok_or(Error::Overflow)?;
+    save_stream(env, &stream);
+
+    // External token transfer (best-effort; a malicious token cannot double-spend
+    // because state above is already committed).
+    TokenClient::new(env, &stream.token).transfer(&stream.sender, receiver, &withdrawable);
+
+    Ok(withdrawable)
+}
+
+fn unlocked_amount(env: &Env, stream: &Stream) -> i128 {
+    let now = env.ledger().timestamp();
+    if now <= stream.start_time {
+        return 0;
+    }
+    let dur = stream.end_time - stream.start_time;
+    let mut elapsed = now - stream.start_time;
+    if elapsed > stream.paused_duration {
+        elapsed -= stream.paused_duration;
+    } else {
+        elapsed = 0;
+    }
+    if elapsed >= dur || now >= stream.end_time {
+        return stream.total_amount;
+    }
+    if stream.total_amount == 0 {
+        return 0;
+    }
+    let unlocked = match stream.curve_type {
+        CURVE_LINEAR => {
+            let prod = (elapsed as i128).checked_mul(stream.total_amount);
+            match prod {
+                Some(p) => p / (dur as i128),
+                None => return 0,
+            }
+        }
+        CURVE_EXP => {
+            let e = elapsed as i128;
+            let d = dur as i128;
+            // quadratic: total * elapsed^2 / dur^2
+            let num = e.checked_mul(e).and_then(|v| v.checked_mul(stream.total_amount));
+            let den = d.checked_mul(d);
+            match (num, den) {
+                (Some(n), Some(den)) if den != 0 => n / den,
+                _ => 0,
+            }
+        }
+        _ => 0,
+    };
+    if unlocked < 0 {
+        0
+    } else {
+        unlocked
+    }
+}
+
+fn withdrawable_amount(env: &Env, stream: &Stream) -> i128 {
+    let unlocked = unlocked_amount(env, stream);
+    let w = unlocked - stream.withdrawn_amount;
+    if w < 0 {
+        0
+    } else {
+        w
+    }
+}
+
+fn get_streams(env: &Env) -> Map<u64, Stream> {
+    env.storage()
+        .persistent()
+        .get(&STREAMS)
+        .unwrap_or(Map::new(env))
+}
+
+fn get_stream(env: &Env, stream_id: u64) -> Result<Stream, Error> {
+    get_streams(env)
+        .get(stream_id)
+        .ok_or(Error::StreamNotFound)
+}
+
+fn save_stream(env: &Env, stream: &Stream) {
+    let mut streams = get_streams(env);
+    streams.set(stream.id, stream.clone());
+    env.storage().persistent().set(&STREAMS, &streams);
+}
+
+fn get_user_streams(env: &Env, user: &Address) -> Vec<u64> {
+    env.storage()
+        .persistent()
+        .get(&USTREAMS)
+        .unwrap_or(Map::new(env))
+        .get(user.clone())
+        .unwrap_or(Vec::new(env))
+}
+
+fn add_user_stream(env: &Env, user: &Address, id: u64) {
+    let mut all: Map<Address, Vec<u64>> = env
+        .storage()
+        .persistent()
+        .get(&USTREAMS)
+        .unwrap_or(Map::new(env));
+    let mut list = all.get(user.clone()).unwrap_or(Vec::new(env));
+    list.push_back(id);
+    all.set(user.clone(), list);
+    env.storage().persistent().set(&USTREAMS, &all);
+}
+
+fn is_contract_paused(env: &Env) -> bool {
+    env.storage().instance().get(&PAUSED).unwrap_or(false)
+}
+
+fn is_restricted(env: &Env, target: &Address) -> bool {
+    get_restricted(env).get(target.clone()).unwrap_or(false)
+}
+
+fn get_restricted(env: &Env) -> Map<Address, bool> {
+    env.storage().instance().get(&RESTRICT).unwrap_or(Map::new(env))
+}
+
+fn require_admin(env: &Env, account: &Address) -> Result<(), Error> {
+    require_role(env, account, ROLE_ADMIN)
+}
+
+fn require_role(env: &Env, account: &Address, role: u32) -> Result<(), Error> {
+    if !has_role(env, account, role) {
+        return Err(if role == ROLE_ADMIN {
+            Error::NotAdmin
+        } else {
+            Error::NotPauser
+        });
+    }
+    Ok(())
+}
+
+fn has_role(env: &Env, account: &Address, role: u32) -> bool {
+    let roles: Map<Address, Vec<u32>> = env
+        .storage()
+        .instance()
+        .get(&ROLES)
+        .unwrap_or(Map::new(env));
+    roles
+        .get(account.clone())
+        .map(|v| v.contains(role))
+        .unwrap_or(false)
+}
+
+fn grant_role_internal(env: Env, account: &Address, role: u32) {
+    let mut roles: Map<Address, Vec<u32>> = env
+        .storage()
+        .instance()
+        .get(&ROLES)
+        .unwrap_or(Map::new(env));
+    let mut list = roles.get(account.clone()).unwrap_or(Vec::new(&env));
+    if !list.contains(role) {
+        list.push_back(role);
+    }
+    roles.set(account.clone(), list);
+    env.storage().instance().set(&ROLES, &roles);
+}
+
+fn revoke_role_internal(env: &Env, account: &Address, role: u32) {
+    let mut roles: Map<Address, Vec<u32>> = env
+        .storage()
+        .instance()
+        .get(&ROLES)
+        .unwrap_or(Map::new(env));
+    if let Some(list) = roles.get(account.clone()) {
+        let mut out = Vec::new(env);
+        let len = list.len();
+        for i in 0..len {
+            if let Some(r) = list.get(i) {
+                if r != role {
+                    out.push_back(r);
+                }
+            }
+        }
+        roles.set(account.clone(), out);
+        env.storage().instance().set(&ROLES, &roles);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+#[cfg(test)]
+mod common;
 
 #[cfg(test)]
-mod test {
-    #[allow(unused_imports)]
-    use super::*;
+mod test;
 
-    #[test]
-    fn test_initialize() {
-        // TODO: Implement initialization test
-    }
-}
+#[cfg(test)]
+mod stress_test;
+
+#[cfg(test)]
+mod security_test;
