@@ -607,6 +607,16 @@ pub fn get_version(env: Env) -> u32
 
 ---
 
+## 🌐 Multi-Language Documentation
+
+Core documentation is available in multiple languages for international developers:
+
+- [English](docs/i18n/en/USER_GUIDE.md) · [Español](docs/i18n/es/USER_GUIDE.md) · [中文](docs/i18n/zh/USER_GUIDE.md) · [日本語](docs/i18n/ja/USER_GUIDE.md)
+
+Each language includes a **User Guide**, an **Integration Guide**, and an **API Reference**. English is the source of truth; translations are kept in sync in [`docs/i18n/`](docs/i18n/README.md).
+
+---
+
 ## 📞 Support & Resources
 
 ### Documentation
@@ -617,6 +627,8 @@ pub fn get_version(env: Env) -> u32
 - [OFAC Compliance](./OFAC_COMPLIANCE.md)
 - [Interest Distribution](./INTEREST_DISTRIBUTION.md)
 - [Migration Framework](./MIGRATION_FRAMEWORK.md)
+- [Contract Migration Guide (V1 → V2)](./docs/MIGRATION_GUIDE.md)
+- [Migration Scripts](./scripts/migrate/README.md)
 
 ### Community
 - GitHub Issues: Bug reports and feature requests
