@@ -42,6 +42,9 @@
 
 #[cfg(test)]
 mod formal_verification {
+    extern crate std;
+    use std::prelude::v1::*;
+
     use crate::formal_spec::*;
 
     // ─────────────────────────────────────────────────────────────────────────

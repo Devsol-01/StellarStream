@@ -19,6 +19,13 @@
 
 #![allow(dead_code)]
 
+// This spec module is only compiled for tests / the `formal-verification` feature
+// and mirrors on-chain types using the std `Vec` type, so it needs std linked in
+// even though the contract crate is `#![no_std]`.
+extern crate std;
+
+use std::vec::Vec;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Domain types (mirror the on-chain types without soroban_sdk dependency)
 // ─────────────────────────────────────────────────────────────────────────────
