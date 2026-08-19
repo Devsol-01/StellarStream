@@ -1,7 +1,7 @@
 #![no_std]
 
 //! StellarStream - Real-time asset streaming on Stellar
-//! 
+//!
 //! This is the genesis contract (V1) for the StellarStream protocol.
 //! Contributors: Implement the core streaming functionality here.
 //!
@@ -13,6 +13,11 @@
 //!
 //! See the project README for detailed specifications.
 
+pub mod math;
+
+#[cfg(test)]
+mod bench_test;
+
 use soroban_sdk::{contract, contractimpl, Env};
 
 #[contract]
@@ -21,7 +26,7 @@ pub struct StellarStreamContract;
 #[contractimpl]
 impl StellarStreamContract {
     /// Initialize the contract with an admin address
-    pub fn initialize(env: Env) {
+    pub fn initialize(_env: Env) {
         // TODO: Implement contract initialization
         // - Set admin address
         // - Initialize storage
@@ -31,6 +36,7 @@ impl StellarStreamContract {
 
 #[cfg(test)]
 mod test {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]
