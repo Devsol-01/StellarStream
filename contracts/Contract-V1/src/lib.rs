@@ -68,7 +68,7 @@ mod voting_test;
 mod ttl_stress_test;
 
 use errors::Error;
-use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Vec};
+use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Map, Vec};
 use storage::{PROPOSAL_COUNT, RECEIPT, RESTRICTED_ADDRESSES, STREAM_COUNT};
 use types::{
     ContributorRequest, CurveType, DataKey, Milestone, ProposalApprovedEvent, ProposalCreatedEvent,
@@ -468,6 +468,8 @@ impl StellarStreamContract {
                 .set(&DataKey::SoulboundStreams, &soulbound_streams);
         }
 
+        Self::update_token_tvl(&env, token.clone(), total_amount);
+
         env.events().publish(
             (symbol_short!("create"), sender.clone()),
             StreamCreatedEvent {
@@ -853,6 +855,8 @@ impl StellarStreamContract {
         stream.end_time = new_end_time;
         env.storage().instance().set(&key, &stream);
 
+        Self::update_token_tvl(&env, stream.token.clone(), amount);
+
         env.events().publish(
             (symbol_short!("topup"), stream_id),
             types::StreamToppedUpEvent {
@@ -983,7 +987,14 @@ impl StellarStreamContract {
         }
 
         stream.withdrawn_amount += to_withdraw;
+
+        if stream.withdrawn_amount >= stream.total_amount {
+            stream.state = StreamState::Closed;
+        }
+
         env.storage().instance().set(&key, &stream);
+
+        Self::update_token_tvl(&env, stream.token.clone(), -to_withdraw);
 
         let token_client = token::Client::new(&env, &stream.token);
         token_client.transfer(
@@ -1017,9 +1028,13 @@ impl StellarStreamContract {
         let to_receiver = unlocked - stream.withdrawn_amount;
         let to_sender = stream.total_amount - unlocked;
 
+        let remaining = stream.total_amount - stream.withdrawn_amount;
+
         stream.state = StreamState::Closed;
         stream.withdrawn_amount = unlocked;
         env.storage().instance().set(&key, &stream);
+
+        Self::update_token_tvl(&env, stream.token.clone(), -remaining);
 
         let token_client = token::Client::new(&env, &stream.token);
         if to_receiver > 0 {
@@ -1060,6 +1075,8 @@ impl StellarStreamContract {
         stream.state = StreamState::Closed;
         stream.withdrawn_amount = stream.total_amount;
         env.storage().instance().set(&key, &stream);
+
+        Self::update_token_tvl(&env, stream.token.clone(), -remaining);
 
         if remaining > 0 {
             let token_client = token::Client::new(&env, &stream.token);
@@ -1120,6 +1137,48 @@ impl StellarStreamContract {
                 .unwrap_or((stream.total_amount * effective_elapsed) / duration)
             }
         }
+    }
+
+    fn update_token_tvl(env: &Env, token: Address, delta: i128) {
+        let key = (storage::TOKEN_TVL, token);
+        let mut tvl: i128 = env.storage().instance().get(&key).unwrap_or(0);
+        tvl += delta;
+        env.storage().instance().set(&key, &tvl);
+    }
+
+    /// Query the total value locked for a specific token across all active streams.
+    ///
+    /// TVL is calculated as the sum of remaining locked amounts (total_amount - withdrawn_amount)
+    /// for every non-closed stream denominated in the given token.
+    pub fn get_token_tvl(env: Env, token: Address) -> i128 {
+        env.storage()
+            .instance()
+            .get(&(storage::TOKEN_TVL, token))
+            .unwrap_or(0)
+    }
+
+    /// Query the total value locked for all tokens across all active streams.
+    ///
+    /// Returns a map where each key is a token address with a non-zero TVL and the value is the
+    /// total locked amount for that token. Only non-closed streams are counted.
+    pub fn get_all_tokens_tvl(env: Env) -> Map<Address, i128> {
+        let stream_count: u64 = env.storage().instance().get(&STREAM_COUNT).unwrap_or(0);
+        let mut tvl_map = Map::new(&env);
+
+        for stream_id in 0..stream_count {
+            let key = (STREAM_COUNT, stream_id);
+            if let Some(stream) = env.storage().instance().get::<_, Stream>(&key) {
+                if stream.state != StreamState::Closed {
+                    let remaining = stream.total_amount - stream.withdrawn_amount;
+                    if remaining > 0 {
+                        let current = tvl_map.get(stream.token.clone()).unwrap_or(0);
+                        tvl_map.set(stream.token.clone(), current + remaining);
+                    }
+                }
+            }
+        }
+
+        tvl_map
     }
 
     // --- CONTRIBUTOR PULL-REQUEST PAYMENTS ---

@@ -2,7 +2,7 @@
 
 use super::*;
 use soroban_sdk::testutils::{Address as _, Ledger as _};
-use soroban_sdk::{token, Address, Env};
+use soroban_sdk::{token, Address, Env, CurveType};
 
 #[allow(dead_code)]
 struct TestContext {
@@ -55,9 +55,8 @@ fn test_full_stream_cycle() {
         &start_time,
         &cliff_time,
         &end_time,
-        &2,
-        &None,
-        &None,
+        &CurveType::Linear,
+        &false,
     );
 
     // v22 Change: ledger().with_mut() -> ledger().set()
@@ -96,9 +95,8 @@ fn test_unauthorized_withdrawal() {
         &0,
         &50,
         &100,
-        &2,
-           &None,
-           &None,
+        &CurveType::Linear,
+        &false,
     );
 
     ctx.client.withdraw(&stream_id, &thief);
@@ -120,9 +118,8 @@ fn test_cancellation_split() {
         &0,
         &100,
         &1000,
-        &2,
-           &None,
-           &None,
+        &CurveType::Linear,
+        &false,
     );
 
     // Jump to 25% (250 seconds in)
@@ -165,9 +162,8 @@ fn test_protocol_fee() {
         &0,
         &100,
         &1000,
-        &2,
-        &None,
-        &None,
+        &CurveType::Linear,
+        &false,
     );
 
     assert_eq!(stream_id, 1);
@@ -193,9 +189,8 @@ fn test_transfer_receiver() {
         &0,
         &100,
         &1000,
-        &2,
-           &None,
-           &None,
+        &CurveType::Linear,
+        &false,
     );
 
     ctx.client.transfer_receiver(&stream_id, &new_receiver);
@@ -235,9 +230,8 @@ fn test_old_receiver_cannot_withdraw_after_transfer() {
         &0,
         &100,
         &1000,
-        &2,
-           &None,
-           &None,
+        &CurveType::Linear,
+        &false,
     );
 
     ctx.client.transfer_receiver(&stream_id, &new_receiver);
@@ -332,9 +326,8 @@ fn test_pause_blocks_create_stream() {
         &0,
         &100,
         &1000,
-        &2,
-           &None,
-           &None,
+        &CurveType::Linear,
+        &false,
     );
 }
 
@@ -356,9 +349,8 @@ fn test_pause_blocks_withdraw() {
         &0,
         &100,
         &1000,
-        &2,
-           &None,
-           &None,
+        &CurveType::Linear,
+        &false,
     );
 
     ctx.client.set_pause(&admin, &true);
@@ -417,9 +409,8 @@ fn test_cliff_blocks_withdrawal() {
         &0,
         &500,
         &1000,
-        &2,
-           &None,
-           &None,
+        &CurveType::Linear,
+        &false,
     );
 
     ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
@@ -451,9 +442,8 @@ fn test_cliff_unlocks_at_cliff_time() {
         &0,
         &500,
         &1000,
-        &2,
-           &None,
-           &None,
+        &CurveType::Linear,
+        &false,
     );
 
     ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
@@ -490,9 +480,8 @@ fn test_unpause_allows_operations() {
         &0,
         &100,
         &1000,
-        &2,
-        &None,
-        &None,
+        &CurveType::Linear,
+        &false,
     );
 
     ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
@@ -527,8 +516,265 @@ fn test_invalid_cliff_time() {
         &100,
         &50,
         &200,
-        &2,
-           &None,
-           &None,
+        &CurveType::Linear,
+        &false,
     );
+}
+
+#[test]
+fn test_empty_tvl() {
+    let ctx = setup_test();
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 0);
+}
+
+#[test]
+fn test_single_token_tvl() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+
+    ctx.token.mint(&sender, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &CurveType::Linear,
+        &false,
+    );
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 1000);
+}
+
+#[test]
+fn test_multiple_tokens_tvl() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+    let token2 = Address::generate(&ctx.env);
+    let token2_client = token::StellarAssetClient::new(&ctx.env, &token2);
+
+    let token2_admin = Address::generate(&ctx.env);
+    let token2_id = ctx.env.register_stellar_asset_contract_v2(token2_admin);
+    let token2_id_addr = token2_id.address();
+
+    ctx.token.mint(&sender, &1000);
+    token2_client.mint(&sender, &500);
+
+    let stream_id1 = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &CurveType::Linear,
+        &false,
+    );
+
+    let stream_id2 = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &token2_id_addr,
+        &500,
+        &0,
+        &100,
+        &1000,
+        &CurveType::Linear,
+        &false,
+    );
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 1000);
+    assert_eq!(ctx.client.get_token_tvl(&token2_id_addr), 500);
+
+    let all_tvl = ctx.client.get_all_tokens_tvl();
+    assert_eq!(all_tvl.get(ctx.token_id.clone()), Some(1000));
+    assert_eq!(all_tvl.get(token2_id_addr.clone()), Some(500));
+}
+
+#[test]
+fn test_tvl_updates_on_create() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 0);
+
+    ctx.token.mint(&sender, &1000);
+    ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &CurveType::Linear,
+        &false,
+    );
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 1000);
+}
+
+#[test]
+fn test_tvl_updates_on_cancel() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+
+    ctx.token.mint(&sender, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &CurveType::Linear,
+        &false,
+    );
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 1000);
+
+    ctx.client.cancel_stream(&stream_id);
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 0);
+}
+
+#[test]
+fn test_tvl_updates_on_completion() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+
+    ctx.token.mint(&sender, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &CurveType::Linear,
+        &false,
+    );
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 1000);
+
+    ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
+        timestamp: 1000,
+        protocol_version: 22,
+        sequence_number: 1,
+        network_id: [0u8; 32],
+        base_reserve: 0,
+        min_temp_entry_ttl: 0,
+        min_persistent_entry_ttl: 0,
+        max_entry_ttl: 1000000,
+    });
+
+    ctx.client.withdraw(&stream_id, &receiver);
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 0);
+}
+
+#[test]
+fn test_withdrawal_does_not_affect_other_token_tvl() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+    let token2 = Address::generate(&ctx.env);
+    let token2_client = token::StellarAssetClient::new(&ctx.env, &token2);
+
+    let token2_admin = Address::generate(&ctx.env);
+    let token2_id = ctx.env.register_stellar_asset_contract_v2(token2_admin);
+    let token2_id_addr = token2_id.address();
+
+    ctx.token.mint(&sender, &1000);
+    token2_client.mint(&sender, &500);
+
+    let stream_id1 = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &CurveType::Linear,
+        &false,
+    );
+
+    let stream_id2 = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &token2_id_addr,
+        &500,
+        &0,
+        &100,
+        &1000,
+        &CurveType::Linear,
+        &false,
+    );
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 1000);
+    assert_eq!(ctx.client.get_token_tvl(&token2_id_addr), 500);
+
+    ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
+        timestamp: 500,
+        protocol_version: 22,
+        sequence_number: 1,
+        network_id: [0u8; 32],
+        base_reserve: 0,
+        min_temp_entry_ttl: 0,
+        min_persistent_entry_ttl: 0,
+        max_entry_ttl: 1000000,
+    });
+
+    ctx.client.withdraw(&stream_id1, &receiver);
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 500);
+    assert_eq!(ctx.client.get_token_tvl(&token2_id_addr), 500);
+}
+
+#[test]
+fn test_withdrawal_decreases_tvl() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+
+    ctx.token.mint(&sender, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &CurveType::Linear,
+        &false,
+    );
+
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 1000);
+
+    ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
+        timestamp: 500,
+        protocol_version: 22,
+        sequence_number: 1,
+        network_id: [0u8; 32],
+        base_reserve: 0,
+        min_temp_entry_ttl: 0,
+        min_persistent_entry_ttl: 0,
+        max_entry_ttl: 1000000,
+    });
+
+    let withdrawn = ctx.client.withdraw(&stream_id, &receiver);
+    assert_eq!(withdrawn, 500);
+    assert_eq!(ctx.client.get_token_tvl(&ctx.token_id), 500);
 }
