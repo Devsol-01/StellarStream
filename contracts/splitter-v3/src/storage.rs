@@ -6,17 +6,17 @@ pub enum DataKey {
     Admin,
     QuorumAdmins,
     NextProposalId,
-    Token,
-    FeeBps,
-    Treasury,
-    StrictMode,
+    // #1484: consolidated read-mostly protocol configuration (token, fee_bps,
+    // treasury, strict_mode, contract state, whitelist mode, identity
+    // validator) stored as a single instance entry to cut down storage reads
+    // on the hot split paths.
+    Config,
     VerifiedUsers(Address),
     Proposal(u64),
     NextSplitId,
     ScheduledSplit(u64),
     ClaimableBalance(Address, Address),
     CouncilKeys,
-    ContractState,
     AffiliateAddress,
     AffiliateBps,
     PendingWithdrawal(Address),
@@ -24,16 +24,15 @@ pub enum DataKey {
     SplitFundsNextIndex,
     // #924: migration version to prevent re-running migration logic
     MigrationVersion,
-    // #927: whitelist map and flag
+    // #927: whitelist map (the whitelist-only flag moved into Config)
     Whitelisted(Address),
-    WhitelistOnly,
-    // #918: external identity validator contract address
-    IdentityValidator,
     // #911: protocol-level version constant
     ProtocolVersion,
     // #911: protocol fee wallet (alias for Treasury used in init)
     FeeWallet,
-    // #913: reentrancy guard — set to true while split_funds is executing
+    // #913: reentrancy guard — stored in *temporary* storage (see #1484):
+    // set to true while split_funds is executing so ephemeral lock state
+    // doesn't consume an instance-storage entry.
     Locked,
     // #916: multi-sig admin change proposals
     AdminProposal(u64),
