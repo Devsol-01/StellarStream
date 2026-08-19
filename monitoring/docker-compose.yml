@@ -1,0 +1,37 @@
+services:
+  stellarstream-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stellarstream-monitoring
+    restart: unless-stopped
+    ports:
+      - "3456:3456"
+    environment:
+      - STELLAR_NETWORK_URL=${STELLAR_NETWORK_URL:-https://soroban-testnet.stellar.org}
+      - STELLAR_PASSPHRASE=${STELLAR_PASSPHRASE:-Test SDF Network ; September 2015}
+      - CONTRACT_ID_SPLITTER=${CONTRACT_ID_SPLITTER:-}
+      - CONTRACT_ID_STREAM_V1=${CONTRACT_ID_STREAM_V1:-}
+      - CONTRACT_ID_STREAM_V2=${CONTRACT_ID_STREAM_V2:-}
+      - PORT=3456
+      - DATABASE_URL=file:/app/data/monitoring.db
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - REFRESH_INTERVAL_SECONDS=${REFRESH_INTERVAL_SECONDS:-5}
+      - ALERT_CHECK_INTERVAL_SECONDS=${ALERT_CHECK_INTERVAL_SECONDS:-60}
+    volumes:
+      - stellarstream-data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3456/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  stellarstream-data:
+    driver: local
