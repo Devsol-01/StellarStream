@@ -280,6 +280,65 @@ impl StellarStreamContract {
         Ok(withdrawable_amount(&env, &stream))
     }
 
+    pub fn get_time_remaining_seconds(env: Env, stream_id: u64) -> Result<u64, Error> {
+        let stream = get_stream(&env, stream_id)?;
+
+        if stream.state == STATE_CLOSED {
+            return Ok(0);
+        }
+
+        let current_time = env.ledger().timestamp();
+        let mut effective_time = current_time;
+
+        if stream.state == STATE_PAUSED {
+            effective_time = stream.last_paused_at;
+        }
+
+        let adjusted_end = stream.end_time + stream.paused_duration;
+
+        if effective_time >= adjusted_end {
+            Ok(0)
+        } else {
+            Ok(adjusted_end - effective_time)
+        }
+    }
+
+    pub fn get_time_remaining_days(env: Env, stream_id: u64) -> Result<u64, Error> {
+        let seconds = Self::get_time_remaining_seconds(env.clone(), stream_id)?;
+        Ok(seconds / 86400)
+    }
+
+    pub fn get_completion_percentage(env: Env, stream_id: u64) -> Result<u32, Error> {
+        let stream = get_stream(&env, stream_id)?;
+
+        let current_time = env.ledger().timestamp();
+        let mut effective_time = current_time;
+
+        if stream.state == STATE_PAUSED {
+            effective_time = stream.last_paused_at;
+        }
+
+        let adjusted_end = stream.end_time + stream.paused_duration;
+
+        if effective_time >= adjusted_end || stream.state == STATE_CLOSED {
+            return Ok(10000);
+        }
+
+        if effective_time <= stream.start_time {
+            return Ok(0);
+        }
+
+        let elapsed = effective_time - stream.start_time;
+        let total_duration = adjusted_end - stream.start_time;
+
+        if total_duration == 0 {
+            return Ok(10000);
+        }
+
+        let percentage = (elapsed as u128 * 10000) / (total_duration as u128);
+        Ok(percentage as u32)
+    }
+
     /// Return the list of stream ids associated with a user (as sender or receiver).
     pub fn get_user_streams(env: Env, user: Address) -> Vec<u64> {
         get_user_streams(&env, &user)
