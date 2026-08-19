@@ -14,3 +14,5 @@ pub const REQUEST_COUNT: Symbol = symbol_short!("REQ_CNT");
 pub const UPGRADE_PROPOSAL_COUNT: Symbol = symbol_short!("UPG_CNT");
 /// Upgrade history key
 pub const UPGRADE_HISTORY: Symbol = symbol_short!("UPG_HIST");
+/// Per-token TVL tracking key prefix
+pub const TOKEN_TVL: Symbol = symbol_short!("TOKEN_TVL");
