@@ -627,6 +627,8 @@ Each language includes a **User Guide**, an **Integration Guide**, and an **API 
 - [OFAC Compliance](./OFAC_COMPLIANCE.md)
 - [Interest Distribution](./INTEREST_DISTRIBUTION.md)
 - [Migration Framework](./MIGRATION_FRAMEWORK.md)
+- [Contract Migration Guide (V1 → V2)](./docs/MIGRATION_GUIDE.md)
+- [Migration Scripts](./scripts/migrate/README.md)
 
 ### Community
 - GitHub Issues: Bug reports and feature requests
