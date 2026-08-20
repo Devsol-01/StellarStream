@@ -400,7 +400,47 @@ impl StellarStreamContract {
     }
 
     /// Return the next stream id that will be allocated (for testing/inspection).
-    pub fn next_stream_id(env: Env) -> u64 {
+    
+    /// Withdraw from multiple streams atomically. All-or-nothing semantics. (issue #1472)
+    pub fn batch_withdraw(
+        env: Env,
+        stream_ids: Vec<u64>,
+        receiver: Address,
+    ) -> Result<Vec<i128>, Error> {
+        receiver.require_auth();
+        if stream_ids.len() > 20 { return Err(Error::BatchSizeExceeded); }
+        if stream_ids.is_empty() { return Err(Error::InvalidAmount); }
+
+        let mut amounts: Vec<i128> = Vec::new(&env);
+        let mut total: i128 = 0;
+        for i in 0..stream_ids.len() {
+            let sid = stream_ids.get(i).unwrap();
+            let streams = get_streams(&env);
+            let stream = streams.get(sid).ok_or(Error::StreamNotFound)?;
+            if stream.receiver != receiver { return Err(Error::Unauthorized); }
+            if stream.state == STATE_CLOSED { return Err(Error::AlreadyCancelled); }
+            if stream.state == STATE_PAUSED { return Err(Error::StreamPaused); }
+            let unlocked = unlocked_amount(&env, &stream);
+            let w = unlocked - stream.withdrawn_amount;
+            if w > 0 { amounts.push_back(w); total += w; } else { amounts.push_back(0); }
+        }
+        if total <= 0 { return Err(Error::InsufficientBalance); }
+
+        for i in 0..stream_ids.len() {
+            let amt = amounts.get(i).unwrap();
+            if amt > 0 {
+                let sid = stream_ids.get(i).unwrap();
+                let mut streams = get_streams(&env);
+                let mut stream = streams.get(sid).unwrap();
+                stream.withdrawn_amount += amt;
+                streams.set(sid, stream.clone());
+                env.storage().persistent().set(&STREAMS, &streams);
+                TokenClient::new(&env, &stream.token).transfer(&stream.sender, &receiver, &amt);
+            }
+        }
+        Ok(amounts)
+    }
+pub fn next_stream_id(env: Env) -> u64 {
         env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1)
     }
 }
