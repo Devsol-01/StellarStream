@@ -21,7 +21,7 @@ mod bench_test;
 
 use soroban_sdk::{
     contract, contractclient, contracterror, contractimpl, contracttype, Address, Env, Map,
-    Symbol, Vec, symbol_short, panic_with_error,
+    Symbol, Vec, symbol_short,
 };
 
 // ---------------------------------------------------------------------------
@@ -35,6 +35,8 @@ const RESTRICT: Symbol = symbol_short!("RESTRICT");
 const LOCK: Symbol = symbol_short!("LOCK");
 const STREAMS: Symbol = symbol_short!("STREAMS");
 const USTREAMS: Symbol = symbol_short!("USTREAMS");
+const PROPOSALS: Symbol = symbol_short!("PROPOSALS");
+const NEXTPROPOSAL: Symbol = symbol_short!("NEXTPROP");
 
 // Stream state
 pub const STATE_ACTIVE: u32 = 0;
@@ -78,6 +80,11 @@ pub enum Error {
     AddressRestricted = 22,
     StreamNotPaused = 26,
     Overflow = 27,
+    ProposalNotFound = 28,
+    ProposalExpired = 29,
+    AlreadyApproved = 30,
+    ProposalAlreadyExecuted = 31,
+    InvalidApprovalThreshold = 32,
 }
 
 // ---------------------------------------------------------------------------
@@ -99,6 +106,57 @@ pub struct Stream {
     pub is_soulbound: bool,
     pub paused_duration: u64,
     pub last_paused_at: u64,
+    pub stream_metadata: Option<StreamMetadata>,
+}
+
+Stream metadata for categorization (issue #1466)
+// ---------------------------------------------------------------------------
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamMetadata {
+    pub label: String,
+    pub tags: Vec<String>,
+    pub external_ref: Option<String>,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct StreamMetadataUpdatedEvent {
+    pub stream_id: u64,
+    pub sender: Address,
+    pub timestamp: u64,
+}
+
+// // Minimal token interface used by `withdraw`.
+/// A pending multi-signature stream proposal.
+///
+/// A proposal holds the parameters of a stream that should be created once a
+/// threshold of distinct addresses has approved it. The stream is created
+/// automatically (without a separate execute call) the moment the number of
+/// approvers reaches `required_approvals`.
+#[contracttype]
+#[derive(Clone)]
+pub struct StreamProposal {
+    /// Treasury / source account that will fund the stream.
+    pub sender: Address,
+    /// Recipient of the stream.
+    pub receiver: Address,
+    /// Token contract address.
+    pub token: Address,
+    /// Total stream amount.
+    pub total_amount: i128,
+    /// Stream start timestamp.
+    pub start_time: u64,
+    /// Stream end timestamp.
+    pub end_time: u64,
+    /// Addresses that have approved so far (each may approve only once).
+    pub approvers: Vec<Address>,
+    /// M-of-N threshold: number of distinct approvals required to execute.
+    pub required_approvals: u32,
+    /// Timestamp after which the proposal can no longer be approved.
+    pub deadline: u64,
+    /// Whether the proposal has been executed (stream already created).
+    pub executed: bool,
 }
 
 // Minimal token interface used by `withdraw`.
@@ -124,6 +182,7 @@ impl StellarStreamContract {
         env.storage().instance().set(&ADMIN, &admin);
         env.storage().instance().set(&PAUSED, &false);
         env.storage().instance().set(&NEXTID, &1u64);
+        env.storage().instance().set(&NEXTPROPOSAL, &1u64);
         grant_role_internal(env.clone(), &admin, ROLE_ADMIN);
         Ok(())
     }
@@ -141,14 +200,45 @@ impl StellarStreamContract {
         is_soulbound: bool,
     ) -> Result<u64, Error> {
         sender.require_auth();
+        create_stream_internal(
+            &env,
+            &sender,
+            &receiver,
+            &token,
+            total_amount,
+            start_time,
+            end_time,
+            curve_type,
+            is_soulbound,
+        )
+    }
+
+    /// Create a multi-signature proposal for a stream.
+    ///
+    /// The stream is not created immediately. Instead a proposal is stored
+    /// which becomes a live stream automatically once `required_approvals`
+    /// distinct addresses call [`approve_proposal`]. This lets a DAO treasury
+    /// or corporate wallet require multiple signatures before committing to a
+    /// payment stream.
+    ///
+    /// Returns the newly allocated proposal id.
+    pub fn create_proposal(
+        env: Env,
+        sender: Address,
+        receiver: Address,
+        token: Address,
+        total_amount: i128,
+        start_time: u64,
+        end_time: u64,
+        required_approvals: u32,
+        deadline: u64,
+    ) -> Result<u64, Error> {
+        sender.require_auth();
         if is_contract_paused(&env) {
             return Err(Error::ContractPaused);
         }
         if env.storage().instance().get::<_, Address>(&ADMIN).is_none() {
             return Err(Error::Unauthorized);
-        }
-        if curve_type != CURVE_LINEAR && curve_type != CURVE_EXP {
-            return Err(Error::InvalidCurve);
         }
         if total_amount <= 0 {
             return Err(Error::InvalidAmount);
@@ -156,16 +246,25 @@ impl StellarStreamContract {
         if start_time >= end_time {
             return Err(Error::InvalidTimeRange);
         }
+        if required_approvals == 0 {
+            return Err(Error::InvalidApprovalThreshold);
+        }
+        if deadline <= env.ledger().timestamp() {
+            return Err(Error::ProposalExpired);
+        }
         if is_restricted(&env, &sender) || is_restricted(&env, &receiver) {
             return Err(Error::AddressRestricted);
         }
 
-        let mut next = env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1);
+        let mut next = env
+            .storage()
+            .instance()
+            .get::<_, u64>(&NEXTPROPOSAL)
+            .unwrap_or(1);
         let id = next;
         next = next.checked_add(1).ok_or(Error::Overflow)?;
 
-        let stream = Stream {
-            id,
+        let proposal = StreamProposal {
             sender: sender.clone(),
             receiver: receiver.clone(),
             token,
@@ -178,17 +277,80 @@ impl StellarStreamContract {
             is_soulbound,
             paused_duration: 0,
             last_paused_at: 0,
+            stream_metadata: None,
+            approvers: Vec::new(&env),
+            required_approvals,
+            deadline,
+            executed: false,
         };
 
-        let mut streams = get_streams(&env);
-        streams.set(id, stream);
-        env.storage().persistent().set(&STREAMS, &streams);
+        let mut proposals = get_proposals(&env);
+        proposals.set(id, proposal);
+        env.storage().persistent().set(&PROPOSALS, &proposals);
+        env.storage().instance().set(&NEXTPROPOSAL, &next);
 
-        add_user_stream(&env, &sender, id);
-        add_user_stream(&env, &receiver, id);
-
-        env.storage().instance().set(&NEXTID, &next);
+        env.events()
+            .publish((symbol_short!("proposal"), sender.clone()), id);
         Ok(id)
+    }
+
+    /// Approve a pending proposal.
+    ///
+    /// Each address may approve a given proposal at most once. When the number
+    /// of distinct approvers reaches `required_approvals`, the proposal is
+    /// marked executed and the underlying stream is created immediately.
+    pub fn approve_proposal(
+        env: Env,
+        proposal_id: u64,
+        approver: Address,
+    ) -> Result<(), Error> {
+        approver.require_auth();
+        if is_contract_paused(&env) {
+            return Err(Error::ContractPaused);
+        }
+
+        let mut proposal = get_proposal(&env, proposal_id)?;
+
+        if proposal.executed {
+            return Err(Error::ProposalAlreadyExecuted);
+        }
+        if env.ledger().timestamp() > proposal.deadline {
+            return Err(Error::ProposalExpired);
+        }
+        if proposal.approvers.contains(approver.clone()) {
+            return Err(Error::AlreadyApproved);
+        }
+
+        proposal.approvers.push_back(approver.clone());
+        env.events()
+            .publish((symbol_short!("approval"), approver.clone()), proposal_id);
+
+        if proposal.approvers.len() >= proposal.required_approvals {
+            let stream_id = create_stream_internal(
+                &env,
+                &proposal.sender,
+                &proposal.receiver,
+                &proposal.token,
+                proposal.total_amount,
+                proposal.start_time,
+                proposal.end_time,
+                CURVE_LINEAR,
+                false,
+            )?;
+            proposal.executed = true;
+            save_proposal(&env, proposal_id, &proposal);
+            env.events()
+                .publish((symbol_short!("executed"), proposal.sender.clone()), stream_id);
+        } else {
+            save_proposal(&env, proposal_id, &proposal);
+        }
+
+        Ok(())
+    }
+
+    /// Query a proposal by id.
+    pub fn get_proposal(env: Env, proposal_id: u64) -> Result<StreamProposal, Error> {
+        get_proposal(&env, proposal_id)
     }
 
     /// Withdraw the currently unlocked amount to the receiver.
@@ -439,6 +601,35 @@ impl StellarStreamContract {
             }
         }
         Ok(amounts)
+    /// Update the metadata for a stream. Only the sender may update metadata.
+    pub fn update_stream_metadata(
+        env: Env,
+        stream_id: u64,
+        sender: Address,
+        label: String,
+        tags: Vec<String>,
+        external_ref: Option<String>,
+    ) -> Result<(), Error> {
+        sender.require_auth();
+        let mut streams = get_streams(&env);
+        let mut stream = streams.get(stream_id).ok_or(Error::StreamNotFound)?;
+        if stream.sender != sender { return Err(Error::Unauthorized); }
+        if stream.state == STATE_CLOSED { return Err(Error::StreamEnded); }
+        if label.len() > 64 { return Err(Error::MetadataLabelTooLong); }
+        if tags.len() > 5 { return Err(Error::TooManyTags); }
+        for i in 0..tags.len() {
+            if let Some(tag) = tags.get(i) {
+                if tag.len() > 32 { return Err(Error::TagTooLong); }
+            }
+        }
+        stream.stream_metadata = Some(StreamMetadata { label, tags, external_ref });
+        streams.set(stream_id, stream);
+        env.storage().persistent().set(&STREAMS, &streams);
+        env.events().publish(
+            (symbol_short!("meta_upd"), sender.clone()),
+            StreamMetadataUpdatedEvent { stream_id, sender, timestamp: env.ledger().timestamp() },
+        );
+        Ok(())
     }
 pub fn next_stream_id(env: Env) -> u64 {
         env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1)
@@ -555,6 +746,89 @@ fn save_stream(env: &Env, stream: &Stream) {
     env.storage().persistent().set(&STREAMS, &streams);
 }
 
+/// Shared stream-creation path used both by `create_stream` (single-signature)
+/// and by `approve_proposal` (multi-signature auto-execution). Does not require
+/// the sender's auth because proposal execution is authorized by the approvals.
+fn create_stream_internal(
+    env: &Env,
+    sender: &Address,
+    receiver: &Address,
+    token: &Address,
+    total_amount: i128,
+    start_time: u64,
+    end_time: u64,
+    curve_type: u32,
+    is_soulbound: bool,
+) -> Result<u64, Error> {
+    if is_contract_paused(env) {
+        return Err(Error::ContractPaused);
+    }
+    if env.storage().instance().get::<_, Address>(&ADMIN).is_none() {
+        return Err(Error::Unauthorized);
+    }
+    if curve_type != CURVE_LINEAR && curve_type != CURVE_EXP {
+        return Err(Error::InvalidCurve);
+    }
+    if total_amount <= 0 {
+        return Err(Error::InvalidAmount);
+    }
+    if start_time >= end_time {
+        return Err(Error::InvalidTimeRange);
+    }
+    if is_restricted(env, sender) || is_restricted(env, receiver) {
+        return Err(Error::AddressRestricted);
+    }
+
+    let mut next = env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1);
+    let id = next;
+    next = next.checked_add(1).ok_or(Error::Overflow)?;
+
+    let stream = Stream {
+        id,
+        sender: sender.clone(),
+        receiver: receiver.clone(),
+        token: token.clone(),
+        total_amount,
+        start_time,
+        end_time,
+        withdrawn_amount: 0,
+        state: STATE_ACTIVE,
+        curve_type,
+        is_soulbound,
+        paused_duration: 0,
+        last_paused_at: 0,
+    };
+
+    let mut streams = get_streams(env);
+    streams.set(id, stream);
+    env.storage().persistent().set(&STREAMS, &streams);
+
+    add_user_stream(env, sender, id);
+    add_user_stream(env, receiver, id);
+
+    env.storage().instance().set(&NEXTID, &next);
+    Ok(id)
+}
+
+fn get_proposals(env: &Env) -> Map<u64, StreamProposal> {
+    env.storage()
+        .persistent()
+        .get(&PROPOSALS)
+        .unwrap_or(Map::new(env))
+}
+
+fn get_proposal(env: &Env, proposal_id: u64) -> Result<StreamProposal, Error> {
+    get_proposals(env)
+        .get(proposal_id)
+        .ok_or(Error::ProposalNotFound)
+}
+
+fn save_proposal(env: &Env, proposal_id: u64, proposal: &StreamProposal) {
+    let mut proposals = get_proposals(env);
+    proposals.set(proposal_id, proposal.clone());
+    env.storage().persistent().set(&PROPOSALS, &proposals);
+}
+
 fn get_user_streams(env: &Env, user: &Address) -> Vec<u64> {
     env.storage()
         .persistent()
@@ -620,7 +894,7 @@ fn grant_role_internal(env: Env, account: &Address, role: u32) {
         .storage()
         .instance()
         .get(&ROLES)
-        .unwrap_or(Map::new(env));
+        .unwrap_or(Map::new(&env));
     let mut list = roles.get(account.clone()).unwrap_or(Vec::new(&env));
     if !list.contains(role) {
         list.push_back(role);

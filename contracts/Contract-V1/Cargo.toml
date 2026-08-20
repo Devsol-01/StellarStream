@@ -19,6 +19,10 @@ soroban-sdk = "22.0.10"
 
 [dev-dependencies]
 soroban-sdk = { version = "22.0.10", features = ["testutils"] }
+# soroban-env-host 22.1.x declares `ed25519-dalek >= 2.0.0` (unbounded), which
+# resolves to 3.0.0 and no longer compiles against the host's testutils. Pin the
+# 2.x line so `cargo test` keeps building.
+ed25519-dalek = ">=2.0.0, <3.0.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
