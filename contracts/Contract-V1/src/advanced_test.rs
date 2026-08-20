@@ -479,6 +479,99 @@ fn test_batch_stream_creation() {
 }
 
 #[test]
+fn test_batch_withdraw_same_token() {
+    let (env, client, _admin, sender, receiver, token) = setup();
+    env.ledger().with_mut(|li| li.timestamp = 100);
+
+    let mut requests = Vec::new(&env);
+    requests.push_back(StreamRequest {
+        receiver: receiver.clone(),
+        amount: 1000,
+        start_time: 100,
+        cliff_time: 100,
+        end_time: 200,
+        interest_strategy: 0,
+        vault_address: None,
+        metadata: None,
+    });
+    requests.push_back(StreamRequest {
+        receiver: receiver.clone(),
+        amount: 2000,
+        start_time: 100,
+        cliff_time: 100,
+        end_time: 200,
+        interest_strategy: 0,
+        vault_address: None,
+        metadata: None,
+    });
+    let ids = client.create_batch_streams(&sender, &token, &requests);
+
+    // Half-way through both streams' vesting window.
+    env.ledger().with_mut(|li| li.timestamp = 150);
+
+    let amounts = client.batch_withdraw(&receiver, &ids);
+    assert_eq!(amounts.get(0).unwrap(), 500);
+    assert_eq!(amounts.get(1).unwrap(), 1000);
+
+    let token_client = TokenClient::new(&env, &token);
+    assert_eq!(token_client.balance(&receiver), 1500);
+
+    assert_eq!(
+        client.get_stream(&ids.get(0).unwrap()).withdrawn_amount,
+        500
+    );
+    assert_eq!(
+        client.get_stream(&ids.get(1).unwrap()).withdrawn_amount,
+        1000
+    );
+}
+
+#[test]
+fn test_batch_withdraw_rejects_stream_not_owned_by_caller() {
+    let (env, client, _admin, sender, receiver, token) = setup();
+    env.ledger().with_mut(|li| li.timestamp = 100);
+
+    let owned_id = client.create_stream(
+        &sender,
+        &receiver,
+        &token,
+        &1000,
+        &100,
+        &100,
+        &200,
+        &CurveType::Linear,
+        &false,
+    );
+
+    let other_receiver = Address::generate(&env);
+    let other_id = client.create_stream(
+        &sender,
+        &other_receiver,
+        &token,
+        &1000,
+        &100,
+        &100,
+        &200,
+        &CurveType::Linear,
+        &false,
+    );
+
+    env.ledger().with_mut(|li| li.timestamp = 150);
+
+    let mut ids = Vec::new(&env);
+    ids.push_back(owned_id);
+    ids.push_back(other_id);
+
+    let result = client.try_batch_withdraw(&receiver, &ids);
+    assert_eq!(result, Err(Ok(Error::Unauthorized)));
+
+    // Fail-fast: the owned stream ahead of the bad one must not have been
+    // paid out either, since the whole batch was rejected.
+    assert_eq!(client.get_stream(&owned_id).withdrawn_amount, 0);
+    assert_eq!(TokenClient::new(&env, &token).balance(&receiver), 0);
+}
+
+#[test]
 fn test_stream_receipt_metadata_unlocked() {
     let (env, client, _admin, sender, receiver, token) = setup();
     env.ledger().with_mut(|li| li.timestamp = 100);
