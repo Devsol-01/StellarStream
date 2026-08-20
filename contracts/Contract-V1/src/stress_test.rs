@@ -7,6 +7,7 @@
 
 use super::*;
 use crate::common::*;
+use soroban_sdk::testutils::{Address as _, Ledger as _};
 
 /// Create `n` streams from `sender` to freshly generated receivers.
 fn create_many(env: &Env, contract: &Address, sender: &Address, token: &Address, n: u64) -> Vec<u64> {
