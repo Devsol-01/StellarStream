@@ -8,6 +8,7 @@
 
 use super::*;
 use crate::common::*;
+use soroban_sdk::testutils::{Address as _, Ledger as _};
 use soroban_sdk::{contract, contractimpl, symbol_short, Address};
 
 /// Malicious token that re-enters the stream contract's `withdraw` when its
@@ -49,7 +50,7 @@ fn make_stream(f: &Fixture) -> u64 {
 #[test]
 fn test_reentrancy_protection() {
     let f = setup();
-    let mt = f.env.register_contract(None, MaliciousToken);
+    let mt = f.env.register(MaliciousToken, ());
     let id = client(&f.env, &f.contract).create_stream(
         &f.sender,
         &f.receiver,
@@ -374,9 +375,9 @@ fn test_restricted_address_blocks_all_streams() {
     let f = setup();
     client(&f.env, &f.contract).restrict_address(&f.admin, &f.receiver);
     let r = Address::generate(&f.env);
-    assert!(client(&f.env, &f.contract)
-        .create_stream(&f.sender, &r, &f.token, &1_000i128, &0u64, &100u64, &CURVE_LINEAR, &false)
-        .is_ok());
+    let ok_id = client(&f.env, &f.contract)
+        .create_stream(&f.sender, &r, &f.token, &1_000i128, &0u64, &100u64, &CURVE_LINEAR, &false);
+    assert!(ok_id > 0);
     assert!(client(&f.env, &f.contract)
         .try_create_stream(&f.sender, &f.receiver, &f.token, &1_000i128, &0u64, &100u64, &CURVE_LINEAR, &false)
         .is_err());

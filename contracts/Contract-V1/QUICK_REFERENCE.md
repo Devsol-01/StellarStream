@@ -77,11 +77,11 @@ contract.approve_proposal(proposal_id, board_member_3);  // ✅ Executes
 |------|-------|-----|
 | 2 | InvalidTimeRange | Ensure start_time < end_time |
 | 3 | InvalidAmount | Use total_amount > 0 |
-| 8 | ProposalNotFound | Check proposal_id exists |
-| 9 | ProposalExpired | Create new proposal with later deadline |
-| 10 | AlreadyApproved | Each address can only approve once |
-| 11 | ProposalAlreadyExecuted | Proposal already created stream |
-| 12 | InvalidApprovalThreshold | Use required_approvals > 0 |
+| 28 | ProposalNotFound | Check proposal_id exists |
+| 29 | ProposalExpired | Create new proposal with later deadline |
+| 30 | AlreadyApproved | Each address can only approve once |
+| 31 | ProposalAlreadyExecuted | Proposal already created stream |
+| 32 | InvalidApprovalThreshold | Use required_approvals > 0 |
 
 ## Validation Checklist
 

@@ -2,6 +2,7 @@
 #![cfg(test)]
 
 use super::*;
+use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{contract, contractimpl, Address};
 
 /// No-op ledger token. Stream accounting is tracked inside the contract; the
@@ -37,8 +38,8 @@ pub fn setup() -> Fixture {
     let sender = Address::generate(&env);
     let receiver = Address::generate(&env);
     let pauser = Address::generate(&env);
-    let token = env.register_contract(None, MockToken);
-    let contract = env.register_contract(None, StellarStreamContract);
+    let token = env.register(MockToken, ());
+    let contract = env.register(StellarStreamContract, ());
 
     let client = StellarStreamContractClient::new(&env, &contract);
     client.initialize(&admin);
@@ -56,29 +57,6 @@ pub fn setup() -> Fixture {
 }
 
 /// Convenience client constructor.
-pub fn client(env: &Env, contract: &Address) -> StellarStreamContractClient {
+pub fn client(env: &Env, contract: &Address) -> StellarStreamContractClient<'static> {
     StellarStreamContractClient::new(env, contract)
-}
-
-/// Create a stream that is already partially vested by advancing the ledger.
-pub fn create_active_stream(
-    env: &Env,
-    contract: &Address,
-    sender: &Address,
-    receiver: &Address,
-    token: &Address,
-    total: i128,
-    curve: u32,
-) -> u64 {
-    let now = env.ledger().timestamp();
-    client(env, contract).create_stream(
-        sender,
-        receiver,
-        token,
-        &total,
-        &(now),
-        &(now + 1_000),
-        &curve,
-        &false,
-    )
 }
