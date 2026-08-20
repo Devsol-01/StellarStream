@@ -99,9 +99,28 @@ pub struct Stream {
     pub is_soulbound: bool,
     pub paused_duration: u64,
     pub last_paused_at: u64,
+    pub stream_metadata: Option<StreamMetadata>,
 }
 
-// Minimal token interface used by `withdraw`.
+Stream metadata for categorization (issue #1466)
+// ---------------------------------------------------------------------------
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamMetadata {
+    pub label: String,
+    pub tags: Vec<String>,
+    pub external_ref: Option<String>,
+}
+
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct StreamMetadataUpdatedEvent {
+    pub stream_id: u64,
+    pub sender: Address,
+    pub timestamp: u64,
+}
+
+// // Minimal token interface used by `withdraw`.
 #[contractclient(name = "TokenClient")]
 pub trait Token {
     fn transfer(env: Env, from: Address, to: Address, amount: i128);
@@ -178,6 +197,7 @@ impl StellarStreamContract {
             is_soulbound,
             paused_duration: 0,
             last_paused_at: 0,
+            stream_metadata: None,
         };
 
         let mut streams = get_streams(&env);
@@ -400,7 +420,38 @@ impl StellarStreamContract {
     }
 
     /// Return the next stream id that will be allocated (for testing/inspection).
-    pub fn next_stream_id(env: Env) -> u64 {
+    
+    /// Update the metadata for a stream. Only the sender may update metadata.
+    pub fn update_stream_metadata(
+        env: Env,
+        stream_id: u64,
+        sender: Address,
+        label: String,
+        tags: Vec<String>,
+        external_ref: Option<String>,
+    ) -> Result<(), Error> {
+        sender.require_auth();
+        let mut streams = get_streams(&env);
+        let mut stream = streams.get(stream_id).ok_or(Error::StreamNotFound)?;
+        if stream.sender != sender { return Err(Error::Unauthorized); }
+        if stream.state == STATE_CLOSED { return Err(Error::StreamEnded); }
+        if label.len() > 64 { return Err(Error::MetadataLabelTooLong); }
+        if tags.len() > 5 { return Err(Error::TooManyTags); }
+        for i in 0..tags.len() {
+            if let Some(tag) = tags.get(i) {
+                if tag.len() > 32 { return Err(Error::TagTooLong); }
+            }
+        }
+        stream.stream_metadata = Some(StreamMetadata { label, tags, external_ref });
+        streams.set(stream_id, stream);
+        env.storage().persistent().set(&STREAMS, &streams);
+        env.events().publish(
+            (symbol_short!("meta_upd"), sender.clone()),
+            StreamMetadataUpdatedEvent { stream_id, sender, timestamp: env.ledger().timestamp() },
+        );
+        Ok(())
+    }
+pub fn next_stream_id(env: Env) -> u64 {
         env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1)
     }
 }
