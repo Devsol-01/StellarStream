@@ -1,14 +1,14 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
 
-mod errors;
+pub mod errors;
 mod flash_loan;
-mod interest;
-mod math;
+pub mod interest;
+pub mod math;
 mod oracle;
 mod rbac;
 mod storage;
-mod types;
+pub mod types;
 mod upgrade;
 mod vault;
 mod voting;
@@ -80,11 +80,45 @@ use types::{
     StreamResumedEvent, StreamState,
 };
 
+/// The StellarStream token-streaming contract.
+///
+/// Implements linear/cliff/exponential vesting streams funded directly or via
+/// multi-sig [`StreamProposal`]s, contributor-initiated [`ContributorRequest`]s,
+/// role-based access control ([`Role`]), OFAC-style address restrictions, and
+/// optional lending-vault integration for idle principal.
 #[contract]
 pub struct StellarStreamContract;
 
 #[contractimpl]
 impl StellarStreamContract {
+    /// Creates a multi-signature proposal to fund a stream, requiring `required_approvals`
+    /// approvals (via [`approve_proposal`](StellarStreamContract::approve_proposal)) before the stream is
+    /// actually created and funded.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `sender` - Address that will fund the stream once the proposal is approved
+    /// * `receiver` - Address that will receive the resulting stream
+    /// * `token` - Token contract address to be streamed
+    /// * `total_amount` - Total tokens to stream; must be greater than zero
+    /// * `start_time` - Unix timestamp when the resulting stream's vesting begins
+    /// * `end_time` - Unix timestamp when the resulting stream's vesting completes; must
+    ///   be strictly after `start_time`
+    /// * `required_approvals` - Number of approvals required to execute the proposal;
+    ///   must be greater than zero
+    /// * `deadline` - Unix timestamp after which the proposal can no longer be approved
+    ///
+    /// # Returns
+    /// The newly created proposal's ID.
+    ///
+    /// # Errors
+    /// * [`Error::InvalidTimeRange`] - `start_time >= end_time`
+    /// * [`Error::InvalidAmount`] - `total_amount <= 0`
+    /// * [`Error::InvalidApprovalThreshold`] - `required_approvals == 0`
+    /// * [`Error::ProposalExpired`] - `deadline` is not in the future
+    ///
+    /// # Panics
+    /// Panics with [`Error::AddressRestricted`] if `receiver` is on the restricted list.
     pub fn create_proposal(
         env: Env,
         sender: Address,
@@ -156,6 +190,22 @@ impl StellarStreamContract {
         Ok(proposal_id)
     }
 
+    /// Approves a pending stream proposal; once enough approvals are collected, the
+    /// stream is automatically created and funded.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `proposal_id` - ID of the proposal to approve
+    /// * `approver` - Address casting the approval; must authenticate this call
+    ///
+    /// # Returns
+    /// `Ok(())` whether or not this approval was the one that triggered execution.
+    ///
+    /// # Errors
+    /// * [`Error::ProposalNotFound`] - No proposal exists for `proposal_id`
+    /// * [`Error::ProposalAlreadyExecuted`] - The proposal has already been executed
+    /// * [`Error::ProposalExpired`] - The current time is past the proposal's deadline
+    /// * [`Error::AlreadyApproved`] - `approver` has already approved this proposal
     pub fn approve_proposal(env: Env, proposal_id: u64, approver: Address) -> Result<(), Error> {
         approver.require_auth();
 
@@ -274,11 +324,53 @@ impl StellarStreamContract {
         Ok(stream_id)
     }
 
-    /// Create a new stream with optional soulbound locking
+    /// Creates and immediately funds a new token stream from `sender` to `receiver`.
     ///
-    /// # Parameters
-    /// - `is_soulbound`: Set to true to permanently bind this stream to the receiver's address.
-    ///   Cannot be changed after stream creation. Irreversible.
+    /// Transfers `total_amount` of `token` from `sender` to the contract, mints an
+    /// ownership receipt for `receiver`, and emits a [`StreamCreatedEvent`].
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `sender` - Address funding the stream; must authenticate this call
+    /// * `receiver` - Address that will receive the streamed tokens
+    /// * `token` - Token contract address (SAC-compatible)
+    /// * `total_amount` - Total tokens to stream; must be greater than zero
+    /// * `start_time` - Unix timestamp when streaming begins
+    /// * `cliff_time` - Unix timestamp before which nothing unlocks; must be between
+    ///   `start_time` and `end_time`
+    /// * `end_time` - Unix timestamp when streaming completes; must be strictly after
+    ///   `start_time`
+    /// * `curve_type` - Vesting curve to apply ([`CurveType::Linear`] or
+    ///   [`CurveType::Exponential`])
+    /// * `is_soulbound` - If `true`, permanently binds this stream's receipt to
+    ///   `receiver`'s address; the receipt can never be transferred afterward. This
+    ///   cannot be changed after creation.
+    ///
+    /// # Returns
+    /// The newly created stream's ID.
+    ///
+    /// # Errors
+    /// * [`Error::InvalidTimeRange`] - `start_time >= end_time`
+    /// * [`Error::InvalidAmount`] - `total_amount <= 0`
+    ///
+    /// # Panics
+    /// * Panics if `cliff_time` is not between `start_time` and `end_time`.
+    /// * Panics with [`Error::AddressRestricted`] if `receiver` is on the restricted list.
+    ///
+    /// # Examples
+    /// ```ignore
+    /// let stream_id = client.create_stream(
+    ///     &sender,
+    ///     &receiver,
+    ///     &token,
+    ///     &1_000_000,
+    ///     &start,
+    ///     &start, // no cliff
+    ///     &end,
+    ///     &CurveType::Linear,
+    ///     &false,
+    /// );
+    /// ```
     pub fn create_stream(
         env: Env,
         sender: Address,
@@ -313,15 +405,37 @@ impl StellarStreamContract {
         )
     }
 
-    /// Create a new stream with milestones and optional soulbound locking
+    /// Creates and funds a new stream with a milestone-based unlock schedule, and
+    /// optionally deposits its principal into a yield-bearing vault.
     ///
-    /// # Parameters
-    /// - `milestones`: Optional vesting milestones.
-    /// - `options`: Bundled optional configuration (curve type, soulbound flag,
-    ///   and optional yield-bearing vault).
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `sender` - Address funding the stream; must authenticate this call
+    /// * `receiver` - Address that will receive the streamed tokens
+    /// * `token` - Token contract address (SAC-compatible)
+    /// * `total_amount` - Total tokens to stream; must be greater than zero
+    /// * `start_time` - Unix timestamp when streaming begins
+    /// * `cliff_time` - Unix timestamp before which nothing unlocks; must be between
+    ///   `start_time` and `end_time`
+    /// * `end_time` - Unix timestamp when streaming completes; must be strictly after
+    ///   `start_time`
+    /// * `milestones` - Optional milestone unlock schedule
+    /// * `options` - Bundled optional configuration (curve type, soulbound flag, and
+    ///   optional yield-bearing vault address). Bundled into a single struct so this
+    ///   entry point stays within Soroban's maximum contract function parameter count.
     ///
-    /// `options` bundles the optional knobs together so this entry point stays
-    /// within Soroban's maximum contract function parameter count.
+    /// # Returns
+    /// The newly created stream's ID.
+    ///
+    /// # Errors
+    /// * [`Error::InvalidTimeRange`] - `start_time >= end_time`
+    /// * [`Error::InvalidAmount`] - `total_amount <= 0`
+    /// * [`Error::InvalidAmount`] - the vault deposit failed (when `options.vault_address`
+    ///   is set)
+    ///
+    /// # Panics
+    /// * Panics if `cliff_time` is not between `start_time` and `end_time`.
+    /// * Panics with [`Error::AddressRestricted`] if `receiver` is on the restricted list.
     pub fn create_stream_with_milestones(
         env: Env,
         sender: Address,
@@ -495,8 +609,21 @@ impl StellarStreamContract {
     /// Prevents exceeding the Stellar ledger's maximum transaction size.
     pub const MAX_RECIPIENTS: u32 = 120;
 
-    /// Create multiple streams in a single call.
+    /// Creates multiple linear streams in a single call, one per entry in `requests`.
     ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `sender` - Address funding all resulting streams; must authenticate this call
+    /// * `token` - Token contract address (SAC-compatible) used for every stream
+    /// * `requests` - Per-recipient stream parameters; at most [`StellarStreamContract::MAX_RECIPIENTS`]
+    ///
+    /// # Returns
+    /// The newly created stream IDs, in the same order as `requests`.
+    ///
+    /// # Errors
+    /// * [`Error::BatchSizeExceeded`] - `requests.len() > MAX_RECIPIENTS`
+    /// * Propagates any error from the underlying per-stream creation (e.g.
+    ///   [`Error::InvalidTimeRange`], [`Error::InvalidAmount`]).
     /// This is not a loop over [`Self::create_stream`]: everything that would
     /// otherwise be repeated per item is hoisted out of the loop so the
     /// marginal cost of each extra stream in the batch is just its own
@@ -649,6 +776,14 @@ impl StellarStreamContract {
         Ok(stream_ids)
     }
 
+    /// Initializes the contract, recording `admin` as the contract admin and granting
+    /// it all three RBAC roles ([`Role::SuperAdmin`], [`Role::Guardian`],
+    /// [`Role::FinancialOperator`]).
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `admin` - Address to install as the initial administrator; must authenticate
+    ///   this call
     pub fn initialize(env: Env, admin: Address) {
         admin.require_auth();
 
@@ -670,7 +805,16 @@ impl StellarStreamContract {
 
     // ========== RBAC Functions ==========
 
-    /// Grant a role to an address (SuperAdmin only)
+    /// Grants a role to an address. Caller must hold [`Role::SuperAdmin`].
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `admin` - Caller; must authenticate this call and hold [`Role::SuperAdmin`]
+    /// * `target` - Address to grant the role to
+    /// * `role` - Role to grant
+    ///
+    /// # Panics
+    /// Panics with [`Error::Unauthorized`] if `admin` does not hold [`Role::SuperAdmin`].
     pub fn grant_role(env: Env, admin: Address, target: Address, role: Role) {
         admin.require_auth();
 
@@ -688,7 +832,16 @@ impl StellarStreamContract {
         env.events().publish((symbol_short!("grant"), target), role);
     }
 
-    /// Revoke a role from an address (SuperAdmin only)
+    /// Revokes a role from an address. Caller must hold [`Role::SuperAdmin`].
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `admin` - Caller; must authenticate this call and hold [`Role::SuperAdmin`]
+    /// * `target` - Address to revoke the role from
+    /// * `role` - Role to revoke
+    ///
+    /// # Panics
+    /// Panics with [`Error::Unauthorized`] if `admin` does not hold [`Role::SuperAdmin`].
     pub fn revoke_role(env: Env, admin: Address, target: Address, role: Role) {
         admin.require_auth();
 
@@ -707,7 +860,15 @@ impl StellarStreamContract {
             .publish((symbol_short!("revoke"), target), role);
     }
 
-    /// Check if an address has a specific role
+    /// Checks whether an address holds a given role.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `address` - Address to check
+    /// * `role` - Role to check for
+    ///
+    /// # Returns
+    /// `true` if `address` holds `role`.
     pub fn check_role(env: Env, address: Address, role: Role) -> bool {
         Self::has_role(&env, &address, role)
     }
@@ -722,8 +883,17 @@ impl StellarStreamContract {
 
     // ========== Contract Upgrade Functions ==========
 
-    /// Upgrade the contract to a new WASM hash
-    /// Only addresses with Admin role can perform this operation
+    /// Upgrades the contract to new WASM code. Caller must hold [`Role::SuperAdmin`].
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `admin` - Caller; must authenticate this call and hold [`Role::SuperAdmin`]
+    /// * `new_wasm_hash` - Hash of the new WASM code to upgrade to
+    ///
+    /// # Note
+    /// Unlike most role-gated entry points in this contract, an unauthorized caller
+    /// causes this function to silently return without upgrading or panicking, rather
+    /// than raising [`Error::Unauthorized`].
     pub fn upgrade(env: Env, admin: Address, new_wasm_hash: soroban_sdk::BytesN<32>) {
         admin.require_auth();
 
@@ -741,7 +911,12 @@ impl StellarStreamContract {
             .publish((symbol_short!("upgrade"), admin), new_wasm_hash);
     }
 
-    /// Get the current admin address (for backward compatibility)
+    /// Returns the contract admin address recorded at [`initialize`](StellarStreamContract::initialize).
+    /// Retained for backward compatibility; prefer role checks via
+    /// [`check_role`](StellarStreamContract::check_role) for authorization decisions.
+    ///
+    /// # Panics
+    /// Panics if the contract has not been initialized.
     pub fn get_admin(env: Env) -> Address {
         env.storage()
             .instance()
@@ -749,6 +924,16 @@ impl StellarStreamContract {
             .expect("Admin not set")
     }
 
+    /// Adds an address to the restricted-address list, blocking it from being used as
+    /// a stream receiver or receipt transfer target. Caller must hold [`Role::SuperAdmin`].
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `admin` - Caller; must authenticate this call and hold [`Role::SuperAdmin`]
+    /// * `address` - Address to restrict; a no-op if already restricted
+    ///
+    /// # Panics
+    /// Panics with [`Error::Unauthorized`] if `admin` does not hold [`Role::SuperAdmin`].
     pub fn restrict_address(env: Env, admin: Address, address: Address) {
         admin.require_auth();
         let has_admin: bool = env
@@ -770,6 +955,14 @@ impl StellarStreamContract {
         }
     }
 
+    /// Checks whether an address is on the restricted-address list.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `address` - Address to check
+    ///
+    /// # Returns
+    /// `true` if `address` is restricted.
     pub fn is_address_restricted(env: Env, address: Address) -> bool {
         Self::restricted_addresses(&env).contains(&address)
     }
@@ -784,6 +977,16 @@ impl StellarStreamContract {
             .unwrap_or(Vec::new(env))
     }
 
+    /// Removes an address from the restricted-address list. Caller must hold
+    /// [`Role::SuperAdmin`].
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `admin` - Caller; must authenticate this call and hold [`Role::SuperAdmin`]
+    /// * `address` - Address to unrestrict
+    ///
+    /// # Panics
+    /// Panics with [`Error::Unauthorized`] if `admin` does not hold [`Role::SuperAdmin`].
     pub fn unrestrict_address(env: Env, admin: Address, address: Address) {
         admin.require_auth();
         let has_admin: bool = env
@@ -810,6 +1013,7 @@ impl StellarStreamContract {
             .set(&RESTRICTED_ADDRESSES, &new_list);
     }
 
+    /// Returns every address currently on the restricted-address list.
     pub fn get_restricted_addresses(env: Env) -> Vec<Address> {
         env.storage()
             .instance()
@@ -817,7 +1021,14 @@ impl StellarStreamContract {
             .unwrap_or(Vec::new(&env))
     }
 
-    /// Returns true if the given vault address is in the approved vaults list.
+    /// Checks whether a vault address is in the approved-vaults list.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `vault` - Vault address to check
+    ///
+    /// # Returns
+    /// `true` if `vault` is approved for use with streams.
     pub fn is_vault_approved(env: Env, vault: Address) -> bool {
         let approved: Vec<Address> = env
             .storage()
@@ -847,6 +1058,14 @@ impl StellarStreamContract {
             .set(&(RECEIPT, stream_id), &receipt);
     }
 
+    /// Fetches a stream's full record by ID.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to fetch
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
     pub fn get_stream(env: Env, stream_id: u64) -> Result<Stream, Error> {
         env.storage()
             .instance()
@@ -854,6 +1073,18 @@ impl StellarStreamContract {
             .ok_or(Error::StreamNotFound)
     }
 
+    /// Returns the number of seconds remaining until a stream's `end_time`.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to check
+    ///
+    /// # Returns
+    /// `0` if the stream has already reached `end_time`; otherwise the number of
+    /// seconds remaining.
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
     pub fn get_stream_remaining_time(env: Env, stream_id: u64) -> Result<u64, Error> {
         let stream: Stream = env
             .storage()
@@ -870,6 +1101,15 @@ impl StellarStreamContract {
         }
     }
 
+    /// Checks whether a stream is currently active: it exists, is in
+    /// [`StreamState::Active`], is not frozen, and has not yet reached `end_time`.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to check
+    ///
+    /// # Returns
+    /// `false` if no stream exists for `stream_id`; otherwise whether it is active.
     pub fn is_stream_active(env: Env, stream_id: u64) -> bool {
         let stream: Option<Stream> = env.storage().instance().get(&(STREAM_COUNT, stream_id));
 
@@ -882,6 +1122,8 @@ impl StellarStreamContract {
         }
     }
 
+    /// Returns the IDs of every stream ever created as soulbound (receipt permanently
+    /// locked to the original receiver).
     pub fn get_soulbound_streams(env: Env) -> Vec<u64> {
         env.storage()
             .persistent()
@@ -889,6 +1131,25 @@ impl StellarStreamContract {
             .unwrap_or(Vec::new(&env))
     }
 
+    /// Reassigns a stream's `receiver` to a new address. Only the stream's `sender`
+    /// may do this, and only for non-soulbound, non-closed streams.
+    ///
+    /// Note this changes who is entitled to *future* withdrawals (`Stream::receiver`);
+    /// it does not move the ownership receipt itself (see
+    /// [`transfer_receipt`](StellarStreamContract::transfer_receipt) for that).
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to update
+    /// * `caller` - Address performing the transfer; must authenticate this call and
+    ///   must be the stream's `sender`
+    /// * `new_receiver` - Address to become the new receiver
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::StreamIsSoulbound`] - The stream's receiver is permanently locked
+    /// * [`Error::Unauthorized`] - `caller` is not the stream's `sender`
+    /// * [`Error::AlreadyCancelled`] - The stream is [`StreamState::Closed`]
     pub fn transfer_receiver(
         env: Env,
         stream_id: u64,
@@ -925,7 +1186,22 @@ impl StellarStreamContract {
         Ok(())
     }
 
-    /// Top up an active stream with additional funds
+    /// Adds `amount` additional funds to an active stream, extending its `end_time` so
+    /// the new funds vest at the stream's existing flow rate.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to top up
+    /// * `sender` - Address supplying the additional funds; must authenticate this
+    ///   call and must be the stream's `sender`
+    /// * `amount` - Amount to add; must be greater than zero
+    ///
+    /// # Errors
+    /// * [`Error::InvalidAmount`] - `amount <= 0`, or the stream has already reached
+    ///   `end_time`
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::Unauthorized`] - `sender` is not the stream's `sender`
+    /// * [`Error::AlreadyCancelled`] - The stream is [`StreamState::Closed`]
     pub fn top_up_stream(
         env: Env,
         stream_id: u64,
@@ -991,6 +1267,19 @@ impl StellarStreamContract {
         Ok(())
     }
 
+    /// Pauses an active stream, freezing its vesting schedule until resumed. Only the
+    /// stream's `sender` may pause it. A no-op if the stream is already paused.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to pause
+    /// * `caller` - Address performing the pause; must authenticate this call and must
+    ///   be the stream's `sender`
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::Unauthorized`] - `caller` is not the stream's `sender`
+    /// * [`Error::AlreadyCancelled`] - The stream is [`StreamState::Closed`]
     pub fn pause_stream(env: Env, stream_id: u64, caller: Address) -> Result<(), Error> {
         caller.require_auth();
 
@@ -1027,14 +1316,36 @@ impl StellarStreamContract {
         Ok(())
     }
 
-    /// Resume a paused stream (alias for backward compatibility).
-    /// Equivalent to `resume_stream`.
+    /// Resumes a paused stream. Alias of [`resume_stream`](StellarStreamContract::resume_stream),
+    /// retained for backward compatibility.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to resume
+    /// * `caller` - Address performing the resume; must authenticate this call and
+    ///   must be the stream's `sender`
+    ///
+    /// # Errors
+    /// See [`resume_stream`](StellarStreamContract::resume_stream).
     pub fn unpause_stream(env: Env, stream_id: u64, caller: Address) -> Result<(), Error> {
         Self::resume_stream(env, stream_id, caller)
     }
 
-    /// Resume a paused stream, restoring time-based vesting.
-    /// Only the sender can resume a stream.
+    /// Resumes a paused stream, restoring time-based vesting. The paused duration is
+    /// added to the stream's `total_paused_duration` so the receiver does not lose
+    /// vested time to the pause. Only the stream's `sender` may resume it.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to resume
+    /// * `caller` - Address performing the resume; must authenticate this call and
+    ///   must be the stream's `sender`
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::Unauthorized`] - `caller` is not the stream's `sender`
+    /// * [`Error::AlreadyCancelled`] - The stream is [`StreamState::Closed`]
+    /// * [`Error::StreamNotPaused`] - The stream is not currently paused
     pub fn resume_stream(env: Env, stream_id: u64, caller: Address) -> Result<(), Error> {
         caller.require_auth();
 
@@ -1076,6 +1387,24 @@ impl StellarStreamContract {
         Ok(())
     }
 
+    /// Withdraws all currently-vested, not-yet-withdrawn tokens from a stream to its
+    /// receiver.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to withdraw from
+    /// * `caller` - Address performing the withdrawal; must authenticate this call and
+    ///   must be the stream's `receiver`
+    ///
+    /// # Returns
+    /// The amount withdrawn.
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::Unauthorized`] - `caller` is not the stream's `receiver`
+    /// * [`Error::AlreadyCancelled`] - The stream is [`StreamState::Closed`]
+    /// * [`Error::StreamPaused`] - The stream is currently paused
+    /// * [`Error::InsufficientBalance`] - Nothing is currently withdrawable
     pub fn withdraw(env: Env, stream_id: u64, caller: Address) -> Result<i128, Error> {
         caller.require_auth();
 
@@ -1125,6 +1454,20 @@ impl StellarStreamContract {
         Ok(to_withdraw)
     }
 
+    /// Cancels a stream, splitting its remaining balance: the vested-but-unwithdrawn
+    /// portion goes to the receiver, and the unvested remainder is returned to the
+    /// sender. May be called by either the sender or the receiver.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to cancel
+    /// * `caller` - Address performing the cancellation; must authenticate this call
+    ///   and must be the stream's `sender` or `receiver`
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::Unauthorized`] - `caller` is neither the sender nor the receiver
+    /// * [`Error::AlreadyCancelled`] - The stream is already [`StreamState::Closed`]
     /// Withdraw unlocked funds from multiple streams owned by `caller` in a
     /// single call.
     ///
@@ -1292,8 +1635,23 @@ impl StellarStreamContract {
         Ok(())
     }
 
-    /// Optimized cancel for bridge migration.
-    /// Returns the total remaining balance (earned + unearned) and transfers it to the receiver.
+    /// Optimized cancellation path for bridge migration: closes the stream and sends
+    /// its entire remaining balance (both vested and unvested) to the receiver, unlike
+    /// [`cancel`](StellarStreamContract::cancel) which splits the balance between sender and receiver.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to cancel
+    /// * `caller` - Address performing the cancellation; must authenticate this call
+    ///   and must be the stream's `receiver`
+    ///
+    /// # Returns
+    /// The total remaining balance transferred to the receiver.
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::Unauthorized`] - `caller` is not the stream's `receiver`
+    /// * [`Error::AlreadyCancelled`] - The stream is already [`StreamState::Closed`]
     pub fn cancel_stream(env: Env, stream_id: u64, caller: Address) -> Result<i128, Error> {
         caller.require_auth();
 
@@ -1331,6 +1689,9 @@ impl StellarStreamContract {
         Ok(remaining)
     }
 
+    /// Computes a stream's vested amount at `current_time`, freezing progress at
+    /// `paused_time` while paused and shifting the cliff/end by `total_paused_duration`
+    /// once resumed so paused time is never counted as vesting time.
     fn calculate_unlocked(stream: &Stream, current_time: u64) -> i128 {
         if current_time <= stream.start_time {
             return 0;
@@ -1424,6 +1785,19 @@ impl StellarStreamContract {
 
     // --- CONTRIBUTOR PULL-REQUEST PAYMENTS ---
 
+    /// Creates a contributor-initiated request for a stream, to be later approved and
+    /// funded via [`execute_request`](StellarStreamContract::execute_request).
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `receiver` - Address requesting to receive a stream; must authenticate this call
+    /// * `token` - Token contract address requested
+    /// * `total_amount` - Total amount requested
+    /// * `duration` - Requested stream duration, in seconds, starting from now
+    /// * `metadata` - Optional metadata hash to attach to the request
+    ///
+    /// # Returns
+    /// The newly created request's ID.
     pub fn create_request(
         env: Env,
         receiver: Address,
@@ -1470,6 +1844,25 @@ impl StellarStreamContract {
         request_id
     }
 
+    /// Approves and executes a pending contributor request, creating a linear stream
+    /// funded by `admin` (not by the original requester) that pays out to the
+    /// request's `receiver`. Caller must hold [`Role::SuperAdmin`].
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `admin` - Caller who will fund the resulting stream; must authenticate this
+    ///   call and hold [`Role::SuperAdmin`]
+    /// * `request_id` - ID of the request to execute
+    ///
+    /// # Returns
+    /// The newly created stream's ID.
+    ///
+    /// # Errors
+    /// * [`Error::Unauthorized`] - `admin` does not hold [`Role::SuperAdmin`]
+    /// * [`Error::StreamNotFound`] - No request exists for `request_id`
+    /// * [`Error::AlreadyExecuted`] - The request is not [`RequestStatus::Pending`]
+    /// * Propagates any error from the underlying stream creation (e.g.
+    ///   [`Error::InvalidAmount`]).
     pub fn execute_request(env: Env, admin: Address, request_id: u64) -> Result<u64, Error> {
         admin.require_auth();
         if !Self::has_role(&env, &admin, Role::SuperAdmin) {
@@ -1525,6 +1918,14 @@ impl StellarStreamContract {
         Ok(stream_id)
     }
 
+    /// Fetches a contributor request by ID.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `request_id` - ID of the request to fetch
+    ///
+    /// # Returns
+    /// `None` if no request exists for `request_id`.
     pub fn get_request(env: Env, request_id: u64) -> Option<ContributorRequest> {
         env.storage()
             .instance()
@@ -1548,14 +1949,39 @@ impl StellarStreamContract {
         Ok(())
     }
 
+    /// Fetches a multi-sig stream proposal by ID.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `proposal_id` - ID of the proposal to fetch
+    ///
+    /// # Returns
+    /// `None` if no proposal exists for `proposal_id`.
     pub fn get_proposal(env: Env, proposal_id: u64) -> Option<StreamProposal> {
         env.storage().instance().get(&(PROPOSAL_COUNT, proposal_id))
     }
 
+    /// Fetches a stream's ownership receipt by stream ID.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream whose receipt to fetch
+    ///
+    /// # Returns
+    /// `None` if no stream/receipt exists for `stream_id`.
     pub fn get_receipt(env: Env, stream_id: u64) -> Option<StreamReceipt> {
         env.storage().instance().get(&(RECEIPT, stream_id))
     }
 
+    /// Computes a snapshot of a stream's locked/unlocked balances for display purposes
+    /// (e.g. as NFT receipt metadata).
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to snapshot
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
     pub fn get_receipt_metadata(env: Env, stream_id: u64) -> Result<ReceiptMetadata, Error> {
         let stream: Stream = env
             .storage()
@@ -1574,6 +2000,21 @@ impl StellarStreamContract {
         })
     }
 
+    /// Transfers ownership of a stream's receipt (and its associated `receipt_owner`
+    /// on the stream) to a new address.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream whose receipt to transfer
+    /// * `caller` - Current receipt owner; must authenticate this call
+    /// * `new_owner` - Address to become the new receipt owner
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream/receipt exists for `stream_id`
+    /// * [`Error::NotReceiptOwner`] - `caller` does not currently own the receipt
+    ///
+    /// # Panics
+    /// Panics with [`Error::AddressRestricted`] if `new_owner` is on the restricted list.
     pub fn transfer_receipt(
         env: Env,
         stream_id: u64,
