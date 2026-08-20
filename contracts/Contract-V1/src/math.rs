@@ -1,7 +1,21 @@
+//! Vesting and fee arithmetic shared by the streaming contract's linear, cliff, and
+//! exponential unlock curves.
+//!
+//! All functions here round down (floor division) so that the contract never unlocks
+//! or reports more than it can actually pay out.
 #![allow(unexpected_cfgs)]
 
-/// Calculate unlocked amount with precision-safe rounding
-/// Always rounds DOWN to favor contract solvency
+/// Computes the linearly-vested amount of a stream at a point in time.
+///
+/// # Arguments
+/// * `total_amount` - Total amount the stream will pay out
+/// * `start_time` - Unix timestamp when vesting begins
+/// * `end_time` - Unix timestamp when vesting completes
+/// * `current_time` - Unix timestamp to evaluate vesting at
+///
+/// # Returns
+/// `0` if `current_time < start_time`, `total_amount` if `current_time >= end_time`,
+/// otherwise the proportionally vested amount, rounded down.
 #[allow(dead_code)]
 pub fn calculate_unlocked_amount(
     total_amount: i128,
@@ -25,9 +39,25 @@ pub fn calculate_unlocked_amount(
     (total_amount * elapsed_time) / total_duration
 }
 
-/// Calculate unlocked amount using exponential curve (quadratic growth)
-/// Accelerates payout as stream approaches end_time
-/// Uses checked math to prevent overflow
+/// Computes the vested amount of a stream using a quadratic (exponential-style) curve
+/// that accelerates payout as the stream approaches `end_time`.
+///
+/// The curve is `unlocked = total_amount * (elapsed / duration)^2`, computed as
+/// `(total_amount * elapsed^2) / duration^2` using checked multiplication throughout.
+///
+/// # Arguments
+/// * `total_amount` - Total amount the stream will pay out
+/// * `start_time` - Unix timestamp when vesting begins
+/// * `end_time` - Unix timestamp when vesting completes
+/// * `current_time` - Unix timestamp to evaluate vesting at
+///
+/// # Returns
+/// `0` before `start_time`, `total_amount` at or after `end_time`, otherwise the
+/// quadratically-vested amount, rounded down.
+///
+/// # Errors
+/// Returns `Err(())` if any intermediate multiplication (`elapsed^2`, `duration^2`, or
+/// `total_amount * elapsed^2`) overflows `i128`.
 pub fn calculate_exponential_unlocked(
     total_amount: i128,
     start_time: u64,
@@ -54,18 +84,41 @@ pub fn calculate_exponential_unlocked(
     Ok(numerator / duration_squared)
 }
 
-/// Calculate withdrawable amount
-/// For final withdrawal, caller should use total_amount - withdrawn_amount
-/// to avoid precision loss
+/// Computes the amount currently withdrawable given an already-unlocked amount.
+///
+/// For a stream's final withdrawal, prefer computing `total_amount - withdrawn_amount`
+/// directly instead of calling this with a freshly re-derived `unlocked_amount`, to
+/// avoid accumulating rounding error across the two calculations.
+///
+/// # Arguments
+/// * `unlocked_amount` - Amount vested so far (e.g. from [`calculate_unlocked_amount`])
+/// * `withdrawn_amount` - Amount already withdrawn
+///
+/// # Returns
+/// `unlocked_amount - withdrawn_amount`.
 #[allow(dead_code)]
 pub fn calculate_withdrawable_amount(unlocked_amount: i128, withdrawn_amount: i128) -> i128 {
     unlocked_amount - withdrawn_amount
 }
 
-/// Calculate unlocked amount with cliff support
-/// Rounds DOWN to favor contract solvency
-/// IMPORTANT: For final withdrawal (now >= end), always use total_amount directly
-/// to avoid accumulation of rounding errors
+/// Computes the linearly-vested amount of a stream that has a cliff, before which
+/// nothing is unlocked regardless of elapsed time.
+///
+/// For the final withdrawal (`now >= end`), callers should still prefer computing
+/// `total_amount - withdrawn_amount` directly rather than round-tripping through this
+/// function, to avoid accumulated rounding error; this function already does that
+/// internally for `now >= end`.
+///
+/// # Arguments
+/// * `total_amount` - Total amount the stream will pay out
+/// * `start` - Unix timestamp when vesting begins (used for the elapsed/duration ratio)
+/// * `cliff` - Unix timestamp before which nothing is unlocked
+/// * `end` - Unix timestamp when vesting completes
+/// * `now` - Unix timestamp to evaluate vesting at
+///
+/// # Returns
+/// `0` if `now < cliff`, `total_amount` if `now >= end`, otherwise the proportionally
+/// vested amount (based on `start`/`end`, not `cliff`), rounded down.
 #[allow(dead_code)]
 pub fn calculate_unlocked(total_amount: i128, start: u64, cliff: u64, end: u64, now: u64) -> i128 {
     // Before cliff: nothing unlocked
@@ -86,9 +139,20 @@ pub fn calculate_unlocked(total_amount: i128, start: u64, cliff: u64, end: u64, 
     (total_amount * elapsed) / total_duration
 }
 
-/// Calculate withdrawable amount with precision protection
-/// For streams at or past end time, returns exact remaining balance
-/// to prevent dust from rounding errors
+/// Computes the withdrawable amount for a cliff-vested stream, using the exact
+/// remaining balance once the stream has ended to avoid rounding dust.
+///
+/// # Arguments
+/// * `total_amount` - Total amount the stream will pay out
+/// * `withdrawn_amount` - Amount already withdrawn
+/// * `start` - Unix timestamp when vesting begins
+/// * `cliff` - Unix timestamp before which nothing is unlocked
+/// * `end` - Unix timestamp when vesting completes
+/// * `now` - Unix timestamp to evaluate vesting at
+///
+/// # Returns
+/// `total_amount - withdrawn_amount` if `now >= end`; otherwise the vested amount at
+/// `now` (via [`calculate_unlocked`]) minus `withdrawn_amount`.
 #[allow(dead_code)]
 pub fn calculate_withdrawable(
     total_amount: i128,
@@ -109,8 +173,15 @@ pub fn calculate_withdrawable(
     total_unlocked - withdrawn_amount
 }
 
-/// Calculate fee based on basis points (bps)
-/// fee_bps is in hundredths of a percent (100 bps = 1%)
+/// Computes a fee from an amount, expressed in basis points.
+///
+/// # Arguments
+/// * `amount` - Base amount the fee is calculated from
+/// * `fee_bps` - Fee rate in basis points (hundredths of a percent; `10_000` = 100%)
+///
+/// # Returns
+/// `0` if `fee_bps` is zero or `amount` is not positive; otherwise
+/// `(amount * fee_bps) / 10_000`, rounded down.
 #[allow(dead_code)]
 pub fn calculate_fee(amount: i128, fee_bps: u32) -> i128 {
     if fee_bps == 0 || amount <= 0 {
