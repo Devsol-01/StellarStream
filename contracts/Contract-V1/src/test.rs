@@ -380,3 +380,259 @@ fn test_proposal_approval_events_emitted() {
     // `approve_proposal` publishes an approval event.
     assert_eq!(f.env.events().all().len(), 1);
 }
+
+// Count query tests (issue #1474)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_get_active_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_active_streams_count(), 0);
+
+    let id1 = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_active_streams_count(), 1);
+
+    let _id2 = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &2_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_active_streams_count(), 2);
+
+    c.pause_stream(&id1, &f.sender);
+    assert_eq!(c.get_active_streams_count(), 1);
+
+    c.cancel_stream(&id1, &f.sender);
+    assert_eq!(c.get_active_streams_count(), 1); // id2 is still active
+}
+
+#[test]
+fn test_get_user_active_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_user_active_streams_count(&f.sender), 0);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_user_active_streams_count(&f.sender), 1);
+    assert_eq!(c.get_user_active_streams_count(&f.receiver), 1);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &2_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_user_active_streams_count(&f.sender), 2);
+    assert_eq!(c.get_user_active_streams_count(&f.receiver), 2);
+}
+
+#[test]
+fn test_get_total_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_total_streams_count(), 0);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_total_streams_count(), 1);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &2_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_total_streams_count(), 2);
+}
+
+#[test]
+fn test_get_user_total_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_user_total_streams_count(&f.sender), 0);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_user_total_streams_count(&f.sender), 1);
+    assert_eq!(c.get_user_total_streams_count(&f.receiver), 1);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &2_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_user_total_streams_count(&f.sender), 2);
+    assert_eq!(c.get_user_total_streams_count(&f.receiver), 2);
+}
+
+#[test]
+fn test_get_paused_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_paused_streams_count(), 0);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_paused_streams_count(), 0);
+
+    c.pause_stream(&id, &f.sender);
+    assert_eq!(c.get_paused_streams_count(), 1);
+
+    c.resume_stream(&id, &f.sender);
+    assert_eq!(c.get_paused_streams_count(), 0);
+}
+
+#[test]
+fn test_get_user_paused_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_user_paused_streams_count(&f.sender), 0);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_user_paused_streams_count(&f.sender), 0);
+    assert_eq!(c.get_user_paused_streams_count(&f.receiver), 0);
+
+    c.pause_stream(&id, &f.sender);
+    assert_eq!(c.get_user_paused_streams_count(&f.sender), 1);
+    assert_eq!(c.get_user_paused_streams_count(&f.receiver), 1);
+
+    c.resume_stream(&id, &f.sender);
+    assert_eq!(c.get_user_paused_streams_count(&f.sender), 0);
+    assert_eq!(c.get_user_paused_streams_count(&f.receiver), 0);
+}
+
+#[test]
+fn test_get_closed_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_closed_streams_count(), 0);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_closed_streams_count(), 0);
+
+    c.cancel_stream(&id, &f.sender);
+    assert_eq!(c.get_closed_streams_count(), 1);
+}
+
+#[test]
+fn test_get_user_closed_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_user_closed_streams_count(&f.sender), 0);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+    );
+
+    assert_eq!(c.get_user_closed_streams_count(&f.sender), 0);
+    assert_eq!(c.get_user_closed_streams_count(&f.receiver), 0);
+
+    c.cancel_stream(&id, &f.sender);
+    assert_eq!(c.get_user_closed_streams_count(&f.sender), 1);
+    assert_eq!(c.get_user_closed_streams_count(&f.receiver), 1);
+}
