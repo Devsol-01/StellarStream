@@ -20,8 +20,8 @@ pub mod math;
 mod bench_test;
 
 use soroban_sdk::{
-    contract, contractclient, contracterror, contractimpl, contracttype, Address, Env, Map,
-    Symbol, Vec, symbol_short,
+    contract, contractclient, contracterror, contractimpl, contracttype, symbol_short, Address,
+    Env, Map, String, Symbol, Vec,
 };
 
 // ---------------------------------------------------------------------------
@@ -85,6 +85,11 @@ pub enum Error {
     AlreadyApproved = 30,
     ProposalAlreadyExecuted = 31,
     InvalidApprovalThreshold = 32,
+    StreamEnded = 33,
+    MetadataLabelTooLong = 34,
+    TooManyTags = 35,
+    TagTooLong = 36,
+    BatchSizeExceeded = 37,
 }
 
 // ---------------------------------------------------------------------------
@@ -109,7 +114,7 @@ pub struct Stream {
     pub stream_metadata: Option<StreamMetadata>,
 }
 
-Stream metadata for categorization (issue #1466)
+// Stream metadata for categorization (issue #1466)
 // ---------------------------------------------------------------------------
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -271,13 +276,6 @@ impl StellarStreamContract {
             total_amount,
             start_time,
             end_time,
-            withdrawn_amount: 0,
-            state: STATE_ACTIVE,
-            curve_type,
-            is_soulbound,
-            paused_duration: 0,
-            last_paused_at: 0,
-            stream_metadata: None,
             approvers: Vec::new(&env),
             required_approvals,
             deadline,
@@ -561,8 +559,6 @@ impl StellarStreamContract {
         is_restricted(&env, &target)
     }
 
-    /// Return the next stream id that will be allocated (for testing/inspection).
-    
     /// Withdraw from multiple streams atomically. All-or-nothing semantics. (issue #1472)
     pub fn batch_withdraw(
         env: Env,
@@ -601,6 +597,8 @@ impl StellarStreamContract {
             }
         }
         Ok(amounts)
+    }
+
     /// Update the metadata for a stream. Only the sender may update metadata.
     pub fn update_stream_metadata(
         env: Env,
@@ -631,7 +629,9 @@ impl StellarStreamContract {
         );
         Ok(())
     }
-pub fn next_stream_id(env: Env) -> u64 {
+
+    /// Return the next stream id that will be allocated (for testing/inspection).
+    pub fn next_stream_id(env: Env) -> u64 {
         env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1)
     }
 }
@@ -797,6 +797,7 @@ fn create_stream_internal(
         is_soulbound,
         paused_duration: 0,
         last_paused_at: 0,
+        stream_metadata: None,
     };
 
     let mut streams = get_streams(env);
