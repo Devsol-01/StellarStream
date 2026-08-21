@@ -46,6 +46,7 @@ pub const STATE_CLOSED: u32 = 2;
 // Vesting curve
 pub const CURVE_LINEAR: u32 = 0;
 pub const CURVE_EXP: u32 = 1;
+pub const CURVE_MILESTONE: u32 = 2;
 
 // Roles
 pub const ROLE_ADMIN: u32 = 0;
@@ -90,6 +91,8 @@ pub enum Error {
     TooManyTags = 35,
     TagTooLong = 36,
     BatchSizeExceeded = 37,
+    InvalidMilestones = 38,
+    InvalidMilestonePercentages = 39,
 }
 
 // ---------------------------------------------------------------------------
@@ -112,6 +115,32 @@ pub struct Stream {
     pub paused_duration: u64,
     pub last_paused_at: u64,
     pub stream_metadata: Option<StreamMetadata>,
+    /// Present only when `curve_type == CURVE_MILESTONE`; see [`Milestone`].
+    pub milestones: Option<Vec<Milestone>>,
+}
+
+/// A single unlock checkpoint in a milestone-vesting schedule.
+///
+/// Milestone vesting unlocks tokens in discrete steps at fixed timestamps
+/// instead of continuously over time. Each milestone's `percentage` is a
+/// **cumulative** basis-point share (out of 10,000) of the stream's total
+/// amount — not an incremental slice on top of the previous milestone. For
+/// example, the schedule `[(3mo, 2500), (6mo, 5000), (12mo, 10000)]` means
+/// 25% is unlocked at 3 months, a *total* of 50% at 6 months, and 100% at 12
+/// months (not 25% + 25% + 50%).
+///
+/// A valid schedule must have strictly ascending `timestamp`s, strictly
+/// ascending `percentage`s, and a final `percentage` of exactly 10,000 bps.
+/// Before the first milestone's timestamp is reached, nothing is unlocked;
+/// between two reached milestones, the most recently reached milestone's
+/// percentage holds (no partial/gradual unlock in between).
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Milestone {
+    /// Ledger timestamp (seconds) at which this checkpoint is reached.
+    pub timestamp: u64,
+    /// Cumulative basis points (out of 10,000) unlocked once `timestamp` is reached.
+    pub percentage: u32,
 }
 
 // Stream metadata for categorization (issue #1466)
@@ -203,6 +232,7 @@ impl StellarStreamContract {
         end_time: u64,
         curve_type: u32,
         is_soulbound: bool,
+        milestones: Option<Vec<Milestone>>,
     ) -> Result<u64, Error> {
         sender.require_auth();
         create_stream_internal(
@@ -215,6 +245,7 @@ impl StellarStreamContract {
             end_time,
             curve_type,
             is_soulbound,
+            milestones,
         )
     }
 
@@ -334,6 +365,7 @@ impl StellarStreamContract {
                 proposal.end_time,
                 CURVE_LINEAR,
                 false,
+                None,
             )?;
             proposal.executed = true;
             save_proposal(&env, proposal_id, &proposal);
@@ -708,6 +740,14 @@ fn unlocked_amount(env: &Env, stream: &Stream) -> i128 {
                 _ => 0,
             }
         }
+        CURVE_MILESTONE => match &stream.milestones {
+            // Milestones are keyed to absolute ledger timestamps, not
+            // pause-adjusted elapsed time, so `now` is passed directly.
+            Some(milestones) => {
+                math::calculate_unlocked_milestone(stream.total_amount, now, milestones)
+            }
+            None => 0,
+        },
         _ => 0,
     };
     if unlocked < 0 {
@@ -759,6 +799,7 @@ fn create_stream_internal(
     end_time: u64,
     curve_type: u32,
     is_soulbound: bool,
+    milestones: Option<Vec<Milestone>>,
 ) -> Result<u64, Error> {
     if is_contract_paused(env) {
         return Err(Error::ContractPaused);
@@ -766,7 +807,7 @@ fn create_stream_internal(
     if env.storage().instance().get::<_, Address>(&ADMIN).is_none() {
         return Err(Error::Unauthorized);
     }
-    if curve_type != CURVE_LINEAR && curve_type != CURVE_EXP {
+    if curve_type != CURVE_LINEAR && curve_type != CURVE_EXP && curve_type != CURVE_MILESTONE {
         return Err(Error::InvalidCurve);
     }
     if total_amount <= 0 {
@@ -777,6 +818,11 @@ fn create_stream_internal(
     }
     if is_restricted(env, sender) || is_restricted(env, receiver) {
         return Err(Error::AddressRestricted);
+    }
+    if curve_type == CURVE_MILESTONE {
+        validate_milestones(&milestones, end_time)?;
+    } else if milestones.is_some() {
+        return Err(Error::InvalidMilestones);
     }
 
     let mut next = env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1);
@@ -798,6 +844,7 @@ fn create_stream_internal(
         paused_duration: 0,
         last_paused_at: 0,
         stream_metadata: None,
+        milestones,
     };
 
     let mut streams = get_streams(env);
@@ -809,6 +856,46 @@ fn create_stream_internal(
 
     env.storage().instance().set(&NEXTID, &next);
     Ok(id)
+}
+
+/// Validates a milestone-vesting schedule before it is attached to a stream.
+///
+/// Requires: a non-empty schedule, strictly ascending timestamps, strictly
+/// ascending cumulative percentages, a final percentage of exactly
+/// `math::BPS_DENOMINATOR` (10,000 bps = 100%), and a last-milestone timestamp
+/// no later than the stream's `end_time` (otherwise the stream's end-of-term
+/// fast path in `unlocked_amount` could release 100% before the schedule says
+/// it should).
+fn validate_milestones(milestones: &Option<Vec<Milestone>>, end_time: u64) -> Result<(), Error> {
+    let milestones = milestones.as_ref().ok_or(Error::InvalidMilestones)?;
+    if milestones.is_empty() {
+        return Err(Error::InvalidMilestones);
+    }
+
+    let mut prev_timestamp: Option<u64> = None;
+    let mut prev_percentage: u32 = 0;
+    for i in 0..milestones.len() {
+        let m = milestones.get(i).unwrap();
+        if let Some(prev) = prev_timestamp {
+            if m.timestamp <= prev {
+                return Err(Error::InvalidMilestones);
+            }
+        }
+        if m.percentage <= prev_percentage {
+            return Err(Error::InvalidMilestonePercentages);
+        }
+        prev_timestamp = Some(m.timestamp);
+        prev_percentage = m.percentage;
+    }
+
+    if prev_percentage as i128 != math::BPS_DENOMINATOR {
+        return Err(Error::InvalidMilestonePercentages);
+    }
+    if prev_timestamp.unwrap() > end_time {
+        return Err(Error::InvalidTimeRange);
+    }
+
+    Ok(())
 }
 
 fn get_proposals(env: &Env) -> Map<u64, StreamProposal> {
