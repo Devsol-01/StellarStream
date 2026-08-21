@@ -541,25 +541,25 @@ mod withdrawal {
     }
 
     #[test]
-    fn withdraw_before_start_time_fails_insufficient_balance() {
+    fn withdraw_before_start_time_fails_insufficient_withdrawable() {
         let ctx = setup();
         let id = ctx.create_default_stream();
         set_time(&ctx.env, 500);
         let result = ctx.client.try_withdraw(&id, &ctx.receiver);
-        assert_eq!(result, Err(Ok(Error::InsufficientBalance)));
+        assert_eq!(result, Err(Ok(Error::InsufficientWithdrawable)));
     }
 
     #[test]
-    fn withdraw_exactly_at_start_time_fails_insufficient_balance() {
+    fn withdraw_exactly_at_start_time_fails_insufficient_withdrawable() {
         let ctx = setup();
         let id = ctx.create_default_stream();
         set_time(&ctx.env, 1000);
         let result = ctx.client.try_withdraw(&id, &ctx.receiver);
-        assert_eq!(result, Err(Ok(Error::InsufficientBalance)));
+        assert_eq!(result, Err(Ok(Error::InsufficientWithdrawable)));
     }
 
     #[test]
-    fn withdraw_before_cliff_fails_insufficient_balance() {
+    fn withdraw_before_cliff_fails_insufficient_withdrawable() {
         let ctx = setup();
         let id = ctx.client.create_stream(
             &ctx.sender,
@@ -574,7 +574,7 @@ mod withdrawal {
         );
         set_time(&ctx.env, 1100);
         let result = ctx.client.try_withdraw(&id, &ctx.receiver);
-        assert_eq!(result, Err(Ok(Error::InsufficientBalance)));
+        assert_eq!(result, Err(Ok(Error::InsufficientWithdrawable)));
     }
 
     #[test]
@@ -614,22 +614,22 @@ mod withdrawal {
     }
 
     #[test]
-    fn withdraw_by_sender_fails_unauthorized() {
+    fn withdraw_by_sender_fails_not_receiver() {
         let ctx = setup();
         let id = ctx.create_default_stream();
         set_time(&ctx.env, 1500);
         let result = ctx.client.try_withdraw(&id, &ctx.sender);
-        assert_eq!(result, Err(Ok(Error::Unauthorized)));
+        assert_eq!(result, Err(Ok(Error::NotReceiver)));
     }
 
     #[test]
-    fn withdraw_by_unrelated_stranger_fails_unauthorized() {
+    fn withdraw_by_unrelated_stranger_fails_not_receiver() {
         let ctx = setup();
         let id = ctx.create_default_stream();
         let stranger = Address::generate(&ctx.env);
         set_time(&ctx.env, 1500);
         let result = ctx.client.try_withdraw(&id, &stranger);
-        assert_eq!(result, Err(Ok(Error::Unauthorized)));
+        assert_eq!(result, Err(Ok(Error::NotReceiver)));
     }
 
     #[test]
@@ -679,7 +679,7 @@ mod withdrawal {
     }
 
     #[test]
-    fn withdraw_nothing_new_available_fails_insufficient_balance() {
+    fn withdraw_nothing_new_available_fails_insufficient_withdrawable() {
         let ctx = setup();
         let id = ctx.create_default_stream();
         set_time(&ctx.env, 1500);
@@ -687,7 +687,7 @@ mod withdrawal {
 
         // Same timestamp, nothing new has vested since the last withdrawal.
         let result = ctx.client.try_withdraw(&id, &ctx.receiver);
-        assert_eq!(result, Err(Ok(Error::InsufficientBalance)));
+        assert_eq!(result, Err(Ok(Error::InsufficientWithdrawable)));
     }
 
     #[test]
@@ -774,7 +774,7 @@ mod withdrawal {
     }
 
     #[test]
-    fn withdraw_by_old_receiver_after_transfer_fails_unauthorized() {
+    fn withdraw_by_old_receiver_after_transfer_fails_not_receiver() {
         let ctx = setup();
         let id = ctx.create_default_stream();
         let new_receiver = Address::generate(&ctx.env);
@@ -783,7 +783,7 @@ mod withdrawal {
 
         set_time(&ctx.env, 1500);
         let result = ctx.client.try_withdraw(&id, &ctx.receiver);
-        assert_eq!(result, Err(Ok(Error::Unauthorized)));
+        assert_eq!(result, Err(Ok(Error::NotReceiver)));
     }
 
     #[test]
@@ -1104,7 +1104,7 @@ mod pause_resume {
         // original cliff time of 1200 must still fail.
         set_time(&ctx.env, 1200);
         let result = ctx.client.try_withdraw(&id, &ctx.receiver);
-        assert_eq!(result, Err(Ok(Error::InsufficientBalance)));
+        assert_eq!(result, Err(Ok(Error::InsufficientWithdrawable)));
 
         // But it succeeds once past the adjusted cliff.
         set_time(&ctx.env, 1260);
@@ -1239,12 +1239,12 @@ mod error_conditions {
     }
 
     #[test]
-    fn unauthorized_on_withdraw() {
+    fn not_receiver_on_withdraw() {
         let ctx = setup();
         let id = ctx.create_default_stream();
         set_time(&ctx.env, 1500);
         let result = ctx.client.try_withdraw(&id, &ctx.sender);
-        assert_eq!(result, Err(Ok(Error::Unauthorized)));
+        assert_eq!(result, Err(Ok(Error::NotReceiver)));
     }
 
     #[test]
@@ -1268,12 +1268,12 @@ mod error_conditions {
     }
 
     #[test]
-    fn insufficient_balance_on_withdraw() {
+    fn insufficient_withdrawable_on_withdraw() {
         let ctx = setup();
         let id = ctx.create_default_stream();
         set_time(&ctx.env, 999); // before start_time
         let result = ctx.client.try_withdraw(&id, &ctx.receiver);
-        assert_eq!(result, Err(Ok(Error::InsufficientBalance)));
+        assert_eq!(result, Err(Ok(Error::InsufficientWithdrawable)));
     }
 
     #[test]

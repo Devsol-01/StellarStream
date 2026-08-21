@@ -29,3 +29,9 @@ pub const UPGRADE_PROPOSAL_COUNT: Symbol = symbol_short!("UPG_CNT");
 pub const UPGRADE_HISTORY: Symbol = symbol_short!("UPG_HIST");
 /// Per-token TVL tracking key prefix
 pub const TOKEN_TVL: Symbol = symbol_short!("TOKEN_TVL");
+/// Key for the counter tracking the total number of disputes ever raised.
+pub const DISPUTE_COUNT: Symbol = symbol_short!("DISP_CNT");
+/// Key prefix for a dispute record, keyed by dispute ID.
+pub const DISPUTE: Symbol = symbol_short!("DISPUTE");
+/// Key prefix for the list of authorized arbitrators.
+pub const ARBITRATORS: Symbol = symbol_short!("ARB_LST");
