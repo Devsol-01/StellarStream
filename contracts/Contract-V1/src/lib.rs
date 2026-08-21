@@ -20,8 +20,8 @@ pub mod math;
 mod bench_test;
 
 use soroban_sdk::{
-    contract, contractclient, contracterror, contractimpl, contracttype, Address, Env, Map,
-    Symbol, Vec, symbol_short,
+    contract, contractclient, contracterror, contractimpl, contracttype, symbol_short, Address,
+    Env, Map, String, Symbol, Vec,
 };
 
 // ---------------------------------------------------------------------------
@@ -36,6 +36,7 @@ const LOCK: Symbol = symbol_short!("LOCK");
 const STREAMS: Symbol = symbol_short!("STREAMS");
 const USTREAMS: Symbol = symbol_short!("USTREAMS");
 const PROPOSALS: Symbol = symbol_short!("PROPOSALS");
+const METADATA: Symbol = symbol_short!("METADATA");
 const NEXTPROPOSAL: Symbol = symbol_short!("NEXTPROP");
 
 // Stream state
@@ -85,6 +86,11 @@ pub enum Error {
     AlreadyApproved = 30,
     ProposalAlreadyExecuted = 31,
     InvalidApprovalThreshold = 32,
+    BatchSizeExceeded = 33,
+    StreamEnded = 34,
+    MetadataLabelTooLong = 35,
+    TooManyTags = 36,
+    TagTooLong = 37,
 }
 
 // ---------------------------------------------------------------------------
@@ -106,10 +112,15 @@ pub struct Stream {
     pub is_soulbound: bool,
     pub paused_duration: u64,
     pub last_paused_at: u64,
-    pub stream_metadata: Option<StreamMetadata>,
 }
 
-Stream metadata for categorization (issue #1466)
+// ---------------------------------------------------------------------------
+// Stream metadata for categorization (issue #1466)
+//
+// Metadata lives in its own `METADATA` map keyed by stream id rather than as an
+// `Option<StreamMetadata>` field on `Stream`: soroban-sdk 22 cannot convert an
+// `Option<T>` whose `T` is a user `#[contracttype]` struct, which makes any
+// struct carrying such a field fail to build under `testutils`.
 // ---------------------------------------------------------------------------
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -127,7 +138,6 @@ pub struct StreamMetadataUpdatedEvent {
     pub timestamp: u64,
 }
 
-// // Minimal token interface used by `withdraw`.
 /// A pending multi-signature stream proposal.
 ///
 /// A proposal holds the parameters of a stream that should be created once a
@@ -271,13 +281,6 @@ impl StellarStreamContract {
             total_amount,
             start_time,
             end_time,
-            withdrawn_amount: 0,
-            state: STATE_ACTIVE,
-            curve_type,
-            is_soulbound,
-            paused_duration: 0,
-            last_paused_at: 0,
-            stream_metadata: None,
             approvers: Vec::new(&env),
             required_approvals,
             deadline,
@@ -375,6 +378,9 @@ impl StellarStreamContract {
     pub fn cancel_stream(env: Env, stream_id: u64, sender: Address) -> Result<(), Error> {
         sender.require_auth();
         let mut stream = get_stream(&env, stream_id)?;
+        if stream.sender != sender {
+            return Err(Error::Unauthorized);
+        }
         if stream.state == STATE_CLOSED {
             return Err(Error::AlreadyCancelled);
         }
@@ -561,8 +567,6 @@ impl StellarStreamContract {
         is_restricted(&env, &target)
     }
 
-    /// Return the next stream id that will be allocated (for testing/inspection).
-    
     /// Withdraw from multiple streams atomically. All-or-nothing semantics. (issue #1472)
     pub fn batch_withdraw(
         env: Env,
@@ -601,6 +605,8 @@ impl StellarStreamContract {
             }
         }
         Ok(amounts)
+    }
+
     /// Update the metadata for a stream. Only the sender may update metadata.
     pub fn update_stream_metadata(
         env: Env,
@@ -611,8 +617,7 @@ impl StellarStreamContract {
         external_ref: Option<String>,
     ) -> Result<(), Error> {
         sender.require_auth();
-        let mut streams = get_streams(&env);
-        let mut stream = streams.get(stream_id).ok_or(Error::StreamNotFound)?;
+        let stream = get_stream(&env, stream_id)?;
         if stream.sender != sender { return Err(Error::Unauthorized); }
         if stream.state == STATE_CLOSED { return Err(Error::StreamEnded); }
         if label.len() > 64 { return Err(Error::MetadataLabelTooLong); }
@@ -622,16 +627,30 @@ impl StellarStreamContract {
                 if tag.len() > 32 { return Err(Error::TagTooLong); }
             }
         }
-        stream.stream_metadata = Some(StreamMetadata { label, tags, external_ref });
-        streams.set(stream_id, stream);
-        env.storage().persistent().set(&STREAMS, &streams);
+        let mut metadata = get_metadata_map(&env);
+        metadata.set(
+            stream_id,
+            StreamMetadata {
+                label,
+                tags,
+                external_ref,
+            },
+        );
+        env.storage().persistent().set(&METADATA, &metadata);
         env.events().publish(
             (symbol_short!("meta_upd"), sender.clone()),
             StreamMetadataUpdatedEvent { stream_id, sender, timestamp: env.ledger().timestamp() },
         );
         Ok(())
     }
-pub fn next_stream_id(env: Env) -> u64 {
+
+    /// Return the metadata attached to a stream, if any has been set.
+    pub fn get_stream_metadata(env: Env, stream_id: u64) -> Option<StreamMetadata> {
+        get_metadata_map(&env).get(stream_id)
+    }
+
+    /// Return the next stream id that will be allocated (for testing/inspection).
+    pub fn next_stream_id(env: Env) -> u64 {
         env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1)
     }
 }
@@ -731,6 +750,13 @@ fn get_streams(env: &Env) -> Map<u64, Stream> {
     env.storage()
         .persistent()
         .get(&STREAMS)
+        .unwrap_or(Map::new(env))
+}
+
+fn get_metadata_map(env: &Env) -> Map<u64, StreamMetadata> {
+    env.storage()
+        .persistent()
+        .get(&METADATA)
         .unwrap_or(Map::new(env))
 }
 
