@@ -666,6 +666,83 @@ impl StellarStreamContract {
     pub fn next_stream_id(env: Env) -> u64 {
         env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1)
     }
+
+    // ------------------------- Count Queries -------------------------
+
+    pub fn get_active_streams_count(env: Env) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_ACTIVE {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn get_user_active_streams_count(env: Env, user: Address) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_ACTIVE && (stream.sender == user || stream.receiver == user) {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn get_total_streams_count(env: Env) -> u64 {
+        let next_id = env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1);
+        next_id - 1
+    }
+
+    pub fn get_user_total_streams_count(env: Env, user: Address) -> u64 {
+        get_user_streams(&env, &user).len() as u64
+    }
+
+    pub fn get_paused_streams_count(env: Env) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_PAUSED {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn get_user_paused_streams_count(env: Env, user: Address) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_PAUSED && (stream.sender == user || stream.receiver == user) {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn get_closed_streams_count(env: Env) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_CLOSED {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn get_user_closed_streams_count(env: Env, user: Address) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_CLOSED && (stream.sender == user || stream.receiver == user) {
+                count += 1;
+            }
+        }
+        count
+    }
 }
 
 // ---------------------------------------------------------------------------
