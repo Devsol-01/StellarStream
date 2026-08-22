@@ -23,6 +23,7 @@ fn create_many(env: &Env, contract: &Address, sender: &Address, token: &Address,
             &1_000_000u64,
             &CURVE_LINEAR,
             &false,
+            &None,
         );
         ids.push_back(id);
     }
@@ -85,6 +86,7 @@ fn test_100_users() {
             &1_000_000u64,
             &CURVE_LINEAR,
             &false,
+            &None,
         );
     }
     for u in users.iter() {
@@ -159,6 +161,7 @@ fn test_mixed_curves_large() {
             &1_000u64,
             &curve,
             &false,
+            &None,
         );
         ids.push_back(id);
     }
@@ -201,6 +204,7 @@ fn test_realistic_data_distribution() {
             &end,
             &CURVE_LINEAR,
             &false,
+            &None,
         );
         ids.push_back(id);
     }
