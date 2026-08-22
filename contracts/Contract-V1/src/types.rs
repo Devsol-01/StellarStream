@@ -2,7 +2,7 @@
 //! streaming contract.
 
 pub use crate::rbac::Role;
-use soroban_sdk::{contracttype, Address, BytesN, Vec};
+use soroban_sdk::{contracttype, Address, BytesN, Map, Vec};
 
 // Interest distribution strategies
 // Bits can be combined: e.g., 0b011 = 50% sender, 50% receiver
@@ -379,22 +379,6 @@ pub struct StreamFrozenEvent {
     pub timestamp: u64,
 }
 
-/// Event emitted when an arbiter resolves a dispute on a stream.
-#[contracttype]
-#[derive(Clone, Debug)]
-pub struct DisputeResolvedEvent {
-    /// ID of the stream the dispute was resolved for.
-    pub stream_id: u64,
-    /// Address of the arbiter who resolved the dispute.
-    pub arbiter: Address,
-    /// Amount allocated to the sender as part of the resolution.
-    pub to_sender: i128,
-    /// Amount allocated to the receiver as part of the resolution.
-    pub to_receiver: i128,
-    /// Unix timestamp when the event was emitted.
-    pub timestamp: u64,
-}
-
 /// Event emitted when additional funds are added to an existing stream.
 #[contracttype]
 #[derive(Clone, Debug)]
@@ -726,6 +710,98 @@ pub struct UpgradeCancelledEvent {
     pub cancelled_by: Address,
     /// Human-readable reason for the cancellation.
     pub reason: soroban_sdk::String,
+    /// Unix timestamp when the event was emitted.
+    pub timestamp: u64,
+}
+
+// ========== Dispute Resolution Types ==========
+
+/// Possible resolutions for a stream dispute.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DisputeResolution {
+    /// Refund `i128` amount to the sender.
+    RefundSender(i128),
+    /// Pay `i128` amount to the receiver.
+    PayReceiver(i128),
+    /// Freeze the stream pending further review.
+    FreezeStream,
+    /// Cancel the stream entirely.
+    CancelStream,
+}
+
+/// A dispute raised by either party of a stream, to be resolved by arbitrators.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct Dispute {
+    /// Unique dispute ID.
+    pub dispute_id: u64,
+    /// ID of the stream under dispute.
+    pub stream_id: u64,
+    /// Address that raised the dispute (sender or receiver).
+    pub raised_by: Address,
+    /// Human-readable reason for the dispute.
+    pub reason: soroban_sdk::String,
+    /// Proposed resolution by the raiser.
+    pub proposed_resolution: DisputeResolution,
+    /// Arbitrator votes: address -> approve (true) / reject (false).
+    pub arbitrator_votes: Map<Address, bool>,
+    /// Whether the dispute has been resolved.
+    pub resolved: bool,
+    /// Unix timestamp when the dispute was raised.
+    pub raised_at: u64,
+    /// Unix timestamp after which the dispute can no longer be voted on.
+    pub deadline: u64,
+    /// Number of arbitrator approvals required to auto-execute the resolution.
+    pub required_votes: u32,
+}
+
+/// Event emitted when a dispute is raised.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct DisputeRaisedEvent {
+    /// ID of the newly raised dispute.
+    pub dispute_id: u64,
+    /// ID of the stream under dispute.
+    pub stream_id: u64,
+    /// Address that raised the dispute.
+    pub raised_by: Address,
+    /// Human-readable reason for the dispute.
+    pub reason: soroban_sdk::String,
+    /// Proposed resolution.
+    pub proposed_resolution: DisputeResolution,
+    /// Unix timestamp when the event was emitted.
+    pub timestamp: u64,
+}
+
+/// Event emitted when an arbitrator votes on a dispute.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct DisputeVotedEvent {
+    /// ID of the dispute voted on.
+    pub dispute_id: u64,
+    /// Address of the arbitrator who voted.
+    pub arbitrator: Address,
+    /// Whether the arbitrator approved the proposed resolution.
+    pub approve: bool,
+    /// Number of approvals the dispute has received so far.
+    pub approval_count: u32,
+    /// Number of approvals required to auto-execute.
+    pub required_votes: u32,
+    /// Unix timestamp when the event was emitted.
+    pub timestamp: u64,
+}
+
+/// Event emitted when a dispute is resolved and its resolution auto-executes.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct DisputeResolvedEvent {
+    /// ID of the resolved dispute.
+    pub dispute_id: u64,
+    /// ID of the stream the dispute was resolved for.
+    pub stream_id: u64,
+    /// The resolution that was executed.
+    pub resolution: DisputeResolution,
     /// Unix timestamp when the event was emitted.
     pub timestamp: u64,
 }

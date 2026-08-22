@@ -59,4 +59,26 @@ pub enum Error {
     BatchSizeExceeded = 25,
     /// Stream is not paused (cannot resume)
     StreamNotPaused = 26,
+    /// The caller is not the stream's receiver.
+    NotReceiver = 27,
+    /// The withdrawable amount is zero or negative.
+    InsufficientWithdrawable = 28,
+    /// No dispute exists for the given dispute ID.
+    DisputeNotFound = 29,
+    /// The caller is not a party to the dispute (neither sender nor receiver).
+    NotDisputeParty = 30,
+    /// The caller is not an authorized arbitrator.
+    NotArbitrator = 31,
+    /// The dispute has already been resolved.
+    DisputeAlreadyResolved = 32,
+    /// The stream has an active dispute and operations are blocked.
+    DisputeInProgress = 33,
+    /// The arbitrator has already voted on this dispute.
+    AlreadyVoted = 34,
+    /// The dispute has not received enough votes to be resolved.
+    InsufficientVotes = 35,
+    /// The dispute has expired and can no longer be voted on.
+    DisputeExpired = 36,
+    /// The proposed resolution is invalid for the given dispute.
+    InvalidResolution = 37,
 }

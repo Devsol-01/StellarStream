@@ -30,7 +30,7 @@ mod cliff_test;
 mod allowlist_test;
 #[cfg(all(test, feature = "clawback_tests"))]
 mod clawback_test;
-#[cfg(all(test, feature = "dispute_tests"))]
+#[cfg(test)]
 mod dispute_test;
 #[cfg(test)]
 mod soulbound_test;
@@ -74,10 +74,14 @@ mod ttl_stress_test;
 mod test;
 
 use errors::Error;
-use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Map, Vec};
-use storage::{PROPOSAL_COUNT, RECEIPT, RESTRICTED_ADDRESSES, STREAM_COUNT};
+use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Map, String, Vec};
+use storage::{
+    ARBITRATORS, DISPUTE, DISPUTE_COUNT, PROPOSAL_COUNT, RECEIPT, RESTRICTED_ADDRESSES,
+    STREAM_COUNT,
+};
 use types::{
-    ContributorRequest, CurveType, DataKey, Milestone, ProposalApprovedEvent, ProposalCreatedEvent,
+    ContributorRequest, CurveType, DataKey, Dispute, DisputeRaisedEvent, DisputeResolution,
+    DisputeResolvedEvent, DisputeVotedEvent, Milestone, ProposalApprovedEvent, ProposalCreatedEvent,
     ReceiptMetadata, RequestCreatedEvent, RequestExecutedEvent, RequestKey, RequestStatus, Role,
     Stream, StreamCreatedEvent, StreamOptions, StreamProposal, StreamReceipt, StreamRequest,
     StreamResumedEvent, StreamState,
@@ -1404,10 +1408,15 @@ impl StellarStreamContract {
     ///
     /// # Errors
     /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
-    /// * [`Error::Unauthorized`] - `caller` is not the stream's `receiver`
+    /// * [`Error::NotReceiver`] - `caller` is not the stream's `receiver`
     /// * [`Error::AlreadyCancelled`] - The stream is [`StreamState::Closed`]
     /// * [`Error::StreamPaused`] - The stream is currently paused
-    /// * [`Error::InsufficientBalance`] - Nothing is currently withdrawable
+    /// * [`Error::InsufficientWithdrawable`] - Nothing is currently withdrawable
+    ///
+    /// # Notes
+    /// The final withdrawal transfers the exact remaining balance (`total_amount -
+    /// withdrawn_amount`) to handle rounding dust. The function extends storage TTL
+    /// and emits a [`StreamClaimEvent`] with the withdrawn amount.
     pub fn withdraw(env: Env, stream_id: u64, caller: Address) -> Result<i128, Error> {
         caller.require_auth();
 
@@ -1419,7 +1428,7 @@ impl StellarStreamContract {
             .ok_or(Error::StreamNotFound)?;
 
         if stream.receiver != caller {
-            return Err(Error::Unauthorized);
+            return Err(Error::NotReceiver);
         }
 
         if stream.state == StreamState::Closed {
@@ -1431,10 +1440,17 @@ impl StellarStreamContract {
 
         let current_time = env.ledger().timestamp();
         let unlocked = Self::calculate_unlocked(&stream, current_time);
-        let to_withdraw = unlocked - stream.withdrawn_amount;
+
+        // For the final withdrawal, transfer the exact remaining balance to
+        // handle rounding dust and prevent contract insolvency.
+        let to_withdraw = if current_time >= stream.end_time {
+            stream.total_amount - stream.withdrawn_amount
+        } else {
+            unlocked - stream.withdrawn_amount
+        };
 
         if to_withdraw <= 0 {
-            return Err(Error::InsufficientBalance);
+            return Err(Error::InsufficientWithdrawable);
         }
 
         stream.withdrawn_amount += to_withdraw;
@@ -1445,6 +1461,9 @@ impl StellarStreamContract {
 
         env.storage().instance().set(&key, &stream);
 
+        // Extend storage TTL for long-lived streams
+        Self::extend_contract_ttl(&env);
+
         Self::update_token_tvl(&env, stream.token.clone(), -to_withdraw);
 
         let token_client = token::Client::new(&env, &stream.token);
@@ -1452,6 +1471,18 @@ impl StellarStreamContract {
             &env.current_contract_address(),
             &stream.receiver,
             &to_withdraw,
+        );
+
+        // Emit Withdrawal event
+        env.events().publish(
+            (symbol_short!("withdraw"), stream_id),
+            types::StreamClaimEvent {
+                stream_id,
+                claimer: caller,
+                amount: to_withdraw,
+                total_claimed: stream.withdrawn_amount,
+                timestamp: current_time,
+            },
         );
 
         Ok(to_withdraw)
@@ -1548,7 +1579,7 @@ impl StellarStreamContract {
                 .ok_or(Error::StreamNotFound)?;
 
             if stream.receiver != caller {
-                return Err(Error::Unauthorized);
+                return Err(Error::NotReceiver);
             }
             if stream.state == StreamState::Closed {
                 return Err(Error::AlreadyCancelled);
@@ -1560,7 +1591,7 @@ impl StellarStreamContract {
             let unlocked = Self::calculate_unlocked(&stream, current_time);
             let to_withdraw = unlocked - stream.withdrawn_amount;
             if to_withdraw <= 0 {
-                return Err(Error::InsufficientBalance);
+                return Err(Error::InsufficientWithdrawable);
             }
 
             stream.withdrawn_amount += to_withdraw;
@@ -1729,15 +1760,13 @@ impl StellarStreamContract {
         match stream.curve_type {
             CurveType::Linear => (stream.total_amount * effective_elapsed) / duration,
             CurveType::Exponential => {
-                // Use exponential curve with overflow protection
-                let adjusted_start = stream.start_time;
-                let adjusted_current = stream.start_time + effective_elapsed as u64;
-
-                math::calculate_exponential_unlocked(
+                // Use exponential curve with overflow protection and paused duration
+                math::calculate_unlocked_exponential(
                     stream.total_amount,
-                    adjusted_start,
+                    stream.start_time,
                     stream.end_time,
-                    adjusted_current,
+                    effective_time,
+                    stream.total_paused_duration,
                 )
                 .unwrap_or((stream.total_amount * effective_elapsed) / duration)
             }
@@ -2047,6 +2076,502 @@ impl StellarStreamContract {
             .ok_or(Error::StreamNotFound)?;
         stream.receipt_owner = new_owner;
         env.storage().instance().set(&stream_key, &stream);
+        Ok(())
+    }
+
+    // ========== Dispute Resolution Framework ==========
+
+    /// Adds an address to the authorized arbitrator list. Caller must hold
+    /// [`Role::SuperAdmin`].
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `admin` - Caller; must authenticate this call and hold [`Role::SuperAdmin`]
+    /// * `arbitrator` - Address to add as an arbitrator
+    ///
+    /// # Panics
+    /// Panics with [`Error::Unauthorized`] if `admin` does not hold [`Role::SuperAdmin`].
+    pub fn add_arbitrator(env: Env, admin: Address, arbitrator: Address) {
+        admin.require_auth();
+        if !Self::has_role(&env, &admin, Role::SuperAdmin) {
+            soroban_sdk::panic_with_error!(&env, Error::Unauthorized);
+        }
+        let mut arbitrators: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&ARBITRATORS)
+            .unwrap_or(Vec::new(&env));
+        if !arbitrators.contains(arbitrator.clone()) {
+            arbitrators.push_back(arbitrator);
+            env.storage().instance().set(&ARBITRATORS, &arbitrators);
+        }
+    }
+
+    /// Removes an address from the authorized arbitrator list. Caller must hold
+    /// [`Role::SuperAdmin`].
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `admin` - Caller; must authenticate this call and hold [`Role::SuperAdmin`]
+    /// * `arbitrator` - Address to remove from the arbitrator list
+    ///
+    /// # Panics
+    /// Panics with [`Error::Unauthorized`] if `admin` does not hold [`Role::SuperAdmin`].
+    pub fn remove_arbitrator(env: Env, admin: Address, arbitrator: Address) {
+        admin.require_auth();
+        if !Self::has_role(&env, &admin, Role::SuperAdmin) {
+            soroban_sdk::panic_with_error!(&env, Error::Unauthorized);
+        }
+        let arbitrators: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&ARBITRATORS)
+            .unwrap_or(Vec::new(&env));
+        let mut new_list = Vec::new(&env);
+        for a in arbitrators.iter() {
+            if a != arbitrator {
+                new_list.push_back(a.clone());
+            }
+        }
+        env.storage().instance().set(&ARBITRATORS, &new_list);
+    }
+
+    /// Returns the list of authorized arbitrators.
+    pub fn get_arbitrators(env: Env) -> Vec<Address> {
+        env.storage()
+            .instance()
+            .get(&ARBITRATORS)
+            .unwrap_or(Vec::new(&env))
+    }
+
+    /// Checks whether an address is an authorized arbitrator.
+    pub fn is_arbitrator(env: Env, address: Address) -> bool {
+        let arbitrators: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&ARBITRATORS)
+            .unwrap_or(Vec::new(&env));
+        arbitrators.contains(address)
+    }
+
+    /// Sets an arbiter for a specific stream. Only the stream's `sender` may set
+    /// the arbiter.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to set the arbiter for
+    /// * `caller` - Address performing the operation; must authenticate this call and
+    ///   must be the stream's `sender`
+    /// * `arbiter` - Address to set as the stream's arbiter
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::Unauthorized`] - `caller` is not the stream's `sender`
+    pub fn set_arbiter(
+        env: Env,
+        stream_id: u64,
+        caller: Address,
+        arbiter: Address,
+    ) -> Result<(), Error> {
+        caller.require_auth();
+        let key = (STREAM_COUNT, stream_id);
+        let mut stream: Stream = env
+            .storage()
+            .instance()
+            .get(&key)
+            .ok_or(Error::StreamNotFound)?;
+        if stream.sender != caller {
+            return Err(Error::Unauthorized);
+        }
+        stream.arbiter = Some(arbiter);
+        env.storage().instance().set(&key, &stream);
+        Ok(())
+    }
+
+    /// Freezes a stream pending dispute resolution. Only the stream's arbiter may
+    /// freeze it.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to freeze
+    /// * `arbiter` - Address performing the freeze; must authenticate this call and
+    ///   must be the stream's arbiter
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::Unauthorized`] - `arbiter` is not the stream's arbiter
+    pub fn freeze_stream(env: Env, stream_id: u64, arbiter: Address) -> Result<(), Error> {
+        arbiter.require_auth();
+        let key = (STREAM_COUNT, stream_id);
+        let mut stream: Stream = env
+            .storage()
+            .instance()
+            .get(&key)
+            .ok_or(Error::StreamNotFound)?;
+        if stream.arbiter.as_ref() != Some(&arbiter) {
+            return Err(Error::Unauthorized);
+        }
+        stream.is_frozen = true;
+        env.storage().instance().set(&key, &stream);
+        env.events().publish(
+            (symbol_short!("freeze"), stream_id),
+            types::StreamFrozenEvent {
+                stream_id,
+                arbiter,
+                timestamp: env.ledger().timestamp(),
+            },
+        );
+        Ok(())
+    }
+
+    /// Unfreezes a stream after dispute resolution. Only the stream's arbiter may
+    /// unfreeze it.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to unfreeze
+    /// * `arbiter` - Address performing the unfreeze; must authenticate this call and
+    ///   must be the stream's arbiter
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::Unauthorized`] - `arbiter` is not the stream's arbiter
+    pub fn unfreeze_stream(env: Env, stream_id: u64, arbiter: Address) -> Result<(), Error> {
+        arbiter.require_auth();
+        let key = (STREAM_COUNT, stream_id);
+        let mut stream: Stream = env
+            .storage()
+            .instance()
+            .get(&key)
+            .ok_or(Error::StreamNotFound)?;
+        if stream.arbiter.as_ref() != Some(&arbiter) {
+            return Err(Error::Unauthorized);
+        }
+        stream.is_frozen = false;
+        env.storage().instance().set(&key, &stream);
+        Ok(())
+    }
+
+    /// Resolves a dispute on a stream by distributing the remaining balance between
+    /// sender and receiver. Only the stream's arbiter may resolve a dispute.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to resolve
+    /// * `arbiter` - Address performing the resolution; must authenticate this call and
+    ///   must be the stream's arbiter
+    /// * `receiver_amount` - Amount (in basis points, 0-10000) to allocate to the receiver;
+    ///   the remainder goes to the sender
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::Unauthorized`] - `arbiter` is not the stream's arbiter
+    pub fn resolve_dispute(
+        env: Env,
+        stream_id: u64,
+        arbiter: Address,
+        receiver_amount: i128,
+    ) -> Result<(), Error> {
+        arbiter.require_auth();
+        let key = (STREAM_COUNT, stream_id);
+        let mut stream: Stream = env
+            .storage()
+            .instance()
+            .get(&key)
+            .ok_or(Error::StreamNotFound)?;
+        if stream.arbiter.as_ref() != Some(&arbiter) {
+            return Err(Error::Unauthorized);
+        }
+
+        let remaining = stream.total_amount - stream.withdrawn_amount;
+        let to_receiver = (remaining * receiver_amount) / 10_000;
+        let to_sender = remaining - to_receiver;
+
+        stream.state = StreamState::Closed;
+        stream.is_frozen = false;
+        stream.withdrawn_amount = stream.total_amount;
+        env.storage().instance().set(&key, &stream);
+
+        Self::update_token_tvl(&env, stream.token.clone(), -remaining);
+
+        let token_client = token::Client::new(&env, &stream.token);
+        if to_receiver > 0 {
+            token_client.transfer(
+                &env.current_contract_address(),
+                &stream.receiver,
+                &to_receiver,
+            );
+        }
+        if to_sender > 0 {
+            token_client.transfer(&env.current_contract_address(), &stream.sender, &to_sender);
+        }
+
+        env.events().publish(
+            (symbol_short!("resolve"), stream_id),
+            types::DisputeResolvedEvent {
+                dispute_id: 0,
+                stream_id,
+                resolution: DisputeResolution::CancelStream,
+                timestamp: env.ledger().timestamp(),
+            },
+        );
+
+        Ok(())
+    }
+
+    /// Raises a dispute on a stream. Only the stream's sender or receiver may raise
+    /// a dispute.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - ID of the stream to dispute
+    /// * `caller` - Address raising the dispute; must authenticate this call and must
+    ///   be the stream's `sender` or `receiver`
+    /// * `reason` - Human-readable reason for the dispute
+    /// * `proposed_resolution` - Proposed resolution for the dispute
+    ///
+    /// # Returns
+    /// The newly created dispute's ID.
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`] - No stream exists for `stream_id`
+    /// * [`Error::NotDisputeParty`] - `caller` is neither the sender nor the receiver
+    pub fn raise_dispute(
+        env: Env,
+        stream_id: u64,
+        caller: Address,
+        reason: String,
+        proposed_resolution: DisputeResolution,
+    ) -> Result<u64, Error> {
+        caller.require_auth();
+        let key = (STREAM_COUNT, stream_id);
+        let stream: Stream = env
+            .storage()
+            .instance()
+            .get(&key)
+            .ok_or(Error::StreamNotFound)?;
+
+        if stream.sender != caller && stream.receiver != caller {
+            return Err(Error::NotDisputeParty);
+        }
+
+        let dispute_id: u64 = env.storage().instance().get(&DISPUTE_COUNT).unwrap_or(0);
+        let next_id = dispute_id + 1;
+        let now = env.ledger().timestamp();
+
+        let dispute = Dispute {
+            dispute_id,
+            stream_id,
+            raised_by: caller.clone(),
+            reason,
+            proposed_resolution,
+            arbitrator_votes: Map::new(&env),
+            resolved: false,
+            raised_at: now,
+            deadline: now + 7 * 24 * 60 * 60, // 7 days
+            required_votes: 1,
+        };
+
+        env.storage()
+            .instance()
+            .set(&(DISPUTE, dispute_id), &dispute);
+        env.storage().instance().set(&DISPUTE_COUNT, &next_id);
+
+        // Freeze the stream while dispute is active
+        let mut stream = stream;
+        stream.is_frozen = true;
+        env.storage().instance().set(&key, &stream);
+
+        env.events().publish(
+            (symbol_short!("dispute"), dispute_id),
+            DisputeRaisedEvent {
+                dispute_id,
+                stream_id,
+                raised_by: caller,
+                reason: dispute.reason.clone(),
+                proposed_resolution: dispute.proposed_resolution.clone(),
+                timestamp: now,
+            },
+        );
+
+        Ok(dispute_id)
+    }
+
+    /// Votes on a dispute. Only authorized arbitrators may vote.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `dispute_id` - ID of the dispute to vote on
+    /// * `arbitrator` - Address casting the vote; must authenticate this call and must
+    ///   be an authorized arbitrator
+    /// * `approve` - Whether the arbitrator approves the proposed resolution
+    ///
+    /// # Errors
+    /// * [`Error::DisputeNotFound`] - No dispute exists for `dispute_id`
+    /// * [`Error::NotArbitrator`] - `arbitrator` is not an authorized arbitrator
+    /// * [`Error::DisputeAlreadyResolved`] - The dispute has already been resolved
+    /// * [`Error::AlreadyVoted`] - `arbitrator` has already voted on this dispute
+    /// * [`Error::DisputeExpired`] - The dispute has passed its deadline
+    pub fn vote_on_dispute(
+        env: Env,
+        dispute_id: u64,
+        arbitrator: Address,
+        approve: bool,
+    ) -> Result<(), Error> {
+        arbitrator.require_auth();
+
+        let key = (DISPUTE, dispute_id);
+        let mut dispute: Dispute = env
+            .storage()
+            .instance()
+            .get(&key)
+            .ok_or(Error::DisputeNotFound)?;
+
+        if dispute.resolved {
+            return Err(Error::DisputeAlreadyResolved);
+        }
+
+        let now = env.ledger().timestamp();
+        if now > dispute.deadline {
+            return Err(Error::DisputeExpired);
+        }
+
+        // Check arbitrator authorization
+        let arbitrators: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&ARBITRATORS)
+            .unwrap_or(Vec::new(&env));
+        if !arbitrators.contains(arbitrator.clone()) {
+            return Err(Error::NotArbitrator);
+        }
+
+        if dispute.arbitrator_votes.contains_key(arbitrator.clone()) {
+            return Err(Error::AlreadyVoted);
+        }
+
+        dispute.arbitrator_votes.set(arbitrator.clone(), approve);
+
+        // Count approvals
+        let mut approval_count: u32 = 0;
+        for (_, vote) in dispute.arbitrator_votes.iter() {
+            if vote {
+                approval_count += 1;
+            }
+        }
+
+        // Auto-execute when threshold reached
+        if approval_count >= dispute.required_votes {
+            dispute.resolved = true;
+            env.storage().instance().set(&key, &dispute);
+
+            // Execute the resolution
+            Self::execute_dispute_resolution(&env, &dispute)?;
+        } else {
+            env.storage().instance().set(&key, &dispute);
+        }
+
+        env.events().publish(
+            (symbol_short!("vote"), dispute_id),
+            DisputeVotedEvent {
+                dispute_id,
+                arbitrator,
+                approve,
+                approval_count,
+                required_votes: dispute.required_votes,
+                timestamp: now,
+            },
+        );
+
+        Ok(())
+    }
+
+    /// Fetches a dispute by ID.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `dispute_id` - ID of the dispute to fetch
+    ///
+    /// # Returns
+    /// `None` if no dispute exists for `dispute_id`.
+    pub fn get_dispute(env: Env, dispute_id: u64) -> Option<Dispute> {
+        env.storage().instance().get(&(DISPUTE, dispute_id))
+    }
+
+    /// Internal helper: executes a dispute resolution once the vote threshold is met.
+    fn execute_dispute_resolution(env: &Env, dispute: &Dispute) -> Result<(), Error> {
+        let stream_key = (STREAM_COUNT, dispute.stream_id);
+        let mut stream: Stream = env
+            .storage()
+            .instance()
+            .get(&stream_key)
+            .ok_or(Error::StreamNotFound)?;
+
+        match &dispute.proposed_resolution {
+            DisputeResolution::RefundSender(amount) => {
+                let refund = (*amount).min(stream.total_amount - stream.withdrawn_amount);
+                stream.withdrawn_amount += refund;
+                stream.state = StreamState::Closed;
+                stream.is_frozen = false;
+                env.storage().instance().set(&stream_key, &stream);
+                Self::update_token_tvl(env, stream.token.clone(), -refund);
+                let token_client = token::Client::new(env, &stream.token);
+                if refund > 0 {
+                    token_client.transfer(
+                        &env.current_contract_address(),
+                        &stream.sender,
+                        &refund,
+                    );
+                }
+            }
+            DisputeResolution::PayReceiver(amount) => {
+                let pay = (*amount).min(stream.total_amount - stream.withdrawn_amount);
+                stream.withdrawn_amount += pay;
+                stream.state = StreamState::Closed;
+                stream.is_frozen = false;
+                env.storage().instance().set(&stream_key, &stream);
+                Self::update_token_tvl(env, stream.token.clone(), -pay);
+                let token_client = token::Client::new(env, &stream.token);
+                if pay > 0 {
+                    token_client.transfer(
+                        &env.current_contract_address(),
+                        &stream.receiver,
+                        &pay,
+                    );
+                }
+            }
+            DisputeResolution::FreezeStream => {
+                stream.is_frozen = true;
+                env.storage().instance().set(&stream_key, &stream);
+            }
+            DisputeResolution::CancelStream => {
+                let remaining = stream.total_amount - stream.withdrawn_amount;
+                stream.state = StreamState::Closed;
+                stream.is_frozen = false;
+                stream.withdrawn_amount = stream.total_amount;
+                env.storage().instance().set(&stream_key, &stream);
+                Self::update_token_tvl(env, stream.token.clone(), -remaining);
+                let token_client = token::Client::new(env, &stream.token);
+                if remaining > 0 {
+                    token_client.transfer(
+                        &env.current_contract_address(),
+                        &stream.receiver,
+                        &remaining,
+                    );
+                }
+            }
+        }
+
+        env.events().publish(
+            (symbol_short!("resolved"), dispute.dispute_id),
+            DisputeResolvedEvent {
+                dispute_id: dispute.dispute_id,
+                stream_id: dispute.stream_id,
+                resolution: dispute.proposed_resolution.clone(),
+                timestamp: env.ledger().timestamp(),
+            },
+        );
+
         Ok(())
     }
 }
