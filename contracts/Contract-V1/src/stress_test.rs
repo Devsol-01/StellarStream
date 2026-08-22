@@ -30,6 +30,33 @@ fn create_many(env: &Env, contract: &Address, sender: &Address, token: &Address,
     ids
 }
 
+/// Create `n` streams from `sender` to one fixed `receiver`, so that a single
+/// account can withdraw from all of them.
+fn create_many_to(
+    env: &Env,
+    contract: &Address,
+    sender: &Address,
+    receiver: &Address,
+    token: &Address,
+    n: u64,
+) -> Vec<u64> {
+    let mut ids = Vec::new(env);
+    for _ in 0..n {
+        let id = client(env, contract).create_stream(
+            sender,
+            receiver,
+            token,
+            &1_000_000i128,
+            &0u64,
+            &1_000u64,
+            &CURVE_LINEAR,
+            &false,
+        );
+        ids.push_back(id);
+    }
+    ids
+}
+
 /// Stress test #1: 1000 active streams can be created and individually retrieved.
 #[test]
 fn test_1000_active_streams() {
@@ -47,7 +74,14 @@ fn test_1000_active_streams() {
 #[test]
 fn test_100_concurrent_withdrawals() {
     let f = setup();
-    let ids = create_many(&f.env, &f.contract, &f.sender, &f.token, 100);
+    let ids = create_many_to(
+        &f.env,
+        &f.contract,
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        100,
+    );
     f.env.ledger().set_timestamp(500);
     let c = client(&f.env, &f.contract);
     let mut total = 0i128;
