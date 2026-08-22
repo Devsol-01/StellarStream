@@ -34,6 +34,65 @@
 //!
 //! See `METRICS.md` for the Prometheus exporter and Grafana setup that consume
 //! these two functions.
+//! - Configurable protocol fee collected to a treasury on stream creation
+//!
+//! # Protocol fee
+//!
+//! Creating a stream charges a protocol fee **on top of** the streamed amount.
+//! A stream of 1_000 tokens at 100 bps costs the sender 1_010 tokens: 1_000
+//! remain streamable to the receiver and 10 go to the treasury. The stream's
+//! `total_amount` is never reduced by the fee, so a receiver is always owed
+//! exactly what the stream says.
+//!
+//! - The rate is stored in basis points, where 10_000 bps is 100%
+//!   ([`BPS_DENOMINATOR`]), and is capped at [`MAX_FEE_BPS`] (1_000 bps = 10%).
+//!   The cap is enforced on write, so an out-of-range rate can never be
+//!   observed by `create_stream`.
+//! - The fee is `amount * fee_bps / 10_000`, rounded down, computed with
+//!   checked multiplication so a large amount reports [`Error::Overflow`]
+//!   instead of wrapping.
+//! - A rate of `0` disables collection: no token transfer is attempted and no
+//!   treasury is required.
+//! - With a non-zero rate and no treasury configured, `create_stream` fails
+//!   with [`Error::TreasuryNotSet`] rather than quietly skipping the fee.
+//! - Collection and stream creation share one invocation, so they succeed or
+//!   fail together. A sender who cannot cover `amount + fee` creates no stream.
+//! - [`StellarStreamContract::set_protocol_fee`] and
+//!   [`StellarStreamContract::set_treasury_address`] require [`ROLE_TREASURY`]
+//!   or [`ROLE_ADMIN`].
+//!
+//! Streams created by multi-signature proposal execution are not charged: the
+//! fee transfer debits the sender, and proposal execution runs under the
+//! approvers' authorization rather than the sender's.
+//! - Configurable protocol fee collected to a treasury on stream creation
+//!
+//! # Protocol fees
+//!
+//! The protocol charges a fee, expressed in basis points, every time a stream
+//! is created through [`StellarStreamContract::create_stream`].
+//!
+//! The fee is charged **on top of** the stream amount, never taken out of it.
+//! A 1_000_000-unit stream at 100 bps (1%) leaves the receiver entitled to the
+//! full 1_000_000 and moves a further 10_000 to the treasury, so the sender
+//! parts with 1_010_000 in total. This keeps `total_amount` a promise to the
+//! receiver rather than a number the protocol quietly shaves.
+//!
+//! Both transfers happen inside one invocation. If the sender cannot cover
+//! `amount + fee`, the token transfer traps and the stream creation is rolled
+//! back with it — there is no state in which a stream exists but its fee went
+//! uncollected.
+//!
+//! The rate is capped at [`MAX_FEE_BPS`] (10%) at the point it is written, so
+//! an out-of-range rate can never reach stream creation. A rate of `0` is
+//! valid and short-circuits before any token call. Fee settings are managed by
+//! accounts holding [`ROLE_TREASURY`] or [`ROLE_ADMIN`] via
+//! [`StellarStreamContract::set_protocol_fee`] and
+//! [`StellarStreamContract::set_treasury_address`]; callers can preview the
+//! charge with [`StellarStreamContract::calculate_protocol_fee`].
+//!
+//! Streams created by multi-signature proposal execution are not charged,
+//! because that path creates the stream under the approvers' authorization
+//! rather than the sender's and so cannot move the sender's tokens.
 //!
 //! See `contracts/Contract-V1/README.md` for the full specification.
 
@@ -66,7 +125,10 @@ const LASTACT: Symbol = symbol_short!("LASTACT");
 const BUCKETS: Symbol = symbol_short!("BUCKETS");
 const USERSEEN: Symbol = symbol_short!("USERSEEN");
 const LASTPRUNE: Symbol = symbol_short!("LASTPRUN");
+const FEEBPS: Symbol = symbol_short!("FEEBPS");
+const TREASURY: Symbol = symbol_short!("TREASURY");
 const NEXTPROPOSAL: Symbol = symbol_short!("NEXTPROP");
+const HISTORY: Symbol = symbol_short!("HISTORY");
 
 // Stream state
 pub const STATE_ACTIVE: u32 = 0;
@@ -76,6 +138,13 @@ pub const STATE_CLOSED: u32 = 2;
 // Vesting curve
 pub const CURVE_LINEAR: u32 = 0;
 pub const CURVE_EXP: u32 = 1;
+pub const CURVE_MILESTONE: u32 = 2;
+
+// Protocol fee
+/// Denominator for basis-point math: 10_000 bps == 100%.
+pub const BPS_DENOMINATOR: i128 = 10_000;
+/// Hard ceiling on the protocol fee: 1_000 bps == 10%.
+pub const MAX_FEE_BPS: u32 = 1_000;
 
 // Monitoring
 /// Version reported by [`StellarStreamContract::health_check`].
@@ -131,6 +200,15 @@ pub enum Error {
     MetadataLabelTooLong = 35,
     TooManyTags = 36,
     TagTooLong = 37,
+    FeeTooHigh = 38,
+    TreasuryNotSet = 39,
+    StreamEnded = 33,
+    MetadataLabelTooLong = 34,
+    TooManyTags = 35,
+    TagTooLong = 36,
+    BatchSizeExceeded = 37,
+    InvalidMilestones = 38,
+    InvalidMilestonePercentages = 39,
 }
 
 // ---------------------------------------------------------------------------
@@ -161,6 +239,36 @@ pub struct Stream {
 // `Option<StreamMetadata>` field on `Stream`: soroban-sdk 22 cannot convert an
 // `Option<T>` whose `T` is a user `#[contracttype]` struct, which makes any
 // struct carrying such a field fail to build under `testutils`.
+    pub stream_metadata: Option<StreamMetadata>,
+    /// Present only when `curve_type == CURVE_MILESTONE`; see [`Milestone`].
+    pub milestones: Option<Vec<Milestone>>,
+}
+
+/// A single unlock checkpoint in a milestone-vesting schedule.
+///
+/// Milestone vesting unlocks tokens in discrete steps at fixed timestamps
+/// instead of continuously over time. Each milestone's `percentage` is a
+/// **cumulative** basis-point share (out of 10,000) of the stream's total
+/// amount — not an incremental slice on top of the previous milestone. For
+/// example, the schedule `[(3mo, 2500), (6mo, 5000), (12mo, 10000)]` means
+/// 25% is unlocked at 3 months, a *total* of 50% at 6 months, and 100% at 12
+/// months (not 25% + 25% + 50%).
+///
+/// A valid schedule must have strictly ascending `timestamp`s, strictly
+/// ascending `percentage`s, and a final `percentage` of exactly 10,000 bps.
+/// Before the first milestone's timestamp is reached, nothing is unlocked;
+/// between two reached milestones, the most recently reached milestone's
+/// percentage holds (no partial/gradual unlock in between).
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Milestone {
+    /// Ledger timestamp (seconds) at which this checkpoint is reached.
+    pub timestamp: u64,
+    /// Cumulative basis points (out of 10,000) unlocked once `timestamp` is reached.
+    pub percentage: u32,
+}
+
+// Stream metadata for categorization (issue #1466)
 // ---------------------------------------------------------------------------
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -228,6 +336,22 @@ pub struct MetricBucket {
     pub duration_sum: u64,
     /// Sum of created stream amounts, for the running average.
     pub amount_sum: i128,
+/// Emitted when a protocol fee is collected while creating a stream.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ProtocolFeeCollectedEvent {
+    /// Stream the fee was charged for.
+    pub stream_id: u64,
+    /// Account that paid the fee (the stream's sender).
+    pub payer: Address,
+    /// Treasury the fee was credited to.
+    pub treasury: Address,
+    /// Token the fee was denominated in (same token as the stream).
+    pub token: Address,
+    /// Fee actually transferred, in token units.
+    pub fee_amount: i128,
+    /// Fee rate applied, in basis points.
+    pub fee_bps: u32,
 }
 
 /// A pending multi-signature stream proposal.
@@ -259,6 +383,25 @@ pub struct StreamProposal {
     pub deadline: u64,
     /// Whether the proposal has been executed (stream already created).
     pub executed: bool,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum StreamAction {
+    Created,
+    Withdrawn(i128),
+    Paused,
+    Resumed,
+    ToppedUp(i128),
+    Cancelled,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamEvent {
+    pub stream_id: u64,
+    pub action: StreamAction,
+    pub timestamp: u64,
 }
 
 // Minimal token interface used by `withdraw`.
@@ -300,9 +443,10 @@ impl StellarStreamContract {
         end_time: u64,
         curve_type: u32,
         is_soulbound: bool,
+        milestones: Option<Vec<Milestone>>,
     ) -> Result<u64, Error> {
         sender.require_auth();
-        create_stream_internal(
+        let stream_id = create_stream_internal(
             &env,
             &sender,
             &receiver,
@@ -312,6 +456,14 @@ impl StellarStreamContract {
             end_time,
             curve_type,
             is_soulbound,
+        )?;
+        // Charged on top of `total_amount`, so the stream is funded in full and
+        // the sender pays `total_amount + fee`. A failure here (an unset
+        // treasury, or a sender who cannot cover the fee) reverts the whole
+        // invocation, including the stream just created.
+        collect_protocol_fee(&env, &sender, &token, stream_id, total_amount)?;
+        Ok(stream_id)
+            milestones,
         )
     }
 
@@ -386,6 +538,15 @@ impl StellarStreamContract {
 
         env.events()
             .publish((symbol_short!("proposal"), sender.clone()), id);
+
+        add_user_stream(&env, &sender, id);
+        add_user_stream(&env, &receiver, id);
+
+        env.storage().instance().set(&NEXTID, &next);
+
+        // Record history event
+        add_history(&env, id, StreamAction::Created);
+
         Ok(id)
     }
 
@@ -431,6 +592,7 @@ impl StellarStreamContract {
                 proposal.end_time,
                 CURVE_LINEAR,
                 false,
+                None,
             )?;
             proposal.executed = true;
             save_proposal(&env, proposal_id, &proposal);
@@ -479,6 +641,8 @@ impl StellarStreamContract {
         stream.state = STATE_CLOSED;
         save_stream(&env, &stream);
         record_stream_closed(&env, &stream);
+        // Record history event
+        add_history(&env, stream_id, StreamAction::Cancelled);
         Ok(())
     }
 
@@ -498,6 +662,8 @@ impl StellarStreamContract {
         stream.state = STATE_PAUSED;
         stream.last_paused_at = env.ledger().timestamp();
         save_stream(&env, &stream);
+        // Record history event
+        add_history(&env, stream_id, StreamAction::Paused);
         Ok(())
     }
 
@@ -521,6 +687,8 @@ impl StellarStreamContract {
         stream.state = STATE_ACTIVE;
         stream.last_paused_at = 0;
         save_stream(&env, &stream);
+        // Record history event
+        add_history(&env, stream_id, StreamAction::Resumed);
         Ok(())
     }
 
@@ -675,6 +843,64 @@ impl StellarStreamContract {
             avg_stream_amount,
             unique_users_24h,
         }
+    // ------------------------- Protocol fee -------------------------
+
+    /// Set the protocol fee charged on stream creation, in basis points.
+    ///
+    /// Requires the caller to hold [`ROLE_TREASURY`] or [`ROLE_ADMIN`]. The fee
+    /// is capped at [`MAX_FEE_BPS`] (1_000 bps = 10%); anything above that is
+    /// rejected with [`Error::FeeTooHigh`] so an out-of-range rate can never
+    /// reach `create_stream`. Passing `0` disables fee collection entirely.
+    pub fn set_protocol_fee(
+        env: Env,
+        treasury_manager: Address,
+        fee_bps: u32,
+    ) -> Result<(), Error> {
+        treasury_manager.require_auth();
+        require_treasury_manager(&env, &treasury_manager)?;
+        if fee_bps > MAX_FEE_BPS {
+            return Err(Error::FeeTooHigh);
+        }
+        env.storage().instance().set(&FEEBPS, &fee_bps);
+        env.events()
+            .publish((symbol_short!("set_fee"), treasury_manager), fee_bps);
+        Ok(())
+    }
+
+    /// Set the address protocol fees are paid to.
+    ///
+    /// Requires the caller to hold [`ROLE_TREASURY`] or [`ROLE_ADMIN`]. While no
+    /// treasury is set, any non-zero fee makes `create_stream` fail with
+    /// [`Error::TreasuryNotSet`] rather than silently skipping collection.
+    pub fn set_treasury_address(
+        env: Env,
+        treasury_manager: Address,
+        new_treasury: Address,
+    ) -> Result<(), Error> {
+        treasury_manager.require_auth();
+        require_treasury_manager(&env, &treasury_manager)?;
+        env.storage().instance().set(&TREASURY, &new_treasury);
+        env.events()
+            .publish((symbol_short!("set_treas"), treasury_manager), new_treasury);
+        Ok(())
+    }
+
+    /// Current protocol fee in basis points (`0` when no fee is configured).
+    pub fn get_protocol_fee(env: Env) -> u32 {
+        fee_bps(&env)
+    }
+
+    /// Current treasury address, or `None` if one has never been set.
+    pub fn get_treasury_address(env: Env) -> Option<Address> {
+        env.storage().instance().get(&TREASURY)
+    }
+
+    /// Fee that `create_stream` would charge on top of `amount`.
+    ///
+    /// Lets a caller work out the total it must be able to cover
+    /// (`amount + fee`) before committing to a stream.
+    pub fn calculate_protocol_fee(env: Env, amount: i128) -> Result<i128, Error> {
+        protocol_fee_for(&env, amount)
     }
 
     // ------------------------- Administrative -------------------------
@@ -819,6 +1045,87 @@ impl StellarStreamContract {
     pub fn next_stream_id(env: Env) -> u64 {
         env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1)
     }
+
+    // ------------------------- History Queries -------------------------
+
+    pub fn get_stream_history(env: Env, stream_id: u64) -> Vec<StreamEvent> {
+        get_history(&env).get(stream_id).unwrap_or(Vec::new(&env))
+    // ------------------------- Count Queries -------------------------
+
+    pub fn get_active_streams_count(env: Env) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_ACTIVE {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn get_user_active_streams_count(env: Env, user: Address) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_ACTIVE && (stream.sender == user || stream.receiver == user) {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn get_total_streams_count(env: Env) -> u64 {
+        let next_id = env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1);
+        next_id - 1
+    }
+
+    pub fn get_user_total_streams_count(env: Env, user: Address) -> u64 {
+        get_user_streams(&env, &user).len() as u64
+    }
+
+    pub fn get_paused_streams_count(env: Env) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_PAUSED {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn get_user_paused_streams_count(env: Env, user: Address) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_PAUSED && (stream.sender == user || stream.receiver == user) {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn get_closed_streams_count(env: Env) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_CLOSED {
+                count += 1;
+            }
+        }
+        count
+    }
+
+    pub fn get_user_closed_streams_count(env: Env, user: Address) -> u64 {
+        let streams = get_streams(&env);
+        let mut count = 0u64;
+        for (_, stream) in streams.iter() {
+            if stream.state == STATE_CLOSED && (stream.sender == user || stream.receiver == user) {
+                count += 1;
+            }
+        }
+        count
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -853,6 +1160,9 @@ fn withdraw_inner(env: &Env, stream_id: u64, receiver: &Address) -> Result<i128,
     // External token transfer (best-effort; a malicious token cannot double-spend
     // because state above is already committed).
     TokenClient::new(env, &stream.token).transfer(&stream.sender, receiver, &withdrawable);
+
+    // Record history event
+    add_history(env, stream_id, StreamAction::Withdrawn(withdrawable));
 
     Ok(withdrawable)
 }
@@ -894,6 +1204,14 @@ fn unlocked_amount(env: &Env, stream: &Stream) -> i128 {
                 _ => 0,
             }
         }
+        CURVE_MILESTONE => match &stream.milestones {
+            // Milestones are keyed to absolute ledger timestamps, not
+            // pause-adjusted elapsed time, so `now` is passed directly.
+            Some(milestones) => {
+                math::calculate_unlocked_milestone(stream.total_amount, now, milestones)
+            }
+            None => 0,
+        },
         _ => 0,
     };
     if unlocked < 0 {
@@ -952,6 +1270,7 @@ fn create_stream_internal(
     end_time: u64,
     curve_type: u32,
     is_soulbound: bool,
+    milestones: Option<Vec<Milestone>>,
 ) -> Result<u64, Error> {
     if is_contract_paused(env) {
         return Err(Error::ContractPaused);
@@ -959,7 +1278,7 @@ fn create_stream_internal(
     if env.storage().instance().get::<_, Address>(&ADMIN).is_none() {
         return Err(Error::Unauthorized);
     }
-    if curve_type != CURVE_LINEAR && curve_type != CURVE_EXP {
+    if curve_type != CURVE_LINEAR && curve_type != CURVE_EXP && curve_type != CURVE_MILESTONE {
         return Err(Error::InvalidCurve);
     }
     if total_amount <= 0 {
@@ -970,6 +1289,11 @@ fn create_stream_internal(
     }
     if is_restricted(env, sender) || is_restricted(env, receiver) {
         return Err(Error::AddressRestricted);
+    }
+    if curve_type == CURVE_MILESTONE {
+        validate_milestones(&milestones, end_time)?;
+    } else if milestones.is_some() {
+        return Err(Error::InvalidMilestones);
     }
 
     let mut next = env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1);
@@ -990,6 +1314,8 @@ fn create_stream_internal(
         is_soulbound,
         paused_duration: 0,
         last_paused_at: 0,
+        stream_metadata: None,
+        milestones,
     };
 
     let mut streams = get_streams(env);
@@ -1003,6 +1329,46 @@ fn create_stream_internal(
 
     env.storage().instance().set(&NEXTID, &next);
     Ok(id)
+}
+
+/// Validates a milestone-vesting schedule before it is attached to a stream.
+///
+/// Requires: a non-empty schedule, strictly ascending timestamps, strictly
+/// ascending cumulative percentages, a final percentage of exactly
+/// `math::BPS_DENOMINATOR` (10,000 bps = 100%), and a last-milestone timestamp
+/// no later than the stream's `end_time` (otherwise the stream's end-of-term
+/// fast path in `unlocked_amount` could release 100% before the schedule says
+/// it should).
+fn validate_milestones(milestones: &Option<Vec<Milestone>>, end_time: u64) -> Result<(), Error> {
+    let milestones = milestones.as_ref().ok_or(Error::InvalidMilestones)?;
+    if milestones.is_empty() {
+        return Err(Error::InvalidMilestones);
+    }
+
+    let mut prev_timestamp: Option<u64> = None;
+    let mut prev_percentage: u32 = 0;
+    for i in 0..milestones.len() {
+        let m = milestones.get(i).unwrap();
+        if let Some(prev) = prev_timestamp {
+            if m.timestamp <= prev {
+                return Err(Error::InvalidMilestones);
+            }
+        }
+        if m.percentage <= prev_percentage {
+            return Err(Error::InvalidMilestonePercentages);
+        }
+        prev_timestamp = Some(m.timestamp);
+        prev_percentage = m.percentage;
+    }
+
+    if prev_percentage as i128 != math::BPS_DENOMINATOR {
+        return Err(Error::InvalidMilestonePercentages);
+    }
+    if prev_timestamp.unwrap() > end_time {
+        return Err(Error::InvalidTimeRange);
+    }
+
+    Ok(())
 }
 
 fn get_proposals(env: &Env) -> Map<u64, StreamProposal> {
@@ -1195,10 +1561,93 @@ fn adjust_tvl(env: &Env, token: &Address, delta: i128) {
     let next = current.saturating_add(delta);
     tvl.set(token.clone(), if next < 0 { 0 } else { next });
     env.storage().instance().set(&TVL, &tvl);
+/// Protocol fee rate in basis points; `0` when unset.
+fn fee_bps(env: &Env) -> u32 {
+    env.storage().instance().get(&FEEBPS).unwrap_or(0)
+}
+
+/// Fee owed on `amount` at the current rate, rounded down.
+///
+/// The multiplication is checked so that a very large `amount` reports
+/// [`Error::Overflow`] instead of wrapping into a nonsensical fee.
+fn protocol_fee_for(env: &Env, amount: i128) -> Result<i128, Error> {
+    let bps = fee_bps(env);
+    if bps == 0 || amount <= 0 {
+        return Ok(0);
+    }
+    amount
+        .checked_mul(bps as i128)
+        .map(|scaled| scaled / BPS_DENOMINATOR)
+        .ok_or(Error::Overflow)
+}
+
+/// Transfer the protocol fee for `amount` from `sender` to the treasury.
+///
+/// Returns the fee charged. A zero fee short-circuits without touching the
+/// token contract, so a zero-fee protocol costs nothing extra to run.
+fn collect_protocol_fee(
+    env: &Env,
+    sender: &Address,
+    token: &Address,
+    stream_id: u64,
+    amount: i128,
+) -> Result<i128, Error> {
+    let fee = protocol_fee_for(env, amount)?;
+    if fee == 0 {
+        return Ok(0);
+    }
+    let treasury = env
+        .storage()
+        .instance()
+        .get::<_, Address>(&TREASURY)
+        .ok_or(Error::TreasuryNotSet)?;
+
+    TokenClient::new(env, token).transfer(sender, &treasury, &fee);
+
+    env.events().publish(
+        (symbol_short!("fee"), sender.clone()),
+        ProtocolFeeCollectedEvent {
+            stream_id,
+            payer: sender.clone(),
+            treasury,
+            token: token.clone(),
+            fee_amount: fee,
+            fee_bps: fee_bps(env),
+        },
+    );
+    Ok(fee)
+}
+
+/// Fee settings may be changed by a treasury manager or by an admin.
+fn require_treasury_manager(env: &Env, account: &Address) -> Result<(), Error> {
+    if has_role(env, account, ROLE_TREASURY) || has_role(env, account, ROLE_ADMIN) {
+        Ok(())
+    } else {
+        Err(Error::Unauthorized)
+    }
 }
 
 fn is_contract_paused(env: &Env) -> bool {
     env.storage().instance().get(&PAUSED).unwrap_or(false)
+}
+
+fn get_history(env: &Env) -> Map<u64, Vec<StreamEvent>> {
+    env.storage()
+        .persistent()
+        .get(&HISTORY)
+        .unwrap_or(Map::new(env))
+}
+
+fn add_history(env: &Env, stream_id: u64, action: StreamAction) {
+    let mut history = get_history(env);
+    let mut events = history.get(stream_id).unwrap_or(Vec::new(env));
+    events.push_back(StreamEvent {
+        stream_id,
+        action,
+        timestamp: env.ledger().timestamp(),
+    });
+    history.set(stream_id, events);
+    env.storage().persistent().set(&HISTORY, &history);
 }
 
 fn is_restricted(env: &Env, target: &Address) -> bool {
@@ -1288,3 +1737,4 @@ mod security_test;
 
 #[cfg(test)]
 mod metrics_test;
+mod fee_test;
