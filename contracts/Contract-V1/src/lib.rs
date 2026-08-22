@@ -37,6 +37,7 @@ const STREAMS: Symbol = symbol_short!("STREAMS");
 const USTREAMS: Symbol = symbol_short!("USTREAMS");
 const PROPOSALS: Symbol = symbol_short!("PROPOSALS");
 const NEXTPROPOSAL: Symbol = symbol_short!("NEXTPROP");
+const HISTORY: Symbol = symbol_short!("HISTORY");
 
 // Stream state
 pub const STATE_ACTIVE: u32 = 0;
@@ -193,6 +194,25 @@ pub struct StreamProposal {
     pub executed: bool,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum StreamAction {
+    Created,
+    Withdrawn(i128),
+    Paused,
+    Resumed,
+    ToppedUp(i128),
+    Cancelled,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamEvent {
+    pub stream_id: u64,
+    pub action: StreamAction,
+    pub timestamp: u64,
+}
+
 // Minimal token interface used by `withdraw`.
 #[contractclient(name = "TokenClient")]
 pub trait Token {
@@ -320,6 +340,15 @@ impl StellarStreamContract {
 
         env.events()
             .publish((symbol_short!("proposal"), sender.clone()), id);
+
+        add_user_stream(&env, &sender, id);
+        add_user_stream(&env, &receiver, id);
+
+        env.storage().instance().set(&NEXTID, &next);
+
+        // Record history event
+        add_history(&env, id, StreamAction::Created);
+
         Ok(id)
     }
 
@@ -410,6 +439,8 @@ impl StellarStreamContract {
         }
         stream.state = STATE_CLOSED;
         save_stream(&env, &stream);
+        // Record history event
+        add_history(&env, stream_id, StreamAction::Cancelled);
         Ok(())
     }
 
@@ -429,6 +460,8 @@ impl StellarStreamContract {
         stream.state = STATE_PAUSED;
         stream.last_paused_at = env.ledger().timestamp();
         save_stream(&env, &stream);
+        // Record history event
+        add_history(&env, stream_id, StreamAction::Paused);
         Ok(())
     }
 
@@ -452,6 +485,8 @@ impl StellarStreamContract {
         stream.state = STATE_ACTIVE;
         stream.last_paused_at = 0;
         save_stream(&env, &stream);
+        // Record history event
+        add_history(&env, stream_id, StreamAction::Resumed);
         Ok(())
     }
 
@@ -667,6 +702,10 @@ impl StellarStreamContract {
         env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1)
     }
 
+    // ------------------------- History Queries -------------------------
+
+    pub fn get_stream_history(env: Env, stream_id: u64) -> Vec<StreamEvent> {
+        get_history(&env).get(stream_id).unwrap_or(Vec::new(&env))
     // ------------------------- Count Queries -------------------------
 
     pub fn get_active_streams_count(env: Env) -> u64 {
@@ -776,6 +815,9 @@ fn withdraw_inner(env: &Env, stream_id: u64, receiver: &Address) -> Result<i128,
     // External token transfer (best-effort; a malicious token cannot double-spend
     // because state above is already committed).
     TokenClient::new(env, &stream.token).transfer(&stream.sender, receiver, &withdrawable);
+
+    // Record history event
+    add_history(env, stream_id, StreamAction::Withdrawn(withdrawable));
 
     Ok(withdrawable)
 }
@@ -1017,6 +1059,25 @@ fn add_user_stream(env: &Env, user: &Address, id: u64) {
 
 fn is_contract_paused(env: &Env) -> bool {
     env.storage().instance().get(&PAUSED).unwrap_or(false)
+}
+
+fn get_history(env: &Env) -> Map<u64, Vec<StreamEvent>> {
+    env.storage()
+        .persistent()
+        .get(&HISTORY)
+        .unwrap_or(Map::new(env))
+}
+
+fn add_history(env: &Env, stream_id: u64, action: StreamAction) {
+    let mut history = get_history(env);
+    let mut events = history.get(stream_id).unwrap_or(Vec::new(env));
+    events.push_back(StreamEvent {
+        stream_id,
+        action,
+        timestamp: env.ledger().timestamp(),
+    });
+    history.set(stream_id, events);
+    env.storage().persistent().set(&HISTORY, &history);
 }
 
 fn is_restricted(env: &Env, target: &Address) -> bool {
