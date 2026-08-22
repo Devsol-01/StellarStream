@@ -42,6 +42,7 @@ fn make_stream(f: &Fixture) -> u64 {
         &1_000u64,
         &CURVE_LINEAR,
         &false,
+        &None,
     )
 }
 
@@ -60,6 +61,7 @@ fn test_reentrancy_protection() {
         &1_000u64,
         &CURVE_LINEAR,
         &false,
+        &None,
     );
     MaliciousTokenClient::new(&f.env, &mt).init(&f.contract, &id);
     f.env.ledger().set_timestamp(500);
@@ -86,6 +88,7 @@ fn test_integer_overflow_protection() {
         &1_000_000u64,
         &CURVE_LINEAR,
         &false,
+        &None,
     );
     f.env.ledger().set_timestamp(500_000);
     // Overflowing math must be handled with checked operations, never panic or
@@ -108,6 +111,7 @@ fn test_exponential_overflow_protection() {
         &1_000_000u64,
         &CURVE_EXP,
         &false,
+        &None,
     );
     f.env.ledger().set_timestamp(500_000);
     let unlocked = client(&f.env, &f.contract).get_unlocked_amount(&id);
@@ -248,7 +252,17 @@ fn test_withdraw_capped_at_total() {
 fn test_create_invalid_time_range() {
     let f = setup();
     assert!(client(&f.env, &f.contract)
-        .try_create_stream(&f.sender, &f.receiver, &f.token, &1_000i128, &100u64, &100u64, &CURVE_LINEAR, &false)
+        .try_create_stream(
+            &f.sender,
+            &f.receiver,
+            &f.token,
+            &1_000i128,
+            &100u64,
+            &100u64,
+            &CURVE_LINEAR,
+            &false,
+            &None
+        )
         .is_err());
 }
 
@@ -256,7 +270,17 @@ fn test_create_invalid_time_range() {
 fn test_create_invalid_amount() {
     let f = setup();
     assert!(client(&f.env, &f.contract)
-        .try_create_stream(&f.sender, &f.receiver, &f.token, &0i128, &0u64, &100u64, &CURVE_LINEAR, &false)
+        .try_create_stream(
+            &f.sender,
+            &f.receiver,
+            &f.token,
+            &0i128,
+            &0u64,
+            &100u64,
+            &CURVE_LINEAR,
+            &false,
+            &None
+        )
         .is_err());
 }
 
@@ -265,7 +289,17 @@ fn test_create_restricted_sender() {
     let f = setup();
     client(&f.env, &f.contract).restrict_address(&f.admin, &f.sender);
     assert!(client(&f.env, &f.contract)
-        .try_create_stream(&f.sender, &f.receiver, &f.token, &1_000i128, &0u64, &100u64, &CURVE_LINEAR, &false)
+        .try_create_stream(
+            &f.sender,
+            &f.receiver,
+            &f.token,
+            &1_000i128,
+            &0u64,
+            &100u64,
+            &CURVE_LINEAR,
+            &false,
+            &None
+        )
         .is_err());
 }
 
@@ -274,7 +308,17 @@ fn test_create_restricted_receiver() {
     let f = setup();
     client(&f.env, &f.contract).restrict_address(&f.admin, &f.receiver);
     assert!(client(&f.env, &f.contract)
-        .try_create_stream(&f.sender, &f.receiver, &f.token, &1_000i128, &0u64, &100u64, &CURVE_LINEAR, &false)
+        .try_create_stream(
+            &f.sender,
+            &f.receiver,
+            &f.token,
+            &1_000i128,
+            &0u64,
+            &100u64,
+            &CURVE_LINEAR,
+            &false,
+            &None
+        )
         .is_err());
 }
 
@@ -282,7 +326,17 @@ fn test_create_restricted_receiver() {
 fn test_invalid_curve_rejected() {
     let f = setup();
     assert!(client(&f.env, &f.contract)
-        .try_create_stream(&f.sender, &f.receiver, &f.token, &1_000i128, &0u64, &100u64, &99u32, &false)
+        .try_create_stream(
+            &f.sender,
+            &f.receiver,
+            &f.token,
+            &1_000i128,
+            &0u64,
+            &100u64,
+            &99u32,
+            &false,
+            &None
+        )
         .is_err());
 }
 
@@ -365,6 +419,7 @@ fn test_soulbound_flag_persists() {
         &1_000u64,
         &CURVE_LINEAR,
         &true,
+        &None,
     );
     let s = client(&f.env, &f.contract).get_stream(&id);
     assert!(s.is_soulbound);
@@ -375,11 +430,30 @@ fn test_restricted_address_blocks_all_streams() {
     let f = setup();
     client(&f.env, &f.contract).restrict_address(&f.admin, &f.receiver);
     let r = Address::generate(&f.env);
-    let ok_id = client(&f.env, &f.contract)
-        .create_stream(&f.sender, &r, &f.token, &1_000i128, &0u64, &100u64, &CURVE_LINEAR, &false);
+    let ok_id = client(&f.env, &f.contract).create_stream(
+        &f.sender,
+        &r,
+        &f.token,
+        &1_000i128,
+        &0u64,
+        &100u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
     assert!(ok_id > 0);
     assert!(client(&f.env, &f.contract)
-        .try_create_stream(&f.sender, &f.receiver, &f.token, &1_000i128, &0u64, &100u64, &CURVE_LINEAR, &false)
+        .try_create_stream(
+            &f.sender,
+            &f.receiver,
+            &f.token,
+            &1_000i128,
+            &0u64,
+            &100u64,
+            &CURVE_LINEAR,
+            &false,
+            &None
+        )
         .is_err());
 }
 
@@ -398,6 +472,7 @@ fn test_next_id_never_collides() {
             &100u64,
             &CURVE_LINEAR,
             &false,
+            &None,
         );
         assert!(!seen.contains(id));
         seen.push_back(id);
@@ -416,6 +491,7 @@ fn test_cannot_withdraw_before_vesting_starts() {
         &2_000u64,
         &CURVE_LINEAR,
         &false,
+        &None,
     );
     f.env.ledger().set_timestamp(500);
     assert_eq!(client(&f.env, &f.contract).get_withdrawable_amount(&id), 0);
