@@ -11,6 +11,65 @@
 //! - Cancellation support with automatic refunds
 //! - Role-based access control, pause/resume, and OFAC-style address restriction
 //! - Re-entrancy safe withdrawals (checks-effects-interactions + temporary lock)
+//! - Configurable protocol fee collected to a treasury on stream creation
+//!
+//! # Protocol fee
+//!
+//! Creating a stream charges a protocol fee **on top of** the streamed amount.
+//! A stream of 1_000 tokens at 100 bps costs the sender 1_010 tokens: 1_000
+//! remain streamable to the receiver and 10 go to the treasury. The stream's
+//! `total_amount` is never reduced by the fee, so a receiver is always owed
+//! exactly what the stream says.
+//!
+//! - The rate is stored in basis points, where 10_000 bps is 100%
+//!   ([`BPS_DENOMINATOR`]), and is capped at [`MAX_FEE_BPS`] (1_000 bps = 10%).
+//!   The cap is enforced on write, so an out-of-range rate can never be
+//!   observed by `create_stream`.
+//! - The fee is `amount * fee_bps / 10_000`, rounded down, computed with
+//!   checked multiplication so a large amount reports [`Error::Overflow`]
+//!   instead of wrapping.
+//! - A rate of `0` disables collection: no token transfer is attempted and no
+//!   treasury is required.
+//! - With a non-zero rate and no treasury configured, `create_stream` fails
+//!   with [`Error::TreasuryNotSet`] rather than quietly skipping the fee.
+//! - Collection and stream creation share one invocation, so they succeed or
+//!   fail together. A sender who cannot cover `amount + fee` creates no stream.
+//! - [`StellarStreamContract::set_protocol_fee`] and
+//!   [`StellarStreamContract::set_treasury_address`] require [`ROLE_TREASURY`]
+//!   or [`ROLE_ADMIN`].
+//!
+//! Streams created by multi-signature proposal execution are not charged: the
+//! fee transfer debits the sender, and proposal execution runs under the
+//! approvers' authorization rather than the sender's.
+//! - Configurable protocol fee collected to a treasury on stream creation
+//!
+//! # Protocol fees
+//!
+//! The protocol charges a fee, expressed in basis points, every time a stream
+//! is created through [`StellarStreamContract::create_stream`].
+//!
+//! The fee is charged **on top of** the stream amount, never taken out of it.
+//! A 1_000_000-unit stream at 100 bps (1%) leaves the receiver entitled to the
+//! full 1_000_000 and moves a further 10_000 to the treasury, so the sender
+//! parts with 1_010_000 in total. This keeps `total_amount` a promise to the
+//! receiver rather than a number the protocol quietly shaves.
+//!
+//! Both transfers happen inside one invocation. If the sender cannot cover
+//! `amount + fee`, the token transfer traps and the stream creation is rolled
+//! back with it — there is no state in which a stream exists but its fee went
+//! uncollected.
+//!
+//! The rate is capped at [`MAX_FEE_BPS`] (10%) at the point it is written, so
+//! an out-of-range rate can never reach stream creation. A rate of `0` is
+//! valid and short-circuits before any token call. Fee settings are managed by
+//! accounts holding [`ROLE_TREASURY`] or [`ROLE_ADMIN`] via
+//! [`StellarStreamContract::set_protocol_fee`] and
+//! [`StellarStreamContract::set_treasury_address`]; callers can preview the
+//! charge with [`StellarStreamContract::calculate_protocol_fee`].
+//!
+//! Streams created by multi-signature proposal execution are not charged,
+//! because that path creates the stream under the approvers' authorization
+//! rather than the sender's and so cannot move the sender's tokens.
 //!
 //! See `contracts/Contract-V1/README.md` for the full specification.
 
@@ -37,6 +96,8 @@ const STREAMS: Symbol = symbol_short!("STREAMS");
 const USTREAMS: Symbol = symbol_short!("USTREAMS");
 const PROPOSALS: Symbol = symbol_short!("PROPOSALS");
 const METADATA: Symbol = symbol_short!("METADATA");
+const FEEBPS: Symbol = symbol_short!("FEEBPS");
+const TREASURY: Symbol = symbol_short!("TREASURY");
 const NEXTPROPOSAL: Symbol = symbol_short!("NEXTPROP");
 
 // Stream state
@@ -47,6 +108,12 @@ pub const STATE_CLOSED: u32 = 2;
 // Vesting curve
 pub const CURVE_LINEAR: u32 = 0;
 pub const CURVE_EXP: u32 = 1;
+
+// Protocol fee
+/// Denominator for basis-point math: 10_000 bps == 100%.
+pub const BPS_DENOMINATOR: i128 = 10_000;
+/// Hard ceiling on the protocol fee: 1_000 bps == 10%.
+pub const MAX_FEE_BPS: u32 = 1_000;
 
 // Roles
 pub const ROLE_ADMIN: u32 = 0;
@@ -91,6 +158,8 @@ pub enum Error {
     MetadataLabelTooLong = 35,
     TooManyTags = 36,
     TagTooLong = 37,
+    FeeTooHigh = 38,
+    TreasuryNotSet = 39,
 }
 
 // ---------------------------------------------------------------------------
@@ -136,6 +205,24 @@ pub struct StreamMetadataUpdatedEvent {
     pub stream_id: u64,
     pub sender: Address,
     pub timestamp: u64,
+}
+
+/// Emitted when a protocol fee is collected while creating a stream.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ProtocolFeeCollectedEvent {
+    /// Stream the fee was charged for.
+    pub stream_id: u64,
+    /// Account that paid the fee (the stream's sender).
+    pub payer: Address,
+    /// Treasury the fee was credited to.
+    pub treasury: Address,
+    /// Token the fee was denominated in (same token as the stream).
+    pub token: Address,
+    /// Fee actually transferred, in token units.
+    pub fee_amount: i128,
+    /// Fee rate applied, in basis points.
+    pub fee_bps: u32,
 }
 
 /// A pending multi-signature stream proposal.
@@ -210,7 +297,7 @@ impl StellarStreamContract {
         is_soulbound: bool,
     ) -> Result<u64, Error> {
         sender.require_auth();
-        create_stream_internal(
+        let stream_id = create_stream_internal(
             &env,
             &sender,
             &receiver,
@@ -220,7 +307,13 @@ impl StellarStreamContract {
             end_time,
             curve_type,
             is_soulbound,
-        )
+        )?;
+        // Charged on top of `total_amount`, so the stream is funded in full and
+        // the sender pays `total_amount + fee`. A failure here (an unset
+        // treasury, or a sender who cannot cover the fee) reverts the whole
+        // invocation, including the stream just created.
+        collect_protocol_fee(&env, &sender, &token, stream_id, total_amount)?;
+        Ok(stream_id)
     }
 
     /// Create a multi-signature proposal for a stream.
@@ -510,6 +603,66 @@ impl StellarStreamContract {
     /// Return the list of stream ids associated with a user (as sender or receiver).
     pub fn get_user_streams(env: Env, user: Address) -> Vec<u64> {
         get_user_streams(&env, &user)
+    }
+
+    // ------------------------- Protocol fee -------------------------
+
+    /// Set the protocol fee charged on stream creation, in basis points.
+    ///
+    /// Requires the caller to hold [`ROLE_TREASURY`] or [`ROLE_ADMIN`]. The fee
+    /// is capped at [`MAX_FEE_BPS`] (1_000 bps = 10%); anything above that is
+    /// rejected with [`Error::FeeTooHigh`] so an out-of-range rate can never
+    /// reach `create_stream`. Passing `0` disables fee collection entirely.
+    pub fn set_protocol_fee(
+        env: Env,
+        treasury_manager: Address,
+        fee_bps: u32,
+    ) -> Result<(), Error> {
+        treasury_manager.require_auth();
+        require_treasury_manager(&env, &treasury_manager)?;
+        if fee_bps > MAX_FEE_BPS {
+            return Err(Error::FeeTooHigh);
+        }
+        env.storage().instance().set(&FEEBPS, &fee_bps);
+        env.events()
+            .publish((symbol_short!("set_fee"), treasury_manager), fee_bps);
+        Ok(())
+    }
+
+    /// Set the address protocol fees are paid to.
+    ///
+    /// Requires the caller to hold [`ROLE_TREASURY`] or [`ROLE_ADMIN`]. While no
+    /// treasury is set, any non-zero fee makes `create_stream` fail with
+    /// [`Error::TreasuryNotSet`] rather than silently skipping collection.
+    pub fn set_treasury_address(
+        env: Env,
+        treasury_manager: Address,
+        new_treasury: Address,
+    ) -> Result<(), Error> {
+        treasury_manager.require_auth();
+        require_treasury_manager(&env, &treasury_manager)?;
+        env.storage().instance().set(&TREASURY, &new_treasury);
+        env.events()
+            .publish((symbol_short!("set_treas"), treasury_manager), new_treasury);
+        Ok(())
+    }
+
+    /// Current protocol fee in basis points (`0` when no fee is configured).
+    pub fn get_protocol_fee(env: Env) -> u32 {
+        fee_bps(&env)
+    }
+
+    /// Current treasury address, or `None` if one has never been set.
+    pub fn get_treasury_address(env: Env) -> Option<Address> {
+        env.storage().instance().get(&TREASURY)
+    }
+
+    /// Fee that `create_stream` would charge on top of `amount`.
+    ///
+    /// Lets a caller work out the total it must be able to cover
+    /// (`amount + fee`) before committing to a stream.
+    pub fn calculate_protocol_fee(env: Env, amount: i128) -> Result<i128, Error> {
+        protocol_fee_for(&env, amount)
     }
 
     // ------------------------- Administrative -------------------------
@@ -876,6 +1029,72 @@ fn add_user_stream(env: &Env, user: &Address, id: u64) {
     env.storage().persistent().set(&USTREAMS, &all);
 }
 
+/// Protocol fee rate in basis points; `0` when unset.
+fn fee_bps(env: &Env) -> u32 {
+    env.storage().instance().get(&FEEBPS).unwrap_or(0)
+}
+
+/// Fee owed on `amount` at the current rate, rounded down.
+///
+/// The multiplication is checked so that a very large `amount` reports
+/// [`Error::Overflow`] instead of wrapping into a nonsensical fee.
+fn protocol_fee_for(env: &Env, amount: i128) -> Result<i128, Error> {
+    let bps = fee_bps(env);
+    if bps == 0 || amount <= 0 {
+        return Ok(0);
+    }
+    amount
+        .checked_mul(bps as i128)
+        .map(|scaled| scaled / BPS_DENOMINATOR)
+        .ok_or(Error::Overflow)
+}
+
+/// Transfer the protocol fee for `amount` from `sender` to the treasury.
+///
+/// Returns the fee charged. A zero fee short-circuits without touching the
+/// token contract, so a zero-fee protocol costs nothing extra to run.
+fn collect_protocol_fee(
+    env: &Env,
+    sender: &Address,
+    token: &Address,
+    stream_id: u64,
+    amount: i128,
+) -> Result<i128, Error> {
+    let fee = protocol_fee_for(env, amount)?;
+    if fee == 0 {
+        return Ok(0);
+    }
+    let treasury = env
+        .storage()
+        .instance()
+        .get::<_, Address>(&TREASURY)
+        .ok_or(Error::TreasuryNotSet)?;
+
+    TokenClient::new(env, token).transfer(sender, &treasury, &fee);
+
+    env.events().publish(
+        (symbol_short!("fee"), sender.clone()),
+        ProtocolFeeCollectedEvent {
+            stream_id,
+            payer: sender.clone(),
+            treasury,
+            token: token.clone(),
+            fee_amount: fee,
+            fee_bps: fee_bps(env),
+        },
+    );
+    Ok(fee)
+}
+
+/// Fee settings may be changed by a treasury manager or by an admin.
+fn require_treasury_manager(env: &Env, account: &Address) -> Result<(), Error> {
+    if has_role(env, account, ROLE_TREASURY) || has_role(env, account, ROLE_ADMIN) {
+        Ok(())
+    } else {
+        Err(Error::Unauthorized)
+    }
+}
+
 fn is_contract_paused(env: &Env) -> bool {
     env.storage().instance().get(&PAUSED).unwrap_or(false)
 }
@@ -964,3 +1183,6 @@ mod stress_test;
 
 #[cfg(test)]
 mod security_test;
+
+#[cfg(test)]
+mod fee_test;
