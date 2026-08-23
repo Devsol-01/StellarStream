@@ -97,38 +97,19 @@
 //! See `contracts/Contract-V1/README.md` for the full specification.
 
 pub mod math;
+pub mod storage;
 
 #[cfg(test)]
 mod bench_test;
 
 use soroban_sdk::{
     contract, contractclient, contracterror, contractimpl, contracttype, symbol_short, Address,
-    Env, Map, String, Symbol, Vec,
+    Env, Map, String, Vec,
 };
-
-// ---------------------------------------------------------------------------
-// Storage keys
-// ---------------------------------------------------------------------------
-const ADMIN: Symbol = symbol_short!("ADMIN");
-const PAUSED: Symbol = symbol_short!("PAUSED");
-const NEXTID: Symbol = symbol_short!("NEXTID");
-const ROLES: Symbol = symbol_short!("ROLES");
-const RESTRICT: Symbol = symbol_short!("RESTRICT");
-const LOCK: Symbol = symbol_short!("LOCK");
-const STREAMS: Symbol = symbol_short!("STREAMS");
-const USTREAMS: Symbol = symbol_short!("USTREAMS");
-const PROPOSALS: Symbol = symbol_short!("PROPOSALS");
-const METADATA: Symbol = symbol_short!("METADATA");
-const ACTIVE: Symbol = symbol_short!("ACTIVE");
-const TVL: Symbol = symbol_short!("TVL");
-const LASTACT: Symbol = symbol_short!("LASTACT");
-const BUCKETS: Symbol = symbol_short!("BUCKETS");
-const USERSEEN: Symbol = symbol_short!("USERSEEN");
-const LASTPRUNE: Symbol = symbol_short!("LASTPRUN");
-const FEEBPS: Symbol = symbol_short!("FEEBPS");
-const TREASURY: Symbol = symbol_short!("TREASURY");
-const NEXTPROPOSAL: Symbol = symbol_short!("NEXTPROP");
-const HISTORY: Symbol = symbol_short!("HISTORY");
+use storage::{
+    bump_persistent_ttl_if_present, extend_history_ttl, extend_instance_ttl, extend_metadata_ttl,
+    extend_proposal_ttl, extend_stream_ttl, extend_user_streams_ttl, DataKey,
+};
 
 // Stream state
 pub const STATE_ACTIVE: u32 = 0;
@@ -202,13 +183,8 @@ pub enum Error {
     TagTooLong = 37,
     FeeTooHigh = 38,
     TreasuryNotSet = 39,
-    StreamEnded = 33,
-    MetadataLabelTooLong = 34,
-    TooManyTags = 35,
-    TagTooLong = 36,
-    BatchSizeExceeded = 37,
-    InvalidMilestones = 38,
-    InvalidMilestonePercentages = 39,
+    InvalidMilestones = 40,
+    InvalidMilestonePercentages = 41,
 }
 
 // ---------------------------------------------------------------------------
@@ -230,19 +206,18 @@ pub struct Stream {
     pub is_soulbound: bool,
     pub paused_duration: u64,
     pub last_paused_at: u64,
+    /// Present only when `curve_type == CURVE_MILESTONE`; see [`Milestone`].
+    pub milestones: Option<Vec<Milestone>>,
 }
 
 // ---------------------------------------------------------------------------
 // Stream metadata for categorization (issue #1466)
 //
-// Metadata lives in its own `METADATA` map keyed by stream id rather than as an
-// `Option<StreamMetadata>` field on `Stream`: soroban-sdk 22 cannot convert an
-// `Option<T>` whose `T` is a user `#[contracttype]` struct, which makes any
-// struct carrying such a field fail to build under `testutils`.
-    pub stream_metadata: Option<StreamMetadata>,
-    /// Present only when `curve_type == CURVE_MILESTONE`; see [`Milestone`].
-    pub milestones: Option<Vec<Milestone>>,
-}
+// Metadata lives in its own `StreamMetadata(stream_id)` persistent entry keyed
+// by stream id rather than as an `Option<StreamMetadata>` field on `Stream`:
+// soroban-sdk 22 cannot convert an `Option<T>` whose `T` is a user
+// `#[contracttype]` struct, which makes any struct carrying such a field fail
+// to build under `testutils`.
 
 /// A single unlock checkpoint in a milestone-vesting schedule.
 ///
@@ -336,6 +311,8 @@ pub struct MetricBucket {
     pub duration_sum: u64,
     /// Sum of created stream amounts, for the running average.
     pub amount_sum: i128,
+}
+
 /// Emitted when a protocol fee is collected while creating a stream.
 #[contracttype]
 #[derive(Clone, Debug)]
@@ -421,13 +398,13 @@ impl StellarStreamContract {
     /// Initialize the contract with an admin address. Idempotency guarded.
     pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
         admin.require_auth();
-        if env.storage().instance().get::<_, Address>(&ADMIN).is_some() {
+        if env.storage().instance().get::<_, Address>(&DataKey::Admin).is_some() {
             return Err(Error::AlreadyInitialized);
         }
-        env.storage().instance().set(&ADMIN, &admin);
-        env.storage().instance().set(&PAUSED, &false);
-        env.storage().instance().set(&NEXTID, &1u64);
-        env.storage().instance().set(&NEXTPROPOSAL, &1u64);
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().set(&DataKey::ContractPaused, &false);
+        env.storage().instance().set(&DataKey::StreamCounter, &1u64);
+        env.storage().instance().set(&DataKey::ProposalCounter, &1u64);
         grant_role_internal(env.clone(), &admin, ROLE_ADMIN);
         Ok(())
     }
@@ -446,6 +423,7 @@ impl StellarStreamContract {
         milestones: Option<Vec<Milestone>>,
     ) -> Result<u64, Error> {
         sender.require_auth();
+        extend_instance_ttl(&env);
         let stream_id = create_stream_internal(
             &env,
             &sender,
@@ -456,6 +434,7 @@ impl StellarStreamContract {
             end_time,
             curve_type,
             is_soulbound,
+            milestones,
         )?;
         // Charged on top of `total_amount`, so the stream is funded in full and
         // the sender pays `total_amount + fee`. A failure here (an unset
@@ -463,8 +442,6 @@ impl StellarStreamContract {
         // invocation, including the stream just created.
         collect_protocol_fee(&env, &sender, &token, stream_id, total_amount)?;
         Ok(stream_id)
-            milestones,
-        )
     }
 
     /// Create a multi-signature proposal for a stream.
@@ -488,10 +465,11 @@ impl StellarStreamContract {
         deadline: u64,
     ) -> Result<u64, Error> {
         sender.require_auth();
+        extend_instance_ttl(&env);
         if is_contract_paused(&env) {
             return Err(Error::ContractPaused);
         }
-        if env.storage().instance().get::<_, Address>(&ADMIN).is_none() {
+        if env.storage().instance().get::<_, Address>(&DataKey::Admin).is_none() {
             return Err(Error::Unauthorized);
         }
         if total_amount <= 0 {
@@ -513,7 +491,7 @@ impl StellarStreamContract {
         let mut next = env
             .storage()
             .instance()
-            .get::<_, u64>(&NEXTPROPOSAL)
+            .get::<_, u64>(&DataKey::ProposalCounter)
             .unwrap_or(1);
         let id = next;
         next = next.checked_add(1).ok_or(Error::Overflow)?;
@@ -531,22 +509,12 @@ impl StellarStreamContract {
             executed: false,
         };
 
-        let mut proposals = get_proposals(&env);
-        proposals.set(id, proposal);
-        env.storage().persistent().set(&PROPOSALS, &proposals);
-        env.storage().instance().set(&NEXTPROPOSAL, &next);
+        env.storage().persistent().set(&DataKey::Proposal(id), &proposal);
+        extend_proposal_ttl(&env, id);
+        env.storage().instance().set(&DataKey::ProposalCounter, &next);
 
         env.events()
             .publish((symbol_short!("proposal"), sender.clone()), id);
-
-        add_user_stream(&env, &sender, id);
-        add_user_stream(&env, &receiver, id);
-
-        env.storage().instance().set(&NEXTID, &next);
-
-        // Record history event
-        add_history(&env, id, StreamAction::Created);
-
         Ok(id)
     }
 
@@ -561,6 +529,7 @@ impl StellarStreamContract {
         approver: Address,
     ) -> Result<(), Error> {
         approver.require_auth();
+        extend_instance_ttl(&env);
         if is_contract_paused(&env) {
             return Err(Error::ContractPaused);
         }
@@ -614,16 +583,17 @@ impl StellarStreamContract {
     /// Returns the amount withdrawn.
     pub fn withdraw(env: Env, stream_id: u64, receiver: Address) -> Result<i128, Error> {
         receiver.require_auth();
+        extend_instance_ttl(&env);
 
         // Re-entrancy guard (temporary storage lock).
-        if env.storage().temporary().get::<_, bool>(&LOCK).unwrap_or(false) {
+        if env.storage().temporary().get::<_, bool>(&DataKey::ReentrancyLock).unwrap_or(false) {
             return Err(Error::Reentrancy);
         }
-        env.storage().temporary().set(&LOCK, &true);
+        env.storage().temporary().set(&DataKey::ReentrancyLock, &true);
 
         let result = withdraw_inner(&env, stream_id, &receiver);
 
-        env.storage().temporary().remove(&LOCK);
+        env.storage().temporary().remove(&DataKey::ReentrancyLock);
         result
     }
 
@@ -631,6 +601,7 @@ impl StellarStreamContract {
     /// the receiver can no longer withdraw unlocked funds once the stream is closed.
     pub fn cancel_stream(env: Env, stream_id: u64, sender: Address) -> Result<(), Error> {
         sender.require_auth();
+        extend_instance_ttl(&env);
         let mut stream = get_stream(&env, stream_id)?;
         if stream.sender != sender {
             return Err(Error::Unauthorized);
@@ -649,6 +620,7 @@ impl StellarStreamContract {
     /// Pause an active stream. Only the sender may pause.
     pub fn pause_stream(env: Env, stream_id: u64, caller: Address) -> Result<(), Error> {
         caller.require_auth();
+        extend_instance_ttl(&env);
         let mut stream = get_stream(&env, stream_id)?;
         if stream.sender != caller {
             return Err(Error::Unauthorized);
@@ -670,6 +642,7 @@ impl StellarStreamContract {
     /// Resume a paused stream. Only the sender may resume.
     pub fn resume_stream(env: Env, stream_id: u64, caller: Address) -> Result<(), Error> {
         caller.require_auth();
+        extend_instance_ttl(&env);
         let mut stream = get_stream(&env, stream_id)?;
         if stream.sender != caller {
             return Err(Error::Unauthorized);
@@ -784,9 +757,9 @@ impl StellarStreamContract {
     pub fn health_check(env: Env) -> ContractHealth {
         ContractHealth {
             is_paused: is_contract_paused(&env),
-            active_streams: env.storage().instance().get(&ACTIVE).unwrap_or(0),
+            active_streams: env.storage().instance().get(&DataKey::ActiveStreams).unwrap_or(0),
             total_tvl: get_tvl(&env),
-            last_activity_time: env.storage().instance().get(&LASTACT).unwrap_or(0),
+            last_activity_time: env.storage().instance().get(&DataKey::LastActivity).unwrap_or(0),
             version: CONTRACT_VERSION,
         }
     }
@@ -843,6 +816,8 @@ impl StellarStreamContract {
             avg_stream_amount,
             unique_users_24h,
         }
+    }
+
     // ------------------------- Protocol fee -------------------------
 
     /// Set the protocol fee charged on stream creation, in basis points.
@@ -857,11 +832,12 @@ impl StellarStreamContract {
         fee_bps: u32,
     ) -> Result<(), Error> {
         treasury_manager.require_auth();
+        extend_instance_ttl(&env);
         require_treasury_manager(&env, &treasury_manager)?;
         if fee_bps > MAX_FEE_BPS {
             return Err(Error::FeeTooHigh);
         }
-        env.storage().instance().set(&FEEBPS, &fee_bps);
+        env.storage().instance().set(&DataKey::FeeBps, &fee_bps);
         env.events()
             .publish((symbol_short!("set_fee"), treasury_manager), fee_bps);
         Ok(())
@@ -878,8 +854,9 @@ impl StellarStreamContract {
         new_treasury: Address,
     ) -> Result<(), Error> {
         treasury_manager.require_auth();
+        extend_instance_ttl(&env);
         require_treasury_manager(&env, &treasury_manager)?;
-        env.storage().instance().set(&TREASURY, &new_treasury);
+        env.storage().instance().set(&DataKey::Treasury, &new_treasury);
         env.events()
             .publish((symbol_short!("set_treas"), treasury_manager), new_treasury);
         Ok(())
@@ -892,7 +869,7 @@ impl StellarStreamContract {
 
     /// Current treasury address, or `None` if one has never been set.
     pub fn get_treasury_address(env: Env) -> Option<Address> {
-        env.storage().instance().get(&TREASURY)
+        env.storage().instance().get(&DataKey::Treasury)
     }
 
     /// Fee that `create_stream` would charge on top of `amount`.
@@ -907,6 +884,7 @@ impl StellarStreamContract {
 
     pub fn grant_role(env: Env, admin: Address, account: Address, role: u32) -> Result<(), Error> {
         admin.require_auth();
+        extend_instance_ttl(&env);
         require_admin(&env, &admin)?;
         if role > ROLE_TREASURY {
             return Err(Error::InvalidRole);
@@ -917,6 +895,7 @@ impl StellarStreamContract {
 
     pub fn revoke_role(env: Env, admin: Address, account: Address, role: u32) -> Result<(), Error> {
         admin.require_auth();
+        extend_instance_ttl(&env);
         require_admin(&env, &admin)?;
         revoke_role_internal(&env, &account, role);
         Ok(())
@@ -924,33 +903,37 @@ impl StellarStreamContract {
 
     pub fn restrict_address(env: Env, admin: Address, target: Address) -> Result<(), Error> {
         admin.require_auth();
+        extend_instance_ttl(&env);
         require_admin(&env, &admin)?;
         let mut r = get_restricted(&env);
         r.set(target, true);
-        env.storage().instance().set(&RESTRICT, &r);
+        env.storage().instance().set(&DataKey::RestrictedAddresses, &r);
         Ok(())
     }
 
     pub fn unrestrict_address(env: Env, admin: Address, target: Address) -> Result<(), Error> {
         admin.require_auth();
+        extend_instance_ttl(&env);
         require_admin(&env, &admin)?;
         let mut r = get_restricted(&env);
         r.remove(target);
-        env.storage().instance().set(&RESTRICT, &r);
+        env.storage().instance().set(&DataKey::RestrictedAddresses, &r);
         Ok(())
     }
 
     pub fn pause_contract(env: Env, pauser: Address) -> Result<(), Error> {
         pauser.require_auth();
+        extend_instance_ttl(&env);
         require_role(&env, &pauser, ROLE_PAUSER)?;
-        env.storage().instance().set(&PAUSED, &true);
+        env.storage().instance().set(&DataKey::ContractPaused, &true);
         Ok(())
     }
 
     pub fn unpause_contract(env: Env, pauser: Address) -> Result<(), Error> {
         pauser.require_auth();
+        extend_instance_ttl(&env);
         require_role(&env, &pauser, ROLE_PAUSER)?;
-        env.storage().instance().set(&PAUSED, &false);
+        env.storage().instance().set(&DataKey::ContractPaused, &false);
         Ok(())
     }
 
@@ -965,6 +948,7 @@ impl StellarStreamContract {
         receiver: Address,
     ) -> Result<Vec<i128>, Error> {
         receiver.require_auth();
+        extend_instance_ttl(&env);
         if stream_ids.len() > 20 { return Err(Error::BatchSizeExceeded); }
         if stream_ids.is_empty() { return Err(Error::InvalidAmount); }
 
@@ -972,8 +956,7 @@ impl StellarStreamContract {
         let mut total: i128 = 0;
         for i in 0..stream_ids.len() {
             let sid = stream_ids.get(i).unwrap();
-            let streams = get_streams(&env);
-            let stream = streams.get(sid).ok_or(Error::StreamNotFound)?;
+            let stream = get_stream(&env, sid)?;
             if stream.receiver != receiver { return Err(Error::Unauthorized); }
             if stream.state == STATE_CLOSED { return Err(Error::AlreadyCancelled); }
             if stream.state == STATE_PAUSED { return Err(Error::StreamPaused); }
@@ -987,11 +970,9 @@ impl StellarStreamContract {
             let amt = amounts.get(i).unwrap();
             if amt > 0 {
                 let sid = stream_ids.get(i).unwrap();
-                let mut streams = get_streams(&env);
-                let mut stream = streams.get(sid).unwrap();
+                let mut stream = get_stream(&env, sid)?;
                 stream.withdrawn_amount += amt;
-                streams.set(sid, stream.clone());
-                env.storage().persistent().set(&STREAMS, &streams);
+                save_stream(&env, &stream);
                 record_withdrawal(&env, &receiver, &stream.token, amt);
                 TokenClient::new(&env, &stream.token).transfer(&stream.sender, &receiver, &amt);
             }
@@ -1009,6 +990,7 @@ impl StellarStreamContract {
         external_ref: Option<String>,
     ) -> Result<(), Error> {
         sender.require_auth();
+        extend_instance_ttl(&env);
         let stream = get_stream(&env, stream_id)?;
         if stream.sender != sender { return Err(Error::Unauthorized); }
         if stream.state == STATE_CLOSED { return Err(Error::StreamEnded); }
@@ -1019,16 +1001,15 @@ impl StellarStreamContract {
                 if tag.len() > 32 { return Err(Error::TagTooLong); }
             }
         }
-        let mut metadata = get_metadata_map(&env);
-        metadata.set(
-            stream_id,
-            StreamMetadata {
+        env.storage().persistent().set(
+            &DataKey::StreamMetadata(stream_id),
+            &StreamMetadata {
                 label,
                 tags,
                 external_ref,
             },
         );
-        env.storage().persistent().set(&METADATA, &metadata);
+        extend_metadata_ttl(&env, stream_id);
         env.events().publish(
             (symbol_short!("meta_upd"), sender.clone()),
             StreamMetadataUpdatedEvent { stream_id, sender, timestamp: env.ledger().timestamp() },
@@ -1038,18 +1019,33 @@ impl StellarStreamContract {
 
     /// Return the metadata attached to a stream, if any has been set.
     pub fn get_stream_metadata(env: Env, stream_id: u64) -> Option<StreamMetadata> {
-        get_metadata_map(&env).get(stream_id)
+        let key = DataKey::StreamMetadata(stream_id);
+        let metadata = env.storage().persistent().get::<_, StreamMetadata>(&key);
+        if metadata.is_some() {
+            extend_metadata_ttl(&env, stream_id);
+        }
+        metadata
     }
 
     /// Return the next stream id that will be allocated (for testing/inspection).
     pub fn next_stream_id(env: Env) -> u64 {
-        env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1)
+        env.storage()
+            .instance()
+            .get::<_, u64>(&DataKey::StreamCounter)
+            .unwrap_or(1)
     }
 
     // ------------------------- History Queries -------------------------
 
     pub fn get_stream_history(env: Env, stream_id: u64) -> Vec<StreamEvent> {
-        get_history(&env).get(stream_id).unwrap_or(Vec::new(&env))
+        let key = DataKey::StreamHistory(stream_id);
+        let history = env.storage().persistent().get::<_, Vec<StreamEvent>>(&key);
+        if history.is_some() {
+            extend_history_ttl(&env, stream_id);
+        }
+        history.unwrap_or(Vec::new(&env))
+    }
+
     // ------------------------- Count Queries -------------------------
 
     pub fn get_active_streams_count(env: Env) -> u64 {
@@ -1075,7 +1071,11 @@ impl StellarStreamContract {
     }
 
     pub fn get_total_streams_count(env: Env) -> u64 {
-        let next_id = env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1);
+        let next_id = env
+            .storage()
+            .instance()
+            .get::<_, u64>(&DataKey::StreamCounter)
+            .unwrap_or(1);
         next_id - 1
     }
 
@@ -1231,30 +1231,47 @@ fn withdrawable_amount(env: &Env, stream: &Stream) -> i128 {
     }
 }
 
+/// Reconstruct the full stream map by reading every allocated stream id.
+///
+/// Used by the bulk count queries; targeted access should prefer
+/// [`get_stream`] / [`save_stream`], which read or write a single entry and
+/// extend that entry's TTL.
 fn get_streams(env: &Env) -> Map<u64, Stream> {
-    env.storage()
-        .persistent()
-        .get(&STREAMS)
-        .unwrap_or(Map::new(env))
-}
-
-fn get_metadata_map(env: &Env) -> Map<u64, StreamMetadata> {
-    env.storage()
-        .persistent()
-        .get(&METADATA)
-        .unwrap_or(Map::new(env))
+    let mut streams = Map::new(env);
+    let next = env
+        .storage()
+        .instance()
+        .get::<_, u64>(&DataKey::StreamCounter)
+        .unwrap_or(1);
+    for id in 1..next {
+        if let Some(stream) = env
+            .storage()
+            .persistent()
+            .get::<_, Stream>(&DataKey::Stream(id))
+        {
+            streams.set(id, stream);
+        }
+    }
+    streams
 }
 
 fn get_stream(env: &Env, stream_id: u64) -> Result<Stream, Error> {
-    get_streams(env)
-        .get(stream_id)
-        .ok_or(Error::StreamNotFound)
+    let key = DataKey::Stream(stream_id);
+    let stream = env
+        .storage()
+        .persistent()
+        .get::<_, Stream>(&key)
+        .ok_or(Error::StreamNotFound)?;
+    // Long-term data: keep the entry alive whenever it is accessed.
+    extend_stream_ttl(env, stream_id);
+    Ok(stream)
 }
 
 fn save_stream(env: &Env, stream: &Stream) {
-    let mut streams = get_streams(env);
-    streams.set(stream.id, stream.clone());
-    env.storage().persistent().set(&STREAMS, &streams);
+    env.storage()
+        .persistent()
+        .set(&DataKey::Stream(stream.id), stream);
+    extend_stream_ttl(env, stream.id);
 }
 
 /// Shared stream-creation path used both by `create_stream` (single-signature)
@@ -1275,7 +1292,7 @@ fn create_stream_internal(
     if is_contract_paused(env) {
         return Err(Error::ContractPaused);
     }
-    if env.storage().instance().get::<_, Address>(&ADMIN).is_none() {
+    if env.storage().instance().get::<_, Address>(&DataKey::Admin).is_none() {
         return Err(Error::Unauthorized);
     }
     if curve_type != CURVE_LINEAR && curve_type != CURVE_EXP && curve_type != CURVE_MILESTONE {
@@ -1296,7 +1313,11 @@ fn create_stream_internal(
         return Err(Error::InvalidMilestones);
     }
 
-    let mut next = env.storage().instance().get::<_, u64>(&NEXTID).unwrap_or(1);
+    let mut next = env
+        .storage()
+        .instance()
+        .get::<_, u64>(&DataKey::StreamCounter)
+        .unwrap_or(1);
     let id = next;
     next = next.checked_add(1).ok_or(Error::Overflow)?;
 
@@ -1314,20 +1335,21 @@ fn create_stream_internal(
         is_soulbound,
         paused_duration: 0,
         last_paused_at: 0,
-        stream_metadata: None,
         milestones,
     };
 
-    let mut streams = get_streams(env);
-    streams.set(id, stream.clone());
-    env.storage().persistent().set(&STREAMS, &streams);
+    env.storage().persistent().set(&DataKey::Stream(id), &stream);
+    extend_stream_ttl(env, id);
 
     record_stream_created(env, &stream);
 
     add_user_stream(env, sender, id);
     add_user_stream(env, receiver, id);
 
-    env.storage().instance().set(&NEXTID, &next);
+    env.storage().instance().set(&DataKey::StreamCounter, &next);
+
+    // Record the stream's creation in its history.
+    add_history(env, id, StreamAction::Created);
     Ok(id)
 }
 
@@ -1371,44 +1393,43 @@ fn validate_milestones(milestones: &Option<Vec<Milestone>>, end_time: u64) -> Re
     Ok(())
 }
 
-fn get_proposals(env: &Env) -> Map<u64, StreamProposal> {
-    env.storage()
-        .persistent()
-        .get(&PROPOSALS)
-        .unwrap_or(Map::new(env))
-}
-
 fn get_proposal(env: &Env, proposal_id: u64) -> Result<StreamProposal, Error> {
-    get_proposals(env)
-        .get(proposal_id)
-        .ok_or(Error::ProposalNotFound)
+    let key = DataKey::Proposal(proposal_id);
+    let proposal = env
+        .storage()
+        .persistent()
+        .get::<_, StreamProposal>(&key)
+        .ok_or(Error::ProposalNotFound)?;
+    extend_proposal_ttl(env, proposal_id);
+    Ok(proposal)
 }
 
 fn save_proposal(env: &Env, proposal_id: u64, proposal: &StreamProposal) {
-    let mut proposals = get_proposals(env);
-    proposals.set(proposal_id, proposal.clone());
-    env.storage().persistent().set(&PROPOSALS, &proposals);
+    env.storage()
+        .persistent()
+        .set(&DataKey::Proposal(proposal_id), proposal);
+    extend_proposal_ttl(env, proposal_id);
 }
 
 fn get_user_streams(env: &Env, user: &Address) -> Vec<u64> {
-    env.storage()
-        .persistent()
-        .get(&USTREAMS)
-        .unwrap_or(Map::new(env))
-        .get(user.clone())
-        .unwrap_or(Vec::new(env))
+    let key = DataKey::UserStreams(user.clone());
+    let streams = env.storage().persistent().get::<_, Vec<u64>>(&key);
+    if streams.is_some() {
+        extend_user_streams_ttl(env, user);
+    }
+    streams.unwrap_or(Vec::new(env))
 }
 
 fn add_user_stream(env: &Env, user: &Address, id: u64) {
-    let mut all: Map<Address, Vec<u64>> = env
+    let key = DataKey::UserStreams(user.clone());
+    let mut list = env
         .storage()
         .persistent()
-        .get(&USTREAMS)
-        .unwrap_or(Map::new(env));
-    let mut list = all.get(user.clone()).unwrap_or(Vec::new(env));
+        .get::<_, Vec<u64>>(&key)
+        .unwrap_or(Vec::new(env));
     list.push_back(id);
-    all.set(user.clone(), list);
-    env.storage().persistent().set(&USTREAMS, &all);
+    env.storage().persistent().set(&key, &list);
+    extend_user_streams_ttl(env, user);
 }
 
 // ---------------------------------------------------------------------------
@@ -1431,28 +1452,39 @@ fn current_hour(env: &Env) -> u64 {
 }
 
 fn get_buckets(env: &Env) -> Map<u64, MetricBucket> {
-    env.storage()
+    let buckets = env
+        .storage()
         .persistent()
-        .get(&BUCKETS)
-        .unwrap_or(Map::new(env))
+        .get::<_, Map<u64, MetricBucket>>(&DataKey::MetricBuckets);
+    if buckets.is_some() {
+        bump_persistent_ttl_if_present(env, &DataKey::MetricBuckets);
+    }
+    buckets.unwrap_or(Map::new(env))
 }
 
 fn get_user_seen(env: &Env) -> Map<Address, u64> {
-    env.storage()
+    let seen = env
+        .storage()
         .persistent()
-        .get(&USERSEEN)
-        .unwrap_or(Map::new(env))
+        .get::<_, Map<Address, u64>>(&DataKey::UserSeen);
+    if seen.is_some() {
+        bump_persistent_ttl_if_present(env, &DataKey::UserSeen);
+    }
+    seen.unwrap_or(Map::new(env))
 }
 
 fn get_tvl(env: &Env) -> Map<Address, i128> {
-    env.storage().instance().get(&TVL).unwrap_or(Map::new(env))
+    env.storage()
+        .instance()
+        .get(&DataKey::TotalTvl)
+        .unwrap_or(Map::new(env))
 }
 
 /// Record that something happened, and fold `user` into the 24h active set.
 fn touch_activity(env: &Env, user: &Address) {
     env.storage()
         .instance()
-        .set(&LASTACT, &env.ledger().timestamp());
+        .set(&DataKey::LastActivity, &env.ledger().timestamp());
     prune_window(env);
 
     let hour = current_hour(env);
@@ -1461,7 +1493,8 @@ fn touch_activity(env: &Env, user: &Address) {
     // new one is capped, so a busy contract keeps reporting its regulars.
     if seen.get(user.clone()).is_some() || seen.len() < MAX_TRACKED_USERS {
         seen.set(user.clone(), hour);
-        env.storage().persistent().set(&USERSEEN, &seen);
+        env.storage().persistent().set(&DataKey::UserSeen, &seen);
+        bump_persistent_ttl_if_present(env, &DataKey::UserSeen);
     }
 }
 
@@ -1471,11 +1504,11 @@ fn touch_activity(env: &Env, user: &Address) {
 /// repeat it on every operation within the same hour.
 fn prune_window(env: &Env) {
     let hour = current_hour(env);
-    let last_prune: Option<u64> = env.storage().instance().get(&LASTPRUNE);
+    let last_prune: Option<u64> = env.storage().instance().get(&DataKey::LastPrune);
     if last_prune == Some(hour) {
         return;
     }
-    env.storage().instance().set(&LASTPRUNE, &hour);
+    env.storage().instance().set(&DataKey::LastPrune, &hour);
 
     let cutoff = window_start_hour(env);
 
@@ -1486,7 +1519,8 @@ fn prune_window(env: &Env) {
             fresh_buckets.set(bucket_hour, bucket);
         }
     }
-    env.storage().persistent().set(&BUCKETS, &fresh_buckets);
+    env.storage().persistent().set(&DataKey::MetricBuckets, &fresh_buckets);
+    bump_persistent_ttl_if_present(env, &DataKey::MetricBuckets);
 
     let seen = get_user_seen(env);
     let mut fresh_seen = Map::new(env);
@@ -1495,7 +1529,8 @@ fn prune_window(env: &Env) {
             fresh_seen.set(address, last_seen);
         }
     }
-    env.storage().persistent().set(&USERSEEN, &fresh_seen);
+    env.storage().persistent().set(&DataKey::UserSeen, &fresh_seen);
+    bump_persistent_ttl_if_present(env, &DataKey::UserSeen);
 }
 
 fn with_current_bucket(env: &Env, update: impl FnOnce(&mut MetricBucket)) {
@@ -1509,17 +1544,18 @@ fn with_current_bucket(env: &Env, update: impl FnOnce(&mut MetricBucket)) {
     });
     update(&mut bucket);
     buckets.set(hour, bucket);
-    env.storage().persistent().set(&BUCKETS, &buckets);
+    env.storage().persistent().set(&DataKey::MetricBuckets, &buckets);
+    bump_persistent_ttl_if_present(env, &DataKey::MetricBuckets);
 }
 
 /// Fold a stream creation into the counters.
 fn record_stream_created(env: &Env, stream: &Stream) {
     touch_activity(env, &stream.sender);
 
-    let active: u64 = env.storage().instance().get(&ACTIVE).unwrap_or(0);
+    let active: u64 = env.storage().instance().get(&DataKey::ActiveStreams).unwrap_or(0);
     env.storage()
         .instance()
-        .set(&ACTIVE, &active.saturating_add(1));
+        .set(&DataKey::ActiveStreams, &active.saturating_add(1));
 
     adjust_tvl(env, &stream.token, stream.total_amount);
 
@@ -1545,10 +1581,10 @@ fn record_withdrawal(env: &Env, receiver: &Address, token: &Address, amount: i12
 fn record_stream_closed(env: &Env, stream: &Stream) {
     touch_activity(env, &stream.sender);
 
-    let active: u64 = env.storage().instance().get(&ACTIVE).unwrap_or(0);
+    let active: u64 = env.storage().instance().get(&DataKey::ActiveStreams).unwrap_or(0);
     env.storage()
         .instance()
-        .set(&ACTIVE, &active.saturating_sub(1));
+        .set(&DataKey::ActiveStreams, &active.saturating_sub(1));
 
     let remaining = stream.total_amount.saturating_sub(stream.withdrawn_amount);
     adjust_tvl(env, &stream.token, -remaining);
@@ -1560,10 +1596,12 @@ fn adjust_tvl(env: &Env, token: &Address, delta: i128) {
     let current = tvl.get(token.clone()).unwrap_or(0);
     let next = current.saturating_add(delta);
     tvl.set(token.clone(), if next < 0 { 0 } else { next });
-    env.storage().instance().set(&TVL, &tvl);
+    env.storage().instance().set(&DataKey::TotalTvl, &tvl);
+}
+
 /// Protocol fee rate in basis points; `0` when unset.
 fn fee_bps(env: &Env) -> u32 {
-    env.storage().instance().get(&FEEBPS).unwrap_or(0)
+    env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0)
 }
 
 /// Fee owed on `amount` at the current rate, rounded down.
@@ -1599,7 +1637,7 @@ fn collect_protocol_fee(
     let treasury = env
         .storage()
         .instance()
-        .get::<_, Address>(&TREASURY)
+        .get::<_, Address>(&DataKey::Treasury)
         .ok_or(Error::TreasuryNotSet)?;
 
     TokenClient::new(env, token).transfer(sender, &treasury, &fee);
@@ -1628,26 +1666,23 @@ fn require_treasury_manager(env: &Env, account: &Address) -> Result<(), Error> {
 }
 
 fn is_contract_paused(env: &Env) -> bool {
-    env.storage().instance().get(&PAUSED).unwrap_or(false)
-}
-
-fn get_history(env: &Env) -> Map<u64, Vec<StreamEvent>> {
-    env.storage()
-        .persistent()
-        .get(&HISTORY)
-        .unwrap_or(Map::new(env))
+    env.storage().instance().get(&DataKey::ContractPaused).unwrap_or(false)
 }
 
 fn add_history(env: &Env, stream_id: u64, action: StreamAction) {
-    let mut history = get_history(env);
-    let mut events = history.get(stream_id).unwrap_or(Vec::new(env));
+    let key = DataKey::StreamHistory(stream_id);
+    let mut events = env
+        .storage()
+        .persistent()
+        .get::<_, Vec<StreamEvent>>(&key)
+        .unwrap_or(Vec::new(env));
     events.push_back(StreamEvent {
         stream_id,
         action,
         timestamp: env.ledger().timestamp(),
     });
-    history.set(stream_id, events);
-    env.storage().persistent().set(&HISTORY, &history);
+    env.storage().persistent().set(&key, &events);
+    extend_history_ttl(env, stream_id);
 }
 
 fn is_restricted(env: &Env, target: &Address) -> bool {
@@ -1655,7 +1690,10 @@ fn is_restricted(env: &Env, target: &Address) -> bool {
 }
 
 fn get_restricted(env: &Env) -> Map<Address, bool> {
-    env.storage().instance().get(&RESTRICT).unwrap_or(Map::new(env))
+    env.storage()
+        .instance()
+        .get(&DataKey::RestrictedAddresses)
+        .unwrap_or(Map::new(env))
 }
 
 fn require_admin(env: &Env, account: &Address) -> Result<(), Error> {
@@ -1677,7 +1715,7 @@ fn has_role(env: &Env, account: &Address, role: u32) -> bool {
     let roles: Map<Address, Vec<u32>> = env
         .storage()
         .instance()
-        .get(&ROLES)
+        .get(&DataKey::Roles)
         .unwrap_or(Map::new(env));
     roles
         .get(account.clone())
@@ -1689,21 +1727,21 @@ fn grant_role_internal(env: Env, account: &Address, role: u32) {
     let mut roles: Map<Address, Vec<u32>> = env
         .storage()
         .instance()
-        .get(&ROLES)
+        .get(&DataKey::Roles)
         .unwrap_or(Map::new(&env));
     let mut list = roles.get(account.clone()).unwrap_or(Vec::new(&env));
     if !list.contains(role) {
         list.push_back(role);
     }
     roles.set(account.clone(), list);
-    env.storage().instance().set(&ROLES, &roles);
+    env.storage().instance().set(&DataKey::Roles, &roles);
 }
 
 fn revoke_role_internal(env: &Env, account: &Address, role: u32) {
     let mut roles: Map<Address, Vec<u32>> = env
         .storage()
         .instance()
-        .get(&ROLES)
+        .get(&DataKey::Roles)
         .unwrap_or(Map::new(env));
     if let Some(list) = roles.get(account.clone()) {
         let mut out = Vec::new(env);
@@ -1716,7 +1754,7 @@ fn revoke_role_internal(env: &Env, account: &Address, role: u32) {
             }
         }
         roles.set(account.clone(), out);
-        env.storage().instance().set(&ROLES, &roles);
+        env.storage().instance().set(&DataKey::Roles, &roles);
     }
 }
 

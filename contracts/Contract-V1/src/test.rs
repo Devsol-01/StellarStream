@@ -383,25 +383,6 @@ fn test_proposal_approval_events_emitted() {
     assert_eq!(f.env.events().all().len(), 1);
 }
 
-// Stream history tests (issue #1468)
-// ---------------------------------------------------------------------------
-
-#[test]
-fn test_stream_history_created() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-// Count query tests (issue #1474)
-// ---------------------------------------------------------------------------
-
-#[test]
-fn test_get_active_streams_count() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    assert_eq!(c.get_active_streams_count(), 0);
-
-    let id1 = c.create_stream(
 // ---------------------------------------------------------------------------
 // Milestone-based vesting tests (issue #1462)
 // ---------------------------------------------------------------------------
@@ -435,51 +416,6 @@ fn test_milestone_simple_schedule() {
         &f.token,
         &1_000_000i128,
         &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    let history = c.get_stream_history(&id);
-    assert_eq!(history.len(), 1);
-    assert_eq!(history.get(0).unwrap().action, StreamAction::Created);
-}
-
-#[test]
-fn test_stream_history_pause_resume() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    assert_eq!(c.get_active_streams_count(), 1);
-
-    let _id2 = c.create_stream(
-        &f.sender,
-        &f.receiver,
-        &f.token,
-        &2_000_000i128,
-        &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    assert_eq!(c.get_active_streams_count(), 2);
-
-    c.pause_stream(&id1, &f.sender);
-    assert_eq!(c.get_active_streams_count(), 1);
-
-    c.cancel_stream(&id1, &f.sender);
-    assert_eq!(c.get_active_streams_count(), 1); // id2 is still active
-}
-
-#[test]
-fn test_get_user_active_streams_count() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    assert_eq!(c.get_user_active_streams_count(&f.sender), 0);
-
-    c.create_stream(
         &365u64,
         &CURVE_MILESTONE,
         &false,
@@ -526,52 +462,6 @@ fn test_milestone_at_milestone_returns_cumulative_percentage() {
         &f.token,
         &1_000_000i128,
         &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    c.pause_stream(&id, &f.sender);
-    c.resume_stream(&id, &f.sender);
-
-    let history = c.get_stream_history(&id);
-    assert_eq!(history.len(), 3);
-    assert_eq!(history.get(0).unwrap().action, StreamAction::Created);
-    assert_eq!(history.get(1).unwrap().action, StreamAction::Paused);
-    assert_eq!(history.get(2).unwrap().action, StreamAction::Resumed);
-}
-
-#[test]
-fn test_stream_history_cancel() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    assert_eq!(c.get_user_active_streams_count(&f.sender), 1);
-    assert_eq!(c.get_user_active_streams_count(&f.receiver), 1);
-
-    c.create_stream(
-        &f.sender,
-        &f.receiver,
-        &f.token,
-        &2_000_000i128,
-        &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    assert_eq!(c.get_user_active_streams_count(&f.sender), 2);
-    assert_eq!(c.get_user_active_streams_count(&f.receiver), 2);
-}
-
-#[test]
-fn test_get_total_streams_count() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    assert_eq!(c.get_total_streams_count(), 0);
-
-    c.create_stream(
         &365u64,
         &CURVE_MILESTONE,
         &false,
@@ -599,52 +489,6 @@ fn test_milestone_between_milestones_holds_previous_percentage() {
         &f.token,
         &1_000_000i128,
         &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    c.cancel_stream(&id, &f.sender);
-
-    let history = c.get_stream_history(&id);
-    assert_eq!(history.len(), 2);
-    assert_eq!(history.get(0).unwrap().action, StreamAction::Created);
-    assert_eq!(history.get(1).unwrap().action, StreamAction::Cancelled);
-}
-
-#[test]
-fn test_stream_history_withdraw() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    f.env.ledger().with_mut(|li| {
-        li.timestamp = 100;
-    });
-
-    assert_eq!(c.get_total_streams_count(), 1);
-
-    c.create_stream(
-        &f.sender,
-        &f.receiver,
-        &f.token,
-        &2_000_000i128,
-        &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    assert_eq!(c.get_total_streams_count(), 2);
-}
-
-#[test]
-fn test_get_user_total_streams_count() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    assert_eq!(c.get_user_total_streams_count(&f.sender), 0);
-
-    c.create_stream(
         &365u64,
         &CURVE_MILESTONE,
         &false,
@@ -671,36 +515,6 @@ fn test_milestone_after_last_returns_total() {
         &f.token,
         &1_000_000i128,
         &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    assert_eq!(c.get_user_total_streams_count(&f.sender), 1);
-    assert_eq!(c.get_user_total_streams_count(&f.receiver), 1);
-
-    c.create_stream(
-        &f.sender,
-        &f.receiver,
-        &f.token,
-        &2_000_000i128,
-        &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    assert_eq!(c.get_user_total_streams_count(&f.sender), 2);
-    assert_eq!(c.get_user_total_streams_count(&f.receiver), 2);
-}
-
-#[test]
-fn test_get_paused_streams_count() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    assert_eq!(c.get_paused_streams_count(), 0);
-
         &365u64,
         &CURVE_MILESTONE,
         &false,
@@ -788,54 +602,7 @@ fn test_milestone_withdrawal() {
         &f.receiver,
         &f.token,
         &1_000_000i128,
-        &100u64,
-        &1_100u64,
         &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    f.env.ledger().with_mut(|li| {
-        li.timestamp = 600;
-    });
-
-    c.withdraw(&id, &f.receiver);
-
-    let history = c.get_stream_history(&id);
-    assert_eq!(history.len(), 2);
-    assert_eq!(history.get(0).unwrap().action, StreamAction::Created);
-    assert!(matches!(
-        history.get(1).unwrap().action,
-        StreamAction::Withdrawn(_)
-    ));
-}
-
-#[test]
-fn test_stream_history_ordered_by_timestamp() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    f.env.ledger().with_mut(|li| {
-        li.timestamp = 100;
-    });
-
-    assert_eq!(c.get_paused_streams_count(), 0);
-
-    c.pause_stream(&id, &f.sender);
-    assert_eq!(c.get_paused_streams_count(), 1);
-
-    c.resume_stream(&id, &f.sender);
-    assert_eq!(c.get_paused_streams_count(), 0);
-}
-
-#[test]
-fn test_get_user_paused_streams_count() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    assert_eq!(c.get_user_paused_streams_count(&f.sender), 0);
-
         &365u64,
         &CURVE_MILESTONE,
         &false,
@@ -869,69 +636,7 @@ fn test_milestone_cancellation() {
         &f.receiver,
         &f.token,
         &1_000_000i128,
-        &100u64,
-        &1_100u64,
         &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    f.env.ledger().with_mut(|li| {
-        li.timestamp = 200;
-    });
-    c.pause_stream(&id, &f.sender);
-
-    f.env.ledger().with_mut(|li| {
-        li.timestamp = 300;
-    });
-    c.resume_stream(&id, &f.sender);
-
-    f.env.ledger().with_mut(|li| {
-        li.timestamp = 400;
-    });
-    c.cancel_stream(&id, &f.sender);
-
-    let history = c.get_stream_history(&id);
-    assert_eq!(history.len(), 4);
-
-    // Check timestamps are in order
-    let ts0 = history.get(0).unwrap().timestamp;
-    let ts1 = history.get(1).unwrap().timestamp;
-    let ts2 = history.get(2).unwrap().timestamp;
-    let ts3 = history.get(3).unwrap().timestamp;
-    assert!(ts0 <= ts1);
-    assert!(ts1 <= ts2);
-    assert!(ts2 <= ts3);
-}
-
-#[test]
-fn test_stream_history_nonexistent_stream() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    let history = c.get_stream_history(&999);
-    assert_eq!(history.len(), 0);
-    assert_eq!(c.get_user_paused_streams_count(&f.sender), 0);
-    assert_eq!(c.get_user_paused_streams_count(&f.receiver), 0);
-
-    c.pause_stream(&id, &f.sender);
-    assert_eq!(c.get_user_paused_streams_count(&f.sender), 1);
-    assert_eq!(c.get_user_paused_streams_count(&f.receiver), 1);
-
-    c.resume_stream(&id, &f.sender);
-    assert_eq!(c.get_user_paused_streams_count(&f.sender), 0);
-    assert_eq!(c.get_user_paused_streams_count(&f.receiver), 0);
-}
-
-#[test]
-fn test_get_closed_streams_count() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    assert_eq!(c.get_closed_streams_count(), 0);
-
-    let id = c.create_stream(
         &365u64,
         &CURVE_MILESTONE,
         &false,
@@ -977,41 +682,6 @@ fn test_milestone_vs_linear_comparison() {
         &f.token,
         &1_000_000i128,
         &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    assert_eq!(c.get_closed_streams_count(), 0);
-
-    c.cancel_stream(&id, &f.sender);
-    assert_eq!(c.get_closed_streams_count(), 1);
-}
-
-#[test]
-fn test_get_user_closed_streams_count() {
-    let f = setup();
-    let c = client(&f.env, &f.contract);
-
-    assert_eq!(c.get_user_closed_streams_count(&f.sender), 0);
-
-    let id = c.create_stream(
-        &f.sender,
-        &f.receiver,
-        &f.token,
-        &1_000_000i128,
-        &0u64,
-        &1_000u64,
-        &CURVE_LINEAR,
-        &false,
-    );
-
-    assert_eq!(c.get_user_closed_streams_count(&f.sender), 0);
-    assert_eq!(c.get_user_closed_streams_count(&f.receiver), 0);
-
-    c.cancel_stream(&id, &f.sender);
-    assert_eq!(c.get_user_closed_streams_count(&f.sender), 1);
-    assert_eq!(c.get_user_closed_streams_count(&f.receiver), 1);
         &365u64,
         &CURVE_LINEAR,
         &false,
@@ -1096,4 +766,441 @@ fn test_milestone_end_time_before_last_milestone_rejected() {
         ),
         Err(Ok(Error::InvalidTimeRange))
     );
+}
+// Count query tests (issue #1474)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_get_active_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_active_streams_count(), 0);
+
+    let id1 = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_active_streams_count(), 1);
+
+    let _id2 = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &2_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_active_streams_count(), 2);
+
+    c.pause_stream(&id1, &f.sender);
+    assert_eq!(c.get_active_streams_count(), 1);
+
+    c.cancel_stream(&id1, &f.sender);
+    assert_eq!(c.get_active_streams_count(), 1); // id2 is still active
+}
+
+#[test]
+fn test_get_user_active_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_user_active_streams_count(&f.sender), 0);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_user_active_streams_count(&f.sender), 1);
+    assert_eq!(c.get_user_active_streams_count(&f.receiver), 1);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &2_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_user_active_streams_count(&f.sender), 2);
+    assert_eq!(c.get_user_active_streams_count(&f.receiver), 2);
+}
+
+#[test]
+fn test_get_total_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_total_streams_count(), 0);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_total_streams_count(), 1);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &2_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_total_streams_count(), 2);
+}
+
+#[test]
+fn test_get_user_total_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_user_total_streams_count(&f.sender), 0);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_user_total_streams_count(&f.sender), 1);
+    assert_eq!(c.get_user_total_streams_count(&f.receiver), 1);
+
+    c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &2_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_user_total_streams_count(&f.sender), 2);
+    assert_eq!(c.get_user_total_streams_count(&f.receiver), 2);
+}
+
+#[test]
+fn test_get_paused_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_paused_streams_count(), 0);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_paused_streams_count(), 0);
+
+    c.pause_stream(&id, &f.sender);
+    assert_eq!(c.get_paused_streams_count(), 1);
+
+    c.resume_stream(&id, &f.sender);
+    assert_eq!(c.get_paused_streams_count(), 0);
+}
+
+#[test]
+fn test_get_user_paused_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_user_paused_streams_count(&f.sender), 0);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_user_paused_streams_count(&f.sender), 0);
+    assert_eq!(c.get_user_paused_streams_count(&f.receiver), 0);
+
+    c.pause_stream(&id, &f.sender);
+    assert_eq!(c.get_user_paused_streams_count(&f.sender), 1);
+    assert_eq!(c.get_user_paused_streams_count(&f.receiver), 1);
+
+    c.resume_stream(&id, &f.sender);
+    assert_eq!(c.get_user_paused_streams_count(&f.sender), 0);
+    assert_eq!(c.get_user_paused_streams_count(&f.receiver), 0);
+}
+
+#[test]
+fn test_get_closed_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_closed_streams_count(), 0);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_closed_streams_count(), 0);
+
+    c.cancel_stream(&id, &f.sender);
+    assert_eq!(c.get_closed_streams_count(), 1);
+}
+
+#[test]
+fn test_get_user_closed_streams_count() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    assert_eq!(c.get_user_closed_streams_count(&f.sender), 0);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    assert_eq!(c.get_user_closed_streams_count(&f.sender), 0);
+    assert_eq!(c.get_user_closed_streams_count(&f.receiver), 0);
+
+    c.cancel_stream(&id, &f.sender);
+    assert_eq!(c.get_user_closed_streams_count(&f.sender), 1);
+    assert_eq!(c.get_user_closed_streams_count(&f.receiver), 1);
+}
+// Stream history tests (issue #1468)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_stream_history_created() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    let history = c.get_stream_history(&id);
+    assert_eq!(history.len(), 1);
+    assert_eq!(history.get(0).unwrap().action, StreamAction::Created);
+}
+
+#[test]
+fn test_stream_history_pause_resume() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    c.pause_stream(&id, &f.sender);
+    c.resume_stream(&id, &f.sender);
+
+    let history = c.get_stream_history(&id);
+    assert_eq!(history.len(), 3);
+    assert_eq!(history.get(0).unwrap().action, StreamAction::Created);
+    assert_eq!(history.get(1).unwrap().action, StreamAction::Paused);
+    assert_eq!(history.get(2).unwrap().action, StreamAction::Resumed);
+}
+
+#[test]
+fn test_stream_history_cancel() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    c.cancel_stream(&id, &f.sender);
+
+    let history = c.get_stream_history(&id);
+    assert_eq!(history.len(), 2);
+    assert_eq!(history.get(0).unwrap().action, StreamAction::Created);
+    assert_eq!(history.get(1).unwrap().action, StreamAction::Cancelled);
+}
+
+#[test]
+fn test_stream_history_withdraw() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    f.env.ledger().with_mut(|li| {
+        li.timestamp = 100;
+    });
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &100u64,
+        &1_100u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    f.env.ledger().with_mut(|li| {
+        li.timestamp = 600;
+    });
+
+    c.withdraw(&id, &f.receiver);
+
+    let history = c.get_stream_history(&id);
+    assert_eq!(history.len(), 2);
+    assert_eq!(history.get(0).unwrap().action, StreamAction::Created);
+    assert!(matches!(
+        history.get(1).unwrap().action,
+        StreamAction::Withdrawn(_)
+    ));
+}
+
+#[test]
+fn test_stream_history_ordered_by_timestamp() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    f.env.ledger().with_mut(|li| {
+        li.timestamp = 100;
+    });
+
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &100u64,
+        &1_100u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+
+    f.env.ledger().with_mut(|li| {
+        li.timestamp = 200;
+    });
+    c.pause_stream(&id, &f.sender);
+
+    f.env.ledger().with_mut(|li| {
+        li.timestamp = 300;
+    });
+    c.resume_stream(&id, &f.sender);
+
+    f.env.ledger().with_mut(|li| {
+        li.timestamp = 400;
+    });
+    c.cancel_stream(&id, &f.sender);
+
+    let history = c.get_stream_history(&id);
+    assert_eq!(history.len(), 4);
+
+    // Check timestamps are in order
+    let ts0 = history.get(0).unwrap().timestamp;
+    let ts1 = history.get(1).unwrap().timestamp;
+    let ts2 = history.get(2).unwrap().timestamp;
+    let ts3 = history.get(3).unwrap().timestamp;
+    assert!(ts0 <= ts1);
+    assert!(ts1 <= ts2);
+    assert!(ts2 <= ts3);
+}
+
+#[test]
+fn test_stream_history_nonexistent_stream() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+
+    let history = c.get_stream_history(&999);
+    assert_eq!(history.len(), 0);
 }
