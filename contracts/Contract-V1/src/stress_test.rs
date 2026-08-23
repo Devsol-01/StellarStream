@@ -51,6 +51,7 @@ fn create_many_to(
             &1_000u64,
             &CURVE_LINEAR,
             &false,
+            &None,
         );
         ids.push_back(id);
     }
@@ -146,7 +147,7 @@ fn test_query_performance_large_dataset() {
 #[test]
 fn test_withdraw_batch_at_limits() {
     let f = setup();
-    let ids = create_many(&f.env, &f.contract, &f.sender, &f.token, 100);
+    let ids = create_many_to(&f.env, &f.contract, &f.sender, &f.receiver, &f.token, 100);
     f.env.ledger().set_timestamp(1_000_000);
     let c = client(&f.env, &f.contract);
     for id in ids.iter() {
@@ -169,7 +170,7 @@ fn test_create_scales_monotonic_ids() {
 #[test]
 fn test_1000_streams_partial_withdraw() {
     let f = setup();
-    let ids = create_many(&f.env, &f.contract, &f.sender, &f.token, 1000);
+    let ids = create_many_to(&f.env, &f.contract, &f.sender, &f.receiver, &f.token, 1000);
     f.env.ledger().set_timestamp(250);
     let c = client(&f.env, &f.contract);
     for id in ids.iter() {
@@ -184,11 +185,10 @@ fn test_mixed_curves_large() {
     let f = setup();
     let mut ids = Vec::new(&f.env);
     for i in 0..400u64 {
-        let receiver = Address::generate(&f.env);
         let curve = if i % 2 == 0 { CURVE_LINEAR } else { CURVE_EXP };
         let id = client(&f.env, &f.contract).create_stream(
             &f.sender,
-            &receiver,
+            &f.receiver,
             &f.token,
             &1_000_000i128,
             &0u64,

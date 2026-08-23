@@ -44,6 +44,7 @@ impl FeeFixture {
             &1_000u64,
             &CURVE_LINEAR,
             &false,
+            &None,
         )
     }
 }
@@ -242,6 +243,7 @@ fn test_insufficient_balance_for_fee_reverts_creation() {
         &1_000u64,
         &CURVE_LINEAR,
         &false,
+        &None,
     );
     assert!(result.is_err(), "creation must fail when the fee cannot be paid");
 
@@ -289,6 +291,7 @@ fn test_fee_without_treasury_is_rejected() {
             &1_000u64,
             &CURVE_LINEAR,
             &false,
+            &None,
         ),
         Err(Ok(Error::TreasuryNotSet))
     );
