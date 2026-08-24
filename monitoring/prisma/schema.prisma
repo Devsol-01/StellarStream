@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model StreamMetrics {
+  id                String   @id @default(cuid())
+  totalValueLocked  Float    @default(0)
+  activeStreams      Int      @default(0)
+  totalStreamsCreated Int    @default(0)
+  timestamp         DateTime @default(now())
+
+  @@index([timestamp])
+}
+
+model RecentActivity {
+  id              String   @id @default(cuid())
+  eventType       String
+  sender          String   @default("")
+  recipients      String   @default("[]")
+  amount          Float    @default(0)
+  asset           String   @default("XLM")
+  contractAddress String
+  ledger          Int
+  timestamp       DateTime @default(now())
+  txHash          String   @default("")
+
+  @@index([timestamp])
+  @@index([eventType])
+  @@index([sender])
+}
+
+model GasCostStats {
+  id          String   @id @default(cuid())
+  operation   String
+  avgGasCost  Float    @default(0)
+  minGasCost  Float    @default(0)
+  maxGasCost  Float    @default(0)
+  sampleCount Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([operation])
+}
+
+model ErrorLog {
+  id              String   @id @default(cuid())
+  errorCode       String
+  message         String
+  contractAddress String
+  ledger          Int
+  timestamp       DateTime @default(now())
+  resolved        Boolean  @default(false)
+
+  @@index([timestamp])
+  @@index([resolved])
+}
+
+model UserVolume {
+  id               String   @id @default(cuid())
+  address          String
+  totalVolume      Float    @default(0)
+  transactionCount Int      @default(0)
+  lastActive       DateTime @default(now())
+
+  @@unique([address])
+  @@index([totalVolume])
+}
+
+model AdminOperation {
+  id              String   @id @default(cuid())
+  operation       String
+  admin           String
+  details         String   @default("{}")
+  ledger          Int
+  timestamp       DateTime @default(now())
+
+  @@index([timestamp])
+}
+
+model AlertConfig {
+  id         String   @id @default(cuid())
+  metric     String
+  threshold  Float
+  direction  String   @default("below")
+  enabled    Boolean  @default(true)
+  webhookUrl String   @default("")
+}
+
+model AlertHistory {
+  id            String   @id @default(cuid())
+  alertConfigId String
+  message       String
+  value         Float
+  threshold     Float
+  firedAt       DateTime @default(now())
+
+  @@index([firedAt])
+  @@index([alertConfigId])
+}

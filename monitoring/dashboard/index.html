@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StellarStream Monitoring Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0e17;--bg-card:#111827;--bg-card-hover:#1a2332;--bg-input:#0f1729;--border:#1e293b;--text:#e2e8f0;--text-dim:#94a3b8;--text-bright:#f8fafc;--accent:#6366f1;--accent-hover:#818cf8;--green:#22c55e;--green-dim:#166534;--red:#ef4444;--red-dim:#991b1b;--yellow:#eab308;--yellow-dim:#854d0e;--blue:#3b82f6;--purple:#a855f7;--cyan:#06b6d4;--font:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;--mono:'SF Mono','Fira Code',Consolas,monospace;--radius:8px;--shadow:0 4px 6px -1px rgba(0,0,0,0.3)}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent-hover)}
+
+.header{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 100%);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header h1{font-size:1.25rem;font-weight:700;color:var(--text-bright);display:flex;align-items:center;gap:0.5rem}
+.header h1 .logo{color:var(--accent);font-size:1.5rem}
+.header-right{display:flex;align-items:center;gap:1rem;font-size:0.8rem;color:var(--text-dim)}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.status-dot.healthy{background:var(--green)}
+.status-dot.degraded{background:var(--yellow)}
+.status-dot.error{background:var(--red)}
+.refresh-timer{font-family:var(--mono);color:var(--text-dim)}
+
+.main{max-width:1400px;margin:0 auto;padding:1.5rem}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;transition:border-color 0.2s}
+.card:hover{border-color:var(--accent)}
+.card-label{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);margin-bottom:0.5rem}
+.card-value{font-size:1.75rem;font-weight:700;font-family:var(--mono);color:var(--text-bright)}
+.card-sub{font-size:0.75rem;color:var(--text-dim);margin-top:0.25rem}
+.card-value.green{color:var(--green)}
+.card-value.red{color:var(--red)}
+.card-value.blue{color:var(--blue)}
+.card-value.purple{color:var(--purple)}
+
+.panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.5rem;overflow:hidden}
+.panel-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
+.panel-title{font-size:1rem;font-weight:600;color:var(--text-bright)}
+.panel-body{padding:1.25rem}
+.panel-body.no-padding{padding:0}
+
+.controls{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
+.controls select,.controls input{background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:0.4rem 0.6rem;border-radius:4px;font-size:0.8rem;font-family:var(--font)}
+.controls select:focus,.controls input:focus{outline:none;border-color:var(--accent)}
+.btn{background:var(--accent);color:#fff;border:none;padding:0.4rem 0.8rem;border-radius:4px;cursor:pointer;font-size:0.8rem;font-family:var(--font);transition:background 0.2s}
+.btn:hover{background:var(--accent-hover)}
+.btn-sm{padding:0.25rem 0.5rem;font-size:0.75rem}
+.btn-danger{background:var(--red)}
+.btn-danger:hover{background:#dc2626}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-dim)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+
+table{width:100%;border-collapse:collapse}
+thead th{background:rgba(99,102,241,0.1);padding:0.75rem 1rem;text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);font-weight:600;border-bottom:1px solid var(--border);position:sticky;top:0}
+tbody td{padding:0.65rem 1rem;border-bottom:1px solid var(--border);font-size:0.85rem;vertical-align:middle}
+tbody tr:hover{background:var(--bg-card-hover)}
+.mono{font-family:var(--mono);font-size:0.8rem}
+.truncate{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-block;padding:0.15rem 0.5rem;border-radius:12px;font-size:0.7rem;font-weight:600;text-transform:uppercase}
+.badge-green{background:var(--green-dim);color:var(--green)}
+.badge-red{background:var(--red-dim);color:var(--red)}
+.badge-yellow{background:var(--yellow-dim);color:var(--yellow)}
+.badge-blue{background:rgba(59,130,246,0.2);color:var(--blue)}
+.badge-purple{background:rgba(168,85,247,0.2);color:var(--purple)}
+.badge-cyan{background:rgba(6,182,212,0.2);color:var(--cyan)}
+.badge-dim{background:rgba(148,163,184,0.1);color:var(--text-dim)}
+
+.gas-bar-chart{display:flex;flex-direction:column;gap:0.6rem}
+.gas-row{display:flex;align-items:center;gap:0.75rem}
+.gas-label{min-width:100px;font-size:0.8rem;color:var(--text-dim);text-align:right}
+.gas-track{flex:1;height:24px;background:var(--bg-input);border-radius:4px;overflow:hidden;position:relative}
+.gas-fill{height:100%;border-radius:4px;transition:width 0.5s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:0.7rem;font-family:var(--mono);color:var(--text-bright);min-width:fit-content}
+.gas-fill.op-splitexec{background:linear-gradient(90deg,#6366f1,#818cf8)}
+.gas-fill.op-paysent{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+.gas-fill.op-indivpay{background:linear-gradient(90deg,#06b6d4,#22d3ee)}
+.gas-fill.op-sched{background:linear-gradient(90deg,#a855f7,#c084fc)}
+.gas-fill.op-cancel{background:linear-gradient(90deg,#ef4444,#f87171)}
+.gas-fill.op-claimed{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.gas-fill.op-affiliate{background:linear-gradient(90deg,#eab308,#facc15)}
+.gas-fill.op-admprop{background:linear-gradient(90deg,#f97316,#fb923c)}
+.gas-fill.op-setstate{background:linear-gradient(90deg,#ec4899,#f472b6)}
+.gas-fill.op-verified{background:linear-gradient(90deg,#14b8a6,#5eead4)}
+.gas-fill.op-default{background:linear-gradient(90deg,#64748b,#94a3b8)}
+.gas-stats{display:flex;gap:1.5rem;margin-top:0.5rem;padding-left:116px;font-size:0.75rem;color:var(--text-dim)}
+
+.leaderboard{counter-reset:lb}
+.leaderboard-item{display:flex;align-items:center;gap:1rem;padding:0.6rem 0;border-bottom:1px solid var(--border);counter-increment:lb}
+.leaderboard-item:last-child{border-bottom:none}
+.leaderboard-rank{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;background:var(--bg-input);color:var(--text-dim);flex-shrink:0}
+.leaderboard-item:nth-child(1) .leaderboard-rank{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000}
+.leaderboard-item:nth-child(2) .leaderboard-rank{background:linear-gradient(135deg,#9ca3af,#6b7280);color:#000}
+.leaderboard-item:nth-child(3) .leaderboard-rank{background:linear-gradient(135deg,#cd7c2f,#a0522d);color:#fff}
+.leaderboard-info{flex:1;min-width:0}
+.leaderboard-addr{font-family:var(--mono);font-size:0.8rem;color:var(--text-bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leaderboard-stats{font-size:0.75rem;color:var(--text-dim);margin-top:0.15rem}
+.leaderboard-volume{text-align:right;font-family:var(--mono);font-weight:600;color:var(--green);white-space:nowrap}
+
+.alert-config-item{display:flex;align-items:center;gap:1rem;padding:0.75rem;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:0.5rem;background:var(--bg-input);flex-wrap:wrap}
+.alert-config-item .metric-name{font-weight:600;color:var(--accent);min-width:120px}
+.alert-config-item .threshold-val{font-family:var(--mono);color:var(--text-bright)}
+.alert-config-item .direction{font-size:0.75rem;color:var(--text-dim)}
+.toggle{position:relative;width:36px;height:20px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle .slider{position:absolute;inset:0;background:var(--border);border-radius:20px;transition:0.2s}
+.toggle .slider::before{content:'';position:absolute;width:16px;height:16px;left:2px;bottom:2px;background:var(--text-dim);border-radius:50%;transition:0.2s}
+.toggle input:checked+.slider{background:var(--accent)}
+.toggle input:checked+.slider::before{transform:translateX(16px);background:#fff}
+
+.empty-state{text-align:center;padding:2rem;color:var(--text-dim);font-size:0.85rem}
+
+.pagination{display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:1rem}
+.page-btn{background:var(--bg-input);border:1px solid var(--border);color:var(--text-dim);padding:0.35rem 0.65rem;border-radius:4px;cursor:pointer;font-size:0.8rem;transition:all 0.2s}
+.page-btn:hover{border-color:var(--accent);color:var(--accent)}
+.page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.page-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+.loading{text-align:center;padding:2rem;color:var(--text-dim)}
+.loading::after{content:'';display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite;margin-left:0.5rem;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.error-rate-chart{display:flex;gap:2rem;padding:1rem 0}
+.error-stat{text-align:center;flex:1}
+.error-stat .value{font-size:2rem;font-weight:700;font-family:var(--mono)}
+.error-stat .label{font-size:0.75rem;color:var(--text-dim);margin-top:0.25rem}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;width:90%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal h3{margin-bottom:1rem;color:var(--text-bright)}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:0.8rem;color:var(--text-dim);margin-bottom:0.35rem}
+.form-group input,.form-group select{width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text);padding:0.5rem;border-radius:4px;font-family:var(--font)}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--accent)}
+.form-actions{display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem}
+
+@media(max-width:768px){
+  .main{padding:1rem}
+  .cards{grid-template-columns:repeat(2,1fr)}
+  .card-value{font-size:1.25rem}
+  .header{flex-direction:column;gap:0.75rem;text-align:center}
+  .panel-header{flex-direction:column;align-items:flex-start}
+  .alert-config-item{flex-direction:column;align-items:flex-start}
+  .gas-stats{padding-left:0}
+}
+@media(max-width:480px){
+  .cards{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h1><span class="logo">◆</span> StellarStream Monitor</h1>
+  <div class="header-right">
+    <span id="health-status"><span class="status-dot healthy"></span> Connected</span>
+    <span class="refresh-timer" id="refresh-timer">Next refresh: 30s</span>
+    <span id="last-update" style="color:var(--text-dim)">--</span>
+  </div>
+</header>
+
+<main class="main">
+  <div class="cards" id="overview-cards">
+    <div class="card"><div class="card-label">Total Value Locked</div><div class="card-value blue" id="tvl-value">--</div><div class="card-sub" id="tvl-sub">Loading...</div></div>
+    <div class="card"><div class="card-label">Active Streams</div><div class="card-value green" id="active-streams-value">--</div><div class="card-sub" id="active-streams-sub">Loading...</div></div>
+    <div class="card"><div class="card-label">Total Streams Created</div><div class="card-value purple" id="total-streams-value">--</div><div class="card-sub" id="total-streams-sub">Loading...</div></div>
+    <div class="card"><div class="card-label">Error Rate (24h)</div><div class="card-value" id="error-rate-value">--</div><div class="card-sub" id="error-rate-sub">Loading...</div></div>
+  </div>
+
+  <div class="error-rate-chart" id="error-detail">
+    <div class="error-stat"><div class="value" id="errors-1h" style="color:var(--red)">--</div><div class="label">Errors (1h)</div></div>
+    <div class="error-stat"><div class="value" id="errors-24h" style="color:var(--yellow)">--</div><div class="label">Errors (24h)</div></div>
+    <div class="error-stat"><div class="value" id="error-rate-24h" style="color:var(--cyan)">--</div><div class="label">Rate per 100 events</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Recent Activity</span>
+      <div class="controls">
+        <select id="filter-event-type">
+          <option value="">All Types</option>
+          <option value="splitexec">Split Exec</option>
+          <option value="paysent">Pay Sent</option>
+          <option value="indivpay">Individual Pay</option>
+          <option value="sched">Scheduled</option>
+          <option value="cancel">Cancel</option>
+          <option value="claimed">Claimed</option>
+          <option value="affiliate">Affiliate</option>
+          <option value="admprop">Admin Proposal</option>
+          <option value="setstate">Set State</option>
+          <option value="verified">Verified</option>
+        </select>
+        <input type="text" id="filter-sender" placeholder="Filter by sender..." style="width:180px">
+      </div>
+    </div>
+    <div class="panel-body no-padding">
+      <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Sender</th>
+              <th>Amount</th>
+              <th>Asset</th>
+              <th>Ledger</th>
+              <th>Time</th>
+              <th>TX Hash</th>
+            </tr>
+          </thead>
+          <tbody id="activity-tbody"><tr><td colspan="7" class="loading">Loading activity</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="activity-pagination"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Gas Cost Statistics</span></div>
+    <div class="panel-body" id="gas-stats-body"><div class="loading">Loading gas stats</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Top Users by Volume</span></div>
+    <div class="panel-body" id="top-users-body"><div class="loading">Loading top users</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Admin Operations</span>
+    </div>
+    <div class="panel-body no-padding">
+      <div style="overflow-x:auto;max-height:350px;overflow-y:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Operation</th>
+              <th>Admin</th>
+              <th>Details</th>
+              <th>Ledger</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="admin-ops-tbody"><tr><td colspan="5" class="loading">Loading admin operations</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Alert Configuration</span>
+      <button class="btn btn-sm" onclick="openAlertModal()">+ Add Alert</button>
+    </div>
+    <div class="panel-body" id="alerts-config-body"><div class="loading">Loading alerts</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">Alert History</span></div>
+    <div class="panel-body no-padding">
+      <div style="overflow-x:auto;max-height:300px;overflow-y:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Message</th>
+              <th>Value</th>
+              <th>Threshold</th>
+              <th>Fired At</th>
+            </tr>
+          </thead>
+          <tbody id="alert-history-tbody"><tr><td colspan="5" class="loading">Loading alert history</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="alert-modal">
+  <div class="modal">
+    <h3>Create Alert</h3>
+    <div class="form-group">
+      <label>Metric</label>
+      <select id="alert-metric">
+        <option value="tvl">TVL</option>
+        <option value="active_streams">Active Streams</option>
+        <option value="error_rate">Error Rate</option>
+        <option value="error_count_24h">Error Count (24h)</option>
+        <option value="gas_cost">Gas Cost</option>
+        <option value="total_streams">Total Streams</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Direction</label>
+      <select id="alert-direction">
+        <option value="below">Below</option>
+        <option value="above">Above</option>
+        <option value="equals">Equals</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Threshold</label>
+      <input type="number" id="alert-threshold" step="any" placeholder="Enter threshold value">
+    </div>
+    <div class="form-group">
+      <label>Webhook URL (optional)</label>
+      <input type="text" id="alert-webhook" placeholder="https://hooks.slack.com/... or Discord webhook">
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeAlertModal()">Cancel</button>
+      <button class="btn" onclick="saveAlert()">Save Alert</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let currentPage = 1;
+let refreshCountdown = 30;
+let refreshInterval;
+
+function truncateAddr(addr, len) {
+  if (!addr || addr.length <= len) return addr || '';
+  return addr.slice(0, 8) + '...' + addr.slice(-6);
+}
+
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return Math.floor(diff) + 's ago';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+
+function eventTypeBadge(type) {
+  const colors = {
+    splitexec: 'blue', paysent: 'green', indivpay: 'cyan', sched: 'purple',
+    cancel: 'red', claimed: 'green', affiliate: 'yellow', admprop: 'purple',
+    setstate: 'dim', verified: 'dim'
+  };
+  return `<span class="badge badge-${colors[type] || 'dim'}">${type}</span>`;
+}
+
+async function fetchJSON(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    console.error('Fetch error:', url, e);
+    return null;
+  }
+}
+
+async function loadOverview() {
+  const data = await fetchJSON(`${API}/overview`);
+  if (!data) return;
+
+  document.getElementById('tvl-value').textContent = data.totalValueLocked.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('tvl-sub').textContent = `Across ${Object.keys(data.tvlByContract || {}).length} contract(s)`;
+
+  document.getElementById('active-streams-value').textContent = data.activeStreams.toLocaleString();
+  document.getElementById('active-streams-sub').textContent = data.isPaused ? '⚠ Contract paused' : 'All contracts active';
+  if (data.isPaused) document.getElementById('active-streams-value').className = 'card-value red';
+
+  document.getElementById('total-streams-value').textContent = data.totalStreamsCreated.toLocaleString();
+  document.getElementById('total-streams-sub').textContent = 'All time';
+
+  const errRate = data.errorRates;
+  document.getElementById('error-rate-value').textContent = errRate.ratePer100Events.toFixed(2) + '%';
+  document.getElementById('error-rate-value').className = errRate.ratePer100Events > 5 ? 'card-value red' : 'card-value green';
+  document.getElementById('error-rate-sub').textContent = `${errRate.errorsLast24h} errors in 24h`;
+
+  document.getElementById('errors-1h').textContent = errRate.errorsLast1h;
+  document.getElementById('errors-24h').textContent = errRate.errorsLast24h;
+  document.getElementById('error-rate-24h').textContent = errRate.ratePer100Events.toFixed(3) + '%';
+
+  document.getElementById('last-update').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+}
+
+async function loadActivity(page) {
+  const eventType = document.getElementById('filter-event-type').value;
+  const sender = document.getElementById('filter-sender').value;
+  let url = `${API}/activity?page=${page || 1}&limit=25`;
+  if (eventType) url += `&eventType=${eventType}`;
+  if (sender) url += `&sender=${encodeURIComponent(sender)}`;
+
+  const data = await fetchJSON(url);
+  if (!data) { document.getElementById('activity-tbody').innerHTML = '<tr><td colspan="7" class="empty-state">Failed to load activity</td></tr>'; return; }
+
+  const tbody = document.getElementById('activity-tbody');
+  if (!data.items || data.items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No activity recorded yet. Events will appear once the indexer starts processing.</td></tr>';
+    document.getElementById('activity-pagination').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = data.items.map(item => `<tr>
+    <td>${eventTypeBadge(item.eventType)}</td>
+    <td class="mono truncate" title="${item.sender}">${truncateAddr(item.sender, 16)}</td>
+    <td class="mono">${item.amount.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+    <td>${item.asset}</td>
+    <td class="mono">${item.ledger}</td>
+    <td style="color:var(--text-dim);white-space:nowrap">${timeAgo(item.timestamp)}</td>
+    <td class="mono truncate" title="${item.txHash}">${truncateAddr(item.txHash, 12)}</td>
+  </tr>`).join('');
+
+  currentPage = data.pagination.page;
+  renderPagination('activity-pagination', data.pagination, loadActivity);
+}
+
+function renderPagination(containerId, pagination, loadFn) {
+  const el = document.getElementById(containerId);
+  if (pagination.totalPages <= 1) { el.innerHTML = ''; return; }
+  let html = `<button class="page-btn" ${pagination.page <= 1 ? 'disabled' : ''} onclick="loadFn(${pagination.page - 1})">‹</button>`;
+  for (let i = 1; i <= pagination.totalPages; i++) {
+    if (i === 1 || i === pagination.totalPages || Math.abs(i - pagination.page) <= 2) {
+      html += `<button class="page-btn ${i === pagination.page ? 'active' : ''}" onclick="loadFn(${i})">${i}</button>`;
+    } else if (Math.abs(i - pagination.page) === 3) {
+      html += '<span style="color:var(--text-dim)">…</span>';
+    }
+  }
+  html += `<button class="page-btn" ${pagination.page >= pagination.totalPages ? 'disabled' : ''} onclick="loadFn(${pagination.page + 1})">›</button>`;
+  el.innerHTML = html;
+}
+
+async function loadGasStats() {
+  const data = await fetchJSON(`${API}/gas-stats`);
+  const container = document.getElementById('gas-stats-body');
+  if (!data || data.length === 0) { container.innerHTML = '<div class="empty-state">No gas cost data yet</div>'; return; }
+
+  const maxCost = Math.max(...data.map(s => s.avgGasCost), 1);
+  container.innerHTML = '<div class="gas-bar-chart">' + data.map(s => {
+    const pct = Math.min((s.avgGasCost / maxCost) * 100, 100);
+    const cssClass = s.operation.replace(/[^a-z]/gi, '') || 'default';
+    return `<div class="gas-row">
+      <span class="gas-label">${s.operation}</span>
+      <div class="gas-track">
+        <div class="gas-fill op-${cssClass}" style="width:${pct}%">${Math.round(s.avgGasCost)} tx</div>
+      </div>
+      <span style="min-width:60px;text-align:right;font-family:var(--mono);font-size:0.75rem;color:var(--text-dim)">n=${s.sampleCount}</span>
+    </div>`;
+  }).join('') + '</div>' +
+  '<div class="gas-stats">' + data.map(s =>
+    `<span>${s.operation}: min=${Math.round(s.minGasCost)} avg=${Math.round(s.avgGasCost)} max=${Math.round(s.maxGasCost)}</span>`
+  ).join('') + '</div>';
+}
+
+async function loadTopUsers() {
+  const data = await fetchJSON(`${API}/top-users`);
+  const container = document.getElementById('top-users-body');
+  if (!data || data.length === 0) { container.innerHTML = '<div class="empty-state">No user data yet</div>'; return; }
+
+  container.innerHTML = '<div class="leaderboard">' + data.map((u, i) => `<div class="leaderboard-item">
+    <div class="leaderboard-rank">${i + 1}</div>
+    <div class="leaderboard-info">
+      <div class="leaderboard-addr" title="${u.address}">${u.address}</div>
+      <div class="leaderboard-stats">${u.transactionCount} transactions · last active ${timeAgo(u.lastActive)}</div>
+    </div>
+    <div class="leaderboard-volume">${u.totalVolume.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+  </div>`).join('') + '</div>';
+}
+
+async function loadAdminOps() {
+  const data = await fetchJSON(`${API}/admin-operations`);
+  const tbody = document.getElementById('admin-ops-tbody');
+  if (!data || !data.items || data.items.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No admin operations recorded</td></tr>'; return; }
+
+  tbody.innerHTML = data.items.map(op => {
+    let details = '';
+    try { const parsed = JSON.parse(op.details); details = Object.entries(parsed).map(([k,v]) => `${k}: ${v}`).join(', '); } catch { details = op.details; }
+    return `<tr>
+      <td><span class="badge badge-purple">${op.operation}</span></td>
+      <td class="mono truncate" title="${op.admin}">${truncateAddr(op.admin, 16)}</td>
+      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${details}</td>
+      <td class="mono">${op.ledger}</td>
+      <td style="color:var(--text-dim);white-space:nowrap">${timeAgo(op.timestamp)}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadAlertsConfig() {
+  const data = await fetchJSON(`${API}/alerts/config`);
+  const container = document.getElementById('alerts-config-body');
+  if (!data || data.length === 0) { container.innerHTML = '<div class="empty-state">No alerts configured</div>'; return; }
+
+  container.innerHTML = data.map(a => `<div class="alert-config-item">
+    <span class="metric-name">${a.metric}</span>
+    <span class="direction">${a.direction}</span>
+    <span class="threshold-val">${a.threshold}</span>
+    <label class="toggle"><input type="checkbox" ${a.enabled ? 'checked' : ''} onchange="toggleAlert('${a.id}', this.checked)"><span class="slider"></span></label>
+    <button class="btn btn-sm btn-danger" onclick="deleteAlert('${a.id}')">Delete</button>
+  </div>`).join('');
+}
+
+async function loadAlertHistory() {
+  const data = await fetchJSON(`${API}/alerts/history`);
+  const tbody = document.getElementById('alert-history-tbody');
+  if (!data || data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No alerts fired yet</td></tr>'; return; }
+
+  tbody.innerHTML = data.map(h => `<tr>
+    <td><span class="badge badge-red">${h.alertConfigId.slice(0, 8)}</span></td>
+    <td>${h.message}</td>
+    <td class="mono">${h.value.toLocaleString()}</td>
+    <td class="mono">${h.threshold.toLocaleString()}</td>
+    <td style="color:var(--text-dim);white-space:nowrap">${timeAgo(h.firedAt)}</td>
+  </tr>`).join('');
+}
+
+async function toggleAlert(id, enabled) {
+  await fetch(`${API}/alerts/config/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled })
+  });
+}
+
+async function deleteAlert(id) {
+  if (!confirm('Delete this alert?')) return;
+  await fetch(`${API}/alerts/config/${id}`, { method: 'DELETE' });
+  loadAlertsConfig();
+}
+
+function openAlertModal() { document.getElementById('alert-modal').classList.add('active'); }
+function closeAlertModal() { document.getElementById('alert-modal').classList.remove('active'); }
+
+async function saveAlert() {
+  const metric = document.getElementById('alert-metric').value;
+  const direction = document.getElementById('alert-direction').value;
+  const threshold = parseFloat(document.getElementById('alert-threshold').value);
+  const webhookUrl = document.getElementById('alert-webhook').value;
+
+  if (isNaN(threshold)) { alert('Please enter a valid threshold'); return; }
+
+  await fetch(`${API}/alerts/config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ metric, threshold, direction, webhookUrl })
+  });
+
+  closeAlertModal();
+  document.getElementById('alert-threshold').value = '';
+  document.getElementById('alert-webhook').value = '';
+  loadAlertsConfig();
+}
+
+async function checkHealth() {
+  const data = await fetchJSON(`${API}/health`);
+  const el = document.getElementById('health-status');
+  if (!data) {
+    el.innerHTML = '<span class="status-dot error"></span> Disconnected';
+    return;
+  }
+  const cls = data.status === 'healthy' ? 'healthy' : 'degraded';
+  el.innerHTML = `<span class="status-dot ${cls}"></span> ${data.status === 'healthy' ? 'Healthy' : 'Degraded'}`;
+}
+
+async function refreshAll() {
+  await Promise.all([
+    loadOverview(),
+    loadActivity(currentPage),
+    loadGasStats(),
+    loadTopUsers(),
+    loadAdminOps(),
+    loadAlertsConfig(),
+    loadAlertHistory(),
+    checkHealth()
+  ]);
+}
+
+document.getElementById('filter-event-type').addEventListener('change', () => loadActivity(1));
+document.getElementById('filter-sender').addEventListener('input', debounce(() => loadActivity(1), 400));
+
+function debounce(fn, ms) {
+  let t;
+  return function() {
+    const ctx = this;
+    const args = arguments;
+    clearTimeout(t);
+    t = setTimeout(function() { fn.apply(ctx, args); }, ms);
+  };
+}
+
+function startRefreshTimer() {
+  refreshCountdown = 30;
+  clearInterval(refreshInterval);
+  refreshInterval = setInterval(() => {
+    refreshCountdown--;
+    document.getElementById('refresh-timer').textContent = `Next refresh: ${refreshCountdown}s`;
+    if (refreshCountdown <= 0) {
+      refreshAll();
+      refreshCountdown = 30;
+    }
+  }, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  refreshAll();
+  startRefreshTimer();
+});
+
+document.getElementById('alert-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAlertModal();
+});
+</script>
+</body>
+</html>
