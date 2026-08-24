@@ -133,6 +133,26 @@ pub enum ContractState {
     Paused,
 }
 
+/// #1484: Consolidated read-mostly protocol configuration.
+///
+/// These fields were previously stored as seven independent instance-storage
+/// entries (`Token`, `FeeBps`, `Treasury`, `StrictMode`, `ContractState`,
+/// `WhitelistOnly`, `IdentityValidator`) and were re-read individually on the
+/// hot `split`/`split_pull`/`execute_split`/`split_funds` paths. Grouping them
+/// into one struct reduces those several storage round-trips to a single read,
+/// which cuts the per-entry host-call overhead (a fixed cost per entry read).
+#[contracttype]
+#[derive(Clone)]
+pub struct ProtocolConfig {
+    pub token: Address,
+    pub fee_bps: u32,
+    pub treasury: Address,
+    pub strict_mode: bool,
+    pub state: ContractState,
+    pub whitelist_only: bool,
+    pub identity_validator: Option<Address>,
+}
+
 // ── #917: Push/Pull transfer mode ─────────────────────────────────────────────
 
 /// Controls whether `split_funds` pushes tokens directly to recipients (PUSH)
@@ -190,10 +210,6 @@ impl SplitterV3 {
         }
         owner.require_auth();
         env.storage().instance().set(&DataKey::Admin, &owner);
-        env.storage().instance().set(&DataKey::Token, &token);
-        env.storage().instance().set(&DataKey::FeeBps, &fee_bps);
-        env.storage().instance().set(&DataKey::Treasury, &treasury);
-        env.storage().instance().set(&DataKey::StrictMode, &false);
         env.storage()
             .instance()
             .set(&DataKey::NextProposalId, &0u64);
@@ -204,10 +220,18 @@ impl SplitterV3 {
         env.storage()
             .instance()
             .set(&DataKey::CouncilKeys, &council_keys);
-        // #922: start Active
-        env.storage()
-            .instance()
-            .set(&DataKey::ContractState, &ContractState::Active);
+        // #1484: store all read-mostly config in a single instance entry.
+        let config = ProtocolConfig {
+            token,
+            fee_bps,
+            treasury,
+            strict_mode: false,
+            // #922: start Active
+            state: ContractState::Active,
+            whitelist_only: false,
+            identity_validator: None,
+        };
+        Self::_save_config(&env, &config);
         // #916: default admin threshold = majority of quorum_admins (at least 2)
         let threshold: u32 = if quorum_admins.len() >= 2 {
             quorum_admins.len() / 2 + 1
@@ -369,9 +393,9 @@ impl SplitterV3 {
             matches!(action, AdminChangeAction::SetContractState(_))
         })?;
         if let AdminChangeAction::SetContractState(state) = new_state {
-            env.storage()
-                .instance()
-                .set(&DataKey::ContractState, &state);
+            let mut config = Self::_require_config(&env);
+            config.state = state;
+            Self::_save_config(&env, &config);
             Self::_bump_instance_ttl(&env);
             env.events()
                 .publish((symbol_short!("setstate"), proposal_id), ());
@@ -434,9 +458,9 @@ impl SplitterV3 {
     /// Enable or disable whitelist-only mode for `split_funds`. Admin only.
     pub fn set_whitelist_only(env: Env, enabled: bool) -> Result<(), Error> {
         Self::_require_admin(&env)?;
-        env.storage()
-            .instance()
-            .set(&DataKey::WhitelistOnly, &enabled);
+        let mut config = Self::_require_config(&env);
+        config.whitelist_only = enabled;
+        Self::_save_config(&env, &config);
         Self::_bump_instance_ttl(&env);
         Ok(())
     }
@@ -456,9 +480,9 @@ impl SplitterV3 {
     /// every recipient before processing. Any unverified recipient reverts the tx.
     pub fn set_identity_validator(env: Env, validator: Address) -> Result<(), Error> {
         Self::_require_admin(&env)?;
-        env.storage()
-            .instance()
-            .set(&DataKey::IdentityValidator, &validator);
+        let mut config = Self::_require_config(&env);
+        config.identity_validator = Some(validator);
+        Self::_save_config(&env, &config);
         Self::_bump_instance_ttl(&env);
         Ok(())
     }
@@ -466,13 +490,15 @@ impl SplitterV3 {
     /// Remove the identity validator (disables external compliance checks).
     pub fn remove_identity_validator(env: Env) -> Result<(), Error> {
         Self::_require_admin(&env)?;
-        env.storage().instance().remove(&DataKey::IdentityValidator);
+        let mut config = Self::_require_config(&env);
+        config.identity_validator = None;
+        Self::_save_config(&env, &config);
         Ok(())
     }
 
     /// View the currently configured identity validator address.
     pub fn identity_validator(env: Env) -> Option<Address> {
-        env.storage().instance().get(&DataKey::IdentityValidator)
+        Self::_load_config(&env).and_then(|c| c.identity_validator)
     }
 
     // ── #633: Verification management (single-admin) ──────────────────────────
@@ -503,7 +529,7 @@ impl SplitterV3 {
         env.storage()
             .persistent()
             .set(&DataKey::PendingWithdrawal(caller.clone()), &0i128);
-        let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
+        let token_addr: Address = Self::_require_config(&env).token.clone();
         let token_client = token::Client::new(&env, &token_addr);
         token_client.transfer(&env.current_contract_address(), &caller, &amount);
         env.events()
@@ -523,7 +549,9 @@ impl SplitterV3 {
 
     pub fn set_strict_mode(env: Env, strict: bool) -> Result<(), Error> {
         Self::_require_admin(&env)?;
-        env.storage().instance().set(&DataKey::StrictMode, &strict);
+        let mut config = Self::_require_config(&env);
+        config.strict_mode = strict;
+        Self::_save_config(&env, &config);
         Ok(())
     }
 
@@ -593,16 +621,16 @@ impl SplitterV3 {
         if proposal.approvals.len() < 2 {
             return Err(Error::QuorumNotReached);
         }
+        let mut config = Self::_require_config(&env);
         match proposal.action.clone() {
             AdminAction::UpdateFee(new_bps) => {
-                env.storage().instance().set(&DataKey::FeeBps, &new_bps);
+                config.fee_bps = new_bps;
             }
             AdminAction::UpdateCollector(new_treasury) => {
-                env.storage()
-                    .instance()
-                    .set(&DataKey::Treasury, &new_treasury);
+                config.treasury = new_treasury;
             }
         }
+        Self::_save_config(&env, &config);
         proposal.executed = true;
         env.storage()
             .persistent()
@@ -627,7 +655,11 @@ impl SplitterV3 {
         affiliate: Option<Address>,
         salt: BytesN<32>,
     ) -> Result<(), Error> {
-        Self::_require_not_paused(&env)?;
+        // #1484: load the consolidated config once and reuse it below instead
+        // of issuing separate instance reads for pause state, strict mode,
+        // token, fee and treasury.
+        let config = Self::_require_config(&env);
+        Self::_require_not_paused(&config)?;
         sender.require_auth();
 
         // ── Idempotency: reject replayed disbursements ────────────────────────
@@ -640,11 +672,7 @@ impl SplitterV3 {
             return Err(Error::AlreadyProcessed);
         }
 
-        let strict: bool = env
-            .storage()
-            .instance()
-            .get(&DataKey::StrictMode)
-            .unwrap_or(false);
+        let strict: bool = config.strict_mode;
         if recipients.len() > MAX_RECIPIENTS {
             return Err(Error::TooManyRecipients);
         }
@@ -655,7 +683,7 @@ impl SplitterV3 {
         if bps_sum != 10_000 {
             return Err(Error::InvalidSplit);
         }
-        let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
+        let token_addr: Address = config.token.clone();
         let token_client = token::Client::new(&env, &token_addr);
         let contract_addr = env.current_contract_address();
 
@@ -676,13 +704,13 @@ impl SplitterV3 {
         let after_affiliate = total_amount
             .checked_sub(affiliate_amount)
             .ok_or(Error::Overflow)?;
-        let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0);
+        let fee_bps: u32 = config.fee_bps;
         let fee_amount = if fee_bps > 0 {
             let f = after_affiliate
                 .checked_mul(fee_bps as i128)
                 .ok_or(Error::Overflow)?
                 / 10_000;
-            let treasury: Address = env.storage().instance().get(&DataKey::Treasury).unwrap();
+            let treasury: Address = config.treasury.clone();
             if f > 0 {
                 token_client.transfer(&contract_addr, &treasury, &f);
             }
@@ -759,7 +787,8 @@ impl SplitterV3 {
         total_amount: i128,
         release_ledger: u64,
     ) -> Result<u64, Error> {
-        Self::_require_not_paused(&env)?;
+        let config = Self::_require_config(&env);
+        Self::_require_not_paused(&config)?;
         sender.require_auth();
         let mut bps_sum: u32 = 0;
         for r in recipients.iter() {
@@ -768,7 +797,7 @@ impl SplitterV3 {
         if bps_sum != 10_000 {
             return Err(Error::InvalidSplit);
         }
-        let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
+        let token_addr: Address = config.token.clone();
         let token_client = token::Client::new(&env, &token_addr);
         token_client.transfer(&sender, &env.current_contract_address(), &total_amount);
 
@@ -801,7 +830,8 @@ impl SplitterV3 {
     }
 
     pub fn execute_split(env: Env, split_id: u64) -> Result<(), Error> {
-        Self::_require_not_paused(&env)?;
+        let protocol = Self::_require_config(&env);
+        Self::_require_not_paused(&protocol)?;
         let mut config: SplitConfig = env
             .storage()
             .persistent()
@@ -816,17 +846,17 @@ impl SplitterV3 {
         if env.ledger().timestamp() < config.release_ledger {
             return Err(Error::NotYetReleased);
         }
-        let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
+        let token_addr: Address = protocol.token.clone();
         let token_client = token::Client::new(&env, &token_addr);
         let contract_addr = env.current_contract_address();
-        let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0);
+        let fee_bps: u32 = protocol.fee_bps;
         let fee_amount = if fee_bps > 0 {
             let f = config
                 .total_amount
                 .checked_mul(fee_bps as i128)
                 .ok_or(Error::Overflow)?
                 / 10_000;
-            let treasury: Address = env.storage().instance().get(&DataKey::Treasury).unwrap();
+            let treasury: Address = protocol.treasury.clone();
             if f > 0 {
                 token_client.transfer(&contract_addr, &treasury, &f);
             }
@@ -874,7 +904,7 @@ impl SplitterV3 {
         if env.ledger().timestamp() >= config.release_ledger {
             return Err(Error::SplitNotYetDue);
         }
-        let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
+        let token_addr: Address = Self::_require_config(&env).token.clone();
         let token_client = token::Client::new(&env, &token_addr);
         token_client.transfer(
             &env.current_contract_address(),
@@ -905,7 +935,8 @@ impl SplitterV3 {
         total_amount: i128,
         affiliate: Option<Address>,
     ) -> Result<(), Error> {
-        Self::_require_not_paused(&env)?;
+        let config = Self::_require_config(&env);
+        Self::_require_not_paused(&config)?;
         sender.require_auth();
         let mut bps_sum: u32 = 0;
         for r in recipients.iter() {
@@ -914,7 +945,7 @@ impl SplitterV3 {
         if bps_sum != 10_000 {
             return Err(Error::InvalidSplit);
         }
-        let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
+        let token_addr: Address = config.token.clone();
         let token_client = token::Client::new(&env, &token_addr);
         let contract_addr = env.current_contract_address();
         token_client.transfer(&sender, &contract_addr, &total_amount);
@@ -931,13 +962,13 @@ impl SplitterV3 {
         let after_affiliate = total_amount
             .checked_sub(affiliate_amount)
             .ok_or(Error::Overflow)?;
-        let fee_bps: u32 = env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0);
+        let fee_bps: u32 = config.fee_bps;
         let fee_amount = if fee_bps > 0 {
             let f = after_affiliate
                 .checked_mul(fee_bps as i128)
                 .ok_or(Error::Overflow)?
                 / 10_000;
-            let treasury: Address = env.storage().instance().get(&DataKey::Treasury).unwrap();
+            let treasury: Address = config.treasury.clone();
             if f > 0 {
                 token_client.transfer(&contract_addr, &treasury, &f);
             }
@@ -1018,7 +1049,10 @@ impl SplitterV3 {
         total_amount: i128,
         mode: SplitMode,
     ) -> Result<(), Error> {
-        Self::_require_not_paused(&env)?;
+        // #1484: single config read serves the pause check, whitelist-only flag
+        // and identity-validator lookup below.
+        let config = Self::_require_config(&env);
+        Self::_require_not_paused(&config)?;
         // #913: acquire reentrancy lock before any external token calls.
         Self::_check_and_lock(&env)?;
         sender.require_auth();
@@ -1032,12 +1066,7 @@ impl SplitterV3 {
         }
 
         // #927: whitelist-only guard.
-        let whitelist_only: bool = env
-            .storage()
-            .instance()
-            .get(&DataKey::WhitelistOnly)
-            .unwrap_or(false);
-        if whitelist_only {
+        if config.whitelist_only {
             for r in recipients.iter() {
                 let is_wl: bool = env
                     .storage()
@@ -1052,7 +1081,9 @@ impl SplitterV3 {
         }
 
         // #918: Cross-contract identity validation (default-strict: any failure reverts).
-        if let Err(e) = Self::_check_identity_validator(&env, &recipients) {
+        if let Err(e) =
+            Self::_check_identity_validator(&env, config.identity_validator.as_ref(), &recipients)
+        {
             Self::_unlock(&env);
             return Err(e);
         }
@@ -1161,7 +1192,8 @@ impl SplitterV3 {
         sender: Address,
         groups: Vec<AssetGroup>,
     ) -> Result<(), Error> {
-        Self::_require_not_paused(&env)?;
+        let config = Self::_require_config(&env);
+        Self::_require_not_paused(&config)?;
         sender.require_auth();
 
         if groups.is_empty() {
@@ -1247,7 +1279,8 @@ impl SplitterV3 {
         total_amount: i128,
         recipients: Vec<PercentRecipient>,
     ) -> Result<(), Error> {
-        Self::_require_not_paused(&env)?;
+        let config = Self::_require_config(&env);
+        Self::_require_not_paused(&config)?;
         sender.require_auth();
         if recipients.is_empty() {
             return Err(Error::EmptyRecipients);
@@ -1329,11 +1362,11 @@ impl SplitterV3 {
     }
 
     pub fn fee_bps(env: Env) -> u32 {
-        env.storage().instance().get(&DataKey::FeeBps).unwrap_or(0)
+        Self::_load_config(&env).map(|c| c.fee_bps).unwrap_or(0)
     }
 
     pub fn treasury(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Treasury).unwrap()
+        Self::_require_config(&env).treasury
     }
 
     pub fn admin(env: Env) -> Address {
@@ -1348,9 +1381,8 @@ impl SplitterV3 {
     }
 
     pub fn contract_state(env: Env) -> ContractState {
-        env.storage()
-            .instance()
-            .get(&DataKey::ContractState)
+        Self::_load_config(&env)
+            .map(|c| c.state)
             .unwrap_or(ContractState::Active)
     }
 
@@ -1413,7 +1445,7 @@ impl SplitterV3 {
         if bps_sum != 10_000 {
             return Err(Error::InvalidSplit);
         }
-        let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
+        let token_addr: Address = Self::_require_config(&env).token.clone();
         let token_client = token::Client::new(&env, &token_addr);
         let contract_addr = env.current_contract_address();
         Self::_distribute(
@@ -1431,14 +1463,29 @@ impl SplitterV3 {
 
     // ── Internal helpers ──────────────────────────────────────────────────────
 
-    /// #922: Revert if the contract is paused.
-    fn _require_not_paused(env: &Env) -> Result<(), Error> {
-        let state: ContractState = env
-            .storage()
-            .instance()
-            .get(&DataKey::ContractState)
-            .unwrap_or(ContractState::Active);
-        if state == ContractState::Paused {
+    // ── #1484: Config access helpers ─────────────────────────────────────────
+
+    /// Read the consolidated protocol config in a single instance read.
+    /// Returns `None` before the contract is initialized.
+    fn _load_config(env: &Env) -> Option<ProtocolConfig> {
+        env.storage().instance().get(&DataKey::Config)
+    }
+
+    /// Read the consolidated protocol config, panicking if the contract is
+    /// not yet initialized. Used by callers that require initialized state.
+    fn _require_config(env: &Env) -> ProtocolConfig {
+        Self::_load_config(env).unwrap()
+    }
+
+    /// Persist the consolidated protocol config in a single instance write.
+    fn _save_config(env: &Env, config: &ProtocolConfig) {
+        env.storage().instance().set(&DataKey::Config, config);
+    }
+
+    /// #922: Revert if the contract is paused. Takes the already-loaded
+    /// config so callers avoid an extra instance read (see #1484).
+    fn _require_not_paused(config: &ProtocolConfig) -> Result<(), Error> {
+        if config.state == ContractState::Paused {
             return Err(Error::ContractPaused);
         }
         Ok(())
@@ -1449,21 +1496,23 @@ impl SplitterV3 {
     /// Acquire the reentrancy lock. Returns `Err(Reentrant)` if already locked.
     /// Must be paired with `_unlock` in every code path (including error paths).
     fn _check_and_lock(env: &Env) -> Result<(), Error> {
+        // #1484: the lock is ephemeral (only meaningful within the current tx),
+        // so it lives in temporary storage rather than instance storage.
         let is_active: bool = env
             .storage()
-            .instance()
+            .temporary()
             .get(&DataKey::Locked)
             .unwrap_or(false);
         if is_active {
             return Err(Error::Reentrant);
         }
-        env.storage().instance().set(&DataKey::Locked, &true);
+        env.storage().temporary().set(&DataKey::Locked, &true);
         Ok(())
     }
 
     /// Release the reentrancy lock.
     fn _unlock(env: &Env) {
-        env.storage().instance().set(&DataKey::Locked, &false);
+        env.storage().temporary().set(&DataKey::Locked, &false);
     }
 
     /// #930: Validate that `asset` is a live SAC-compatible token contract.
@@ -1488,11 +1537,13 @@ impl SplitterV3 {
     /// #918: If an identity validator is configured, cross-call it for every
     /// recipient. Returns Err(RecipientNotVerified) on the first failure,
     /// reverting the entire transaction (default-strict mode).
-    fn _check_identity_validator(env: &Env, recipients: &Vec<Recipient>) -> Result<(), Error> {
-        let validator_opt: Option<Address> =
-            env.storage().instance().get(&DataKey::IdentityValidator);
+    fn _check_identity_validator(
+        env: &Env,
+        validator_opt: Option<&Address>,
+        recipients: &Vec<Recipient>,
+    ) -> Result<(), Error> {
         if let Some(validator_addr) = validator_opt {
-            let client = IdentityValidatorClient::new(env, &validator_addr);
+            let client = IdentityValidatorClient::new(env, validator_addr);
             for r in recipients.iter() {
                 if !client.is_verified(&r.address) {
                     return Err(Error::RecipientNotVerified);

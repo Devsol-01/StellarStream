@@ -97,11 +97,11 @@ Tokens are only pulled from the treasury upon final activation, not during propo
 
 | Code | Error | Description |
 |------|-------|-------------|
-| 8 | ProposalNotFound | Invalid proposal ID |
-| 9 | ProposalExpired | Current time > deadline |
-| 10 | AlreadyApproved | Approver already signed |
-| 11 | ProposalAlreadyExecuted | Stream already created |
-| 12 | InvalidApprovalThreshold | required_approvals = 0 |
+| 28 | ProposalNotFound | Invalid proposal ID |
+| 29 | ProposalExpired | Current time > deadline |
+| 30 | AlreadyApproved | Approver already signed |
+| 31 | ProposalAlreadyExecuted | Stream already created |
+| 32 | InvalidApprovalThreshold | required_approvals = 0 |
 
 ## Usage Examples
 

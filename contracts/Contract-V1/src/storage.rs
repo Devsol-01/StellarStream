@@ -1,41 +1,201 @@
-//! Storage key constants for the Contract-V1 token streaming contract.
+//! Storage architecture (issue #1437)
 //!
-//! Each constant is a short [`Symbol`] used as (part of) an instance-storage key.
-//! Composite keys are formed by tupling one of these symbols with an identifier,
-//! e.g. `(RECEIPT, stream_id)`.
+//! All contract state is addressed through the type-safe [`DataKey`] enum
+//! instead of ad-hoc string/symbol keys. Every key belongs to exactly one of
+//! Soroban's three storage types, chosen by how long the data must live and
+//! whether it may be cleared:
+//!
+//! | Storage type | Data | Lifetime |
+//! |---|---|---|
+//! | `instance()` | [`DataKey::Admin`], [`DataKey::ContractPaused`], [`DataKey::StreamCounter`], [`DataKey::ProposalCounter`], [`DataKey::Roles`], [`DataKey::RestrictedAddresses`], [`DataKey::ActiveStreams`], [`DataKey::TotalTvl`], [`DataKey::LastActivity`], [`DataKey::LastPrune`], [`DataKey::FeeBps`], [`DataKey::Treasury`] | Survives contract upgrades; lives as long as the contract instance |
+//! | `persistent()` | [`DataKey::Stream`], [`DataKey::UserStreams`], [`DataKey::Proposal`], [`DataKey::StreamMetadata`], [`DataKey::StreamHistory`], [`DataKey::MetricBuckets`], [`DataKey::UserSeen`] | Long-term data; must be TTL-extended on access |
+//! | `temporary()` | [`DataKey::ReentrancyLock`] | Transaction-scoped; cleared automatically |
+//!
+//! # TTL management
+//!
+//! Soroban storage entries expire unless their TTL is extended. The rule is:
+//! **always extend the TTL when accessing long-term data.** The helpers in
+//! this module encapsulate that policy:
+//!
+//! - [`extend_instance_ttl`] keeps the contract instance (and its instance
+//!   storage) alive, and should be called on every state-changing entry point.
+//! - [`extend_stream_ttl`], [`extend_proposal_ttl`], [`extend_metadata_ttl`],
+//!   [`extend_history_ttl`] and [`extend_user_streams_ttl`] keep individual
+//!   persistent entries alive when they are read or written.
+//! - [`bump_persistent_ttl_if_present`] is a generic fallback for the
+//!   map-style persistent keys ([`DataKey::MetricBuckets`],
+//!   [`DataKey::UserSeen`]).
+//!
+//! TTL values are expressed in ledgers. Bump thresholds are small
+//! ([`LEDGER_BUMP_SHARED`], [`LEDGER_BUMP_STREAM`]) so that an entry is only
+//! refreshed once it is close to expiring, and the extension caps are generous
+//! ([`MAX_TTL_STREAM`], [`MAX_TTL_INSTANCE`]). The host clamps the actual
+//! extension to the protocol maximum.
 
-use soroban_sdk::{symbol_short, Symbol};
+use soroban_sdk::{contracttype, Address, Env};
 
-/// Key for the counter tracking the total number of streams ever created.
-pub const STREAM_COUNT: Symbol = symbol_short!("STR_CNT");
-/// Key for the counter tracking the total number of governance proposals ever created.
-pub const PROPOSAL_COUNT: Symbol = symbol_short!("PROP_CNT");
-/// Key prefix for a stream's NFT-style ownership receipt, keyed by stream ID.
-pub const RECEIPT: Symbol = symbol_short!("RECEIPT");
-/// Key for the list of addresses restricted from receiving streams (compliance/OFAC list).
-pub const RESTRICTED_ADDRESSES: Symbol = symbol_short!("RESTR_LST");
-/// Key prefix for the flash loan reentrancy lock, keyed by token address.
-#[allow(dead_code)]
-pub const FLASH_LOAN_LOCK: Symbol = symbol_short!("FL_LOCK");
-/// Key prefix for the configured flash loan fee, keyed by token address.
-#[allow(dead_code)]
-pub const FLASH_LOAN_FEE: Symbol = symbol_short!("FL_FEE");
-/// Key for the counter tracking outstanding flash loan requests.
-#[allow(dead_code)]
-pub const REQUEST_COUNT: Symbol = symbol_short!("REQ_CNT");
-/// Key for the counter tracking the total number of upgrade proposals ever created.
-pub const UPGRADE_PROPOSAL_COUNT: Symbol = symbol_short!("UPG_CNT");
-/// Key for the log of executed contract upgrades.
-pub const UPGRADE_HISTORY: Symbol = symbol_short!("UPG_HIST");
-/// Per-token TVL tracking key prefix
-pub const TOKEN_TVL: Symbol = symbol_short!("TOKEN_TVL");
-/// Key for the counter tracking the total number of disputes ever raised.
-pub const DISPUTE_COUNT: Symbol = symbol_short!("DISP_CNT");
-/// Key prefix for a dispute record, keyed by dispute ID.
-pub const DISPUTE: Symbol = symbol_short!("DISPUTE");
-/// Key prefix for the list of authorized arbitrators.
-pub const ARBITRATORS: Symbol = symbol_short!("ARB_LST");
-/// Key prefix for clawback request records, keyed by clawback ID.
-pub const CLAWBACK: Symbol = symbol_short!("CLAWBACK");
-/// Key for the counter tracking the total number of clawback requests ever created.
-pub const CLAWBACK_COUNT: Symbol = symbol_short!("CLBK_CNT");
+/// Type-safe storage keys for every piece of contract state.
+///
+/// Variants are grouped by the storage type they live in (instance,
+/// persistent, temporary). Parameterized variants (e.g. [`DataKey::Stream`])
+/// hold the id/address that identifies the specific record, so no string
+/// keys are ever constructed by callers.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DataKey {
+    // -----------------------------------------------------------------------
+    // Instance storage: survives contract upgrades, lives with the instance.
+    // -----------------------------------------------------------------------
+    /// Address of the contract administrator (set in `initialize`).
+    Admin,
+    /// Global pause flag.
+    ContractPaused,
+    /// Next stream id to allocate.
+    StreamCounter,
+    /// Next multi-signature proposal id to allocate.
+    ProposalCounter,
+    /// Role assignments: `Map<Address, Vec<u32>>` of role ids per account.
+    Roles,
+    /// OFAC-style restricted addresses: `Map<Address, bool>`.
+    RestrictedAddresses,
+    /// Number of streams that are not closed (health/metrics counter).
+    ActiveStreams,
+    /// Value still owed to receivers, per token: `Map<Address, i128>`.
+    TotalTvl,
+    /// Ledger timestamp of the last state-changing operation.
+    LastActivity,
+    /// Hour of the last metrics-window prune.
+    LastPrune,
+    /// Protocol fee rate in basis points.
+    FeeBps,
+    /// Address protocol fees are collected to.
+    Treasury,
+
+    // -----------------------------------------------------------------------
+    // Persistent storage: long-term data, must be TTL-extended on access.
+    // -----------------------------------------------------------------------
+    /// A stream by id.
+    Stream(u64),
+    /// Stream ids associated with a user: `Vec<u64>`.
+    UserStreams(Address),
+    /// A pending multi-signature proposal by id.
+    Proposal(u64),
+    /// Categorization metadata for a stream by stream id.
+    StreamMetadata(u64),
+    /// Append-only event log for a stream by stream id: `Vec<StreamEvent>`.
+    StreamHistory(u64),
+    /// Hourly metrics buckets: `Map<u64, MetricBucket>`.
+    MetricBuckets,
+    /// Addresses seen in the metrics window with their last-seen hour.
+    UserSeen,
+
+    // -----------------------------------------------------------------------
+    // Persistent storage: clawback records (long-term, TTL-extended on access).
+    // -----------------------------------------------------------------------
+    /// A clawback request by id.
+    Clawback(u64),
+    /// Next clawback id to allocate.
+    ClawbackCounter,
+
+    // -----------------------------------------------------------------------
+    // Temporary storage: transaction-scoped, cleared automatically.
+    // -----------------------------------------------------------------------
+    /// Re-entrancy mutex (true while a protected call is executing).
+    ReentrancyLock,
+}
+
+// ---------------------------------------------------------------------------
+// TTL constants
+// ---------------------------------------------------------------------------
+
+/// Refresh threshold for shared/instance entries: extend when less than this
+/// many ledgers remain.
+pub const LEDGER_BUMP_SHARED: u32 = 100;
+/// Refresh threshold for stream entries: extend when less than this many
+/// ledgers remain.
+pub const LEDGER_BUMP_STREAM: u32 = 200;
+/// Extension cap for stream (persistent) entries, in ledgers (~365 days).
+pub const MAX_TTL_STREAM: u32 = 31_536_000;
+/// Extension cap for the contract instance, in ledgers (~120 days).
+pub const MAX_TTL_INSTANCE: u32 = 2_073_600;
+
+// ---------------------------------------------------------------------------
+// TTL helpers
+// ---------------------------------------------------------------------------
+
+/// Extend the TTL of the contract instance (and its code) so the contract and
+/// its instance storage stay alive. Call on state-changing entry points.
+pub fn extend_instance_ttl(env: &Env) {
+    env.storage()
+        .instance()
+        .extend_ttl(LEDGER_BUMP_SHARED, MAX_TTL_INSTANCE);
+}
+
+/// Extend the TTL of a stream's persistent entry.
+///
+/// Safe to call after the entry has been read or written; extending a
+/// non-existent entry is a host error, so callers must only pass ids of
+/// streams that exist.
+pub fn extend_stream_ttl(env: &Env, stream_id: u64) {
+    env.storage()
+        .persistent()
+        .extend_ttl(&DataKey::Stream(stream_id), LEDGER_BUMP_STREAM, MAX_TTL_STREAM);
+}
+
+/// Extend the TTL of a proposal's persistent entry.
+pub fn extend_proposal_ttl(env: &Env, proposal_id: u64) {
+    env.storage().persistent().extend_ttl(
+        &DataKey::Proposal(proposal_id),
+        LEDGER_BUMP_SHARED,
+        MAX_TTL_STREAM,
+    );
+}
+
+/// Extend the TTL of a stream's metadata entry.
+pub fn extend_metadata_ttl(env: &Env, stream_id: u64) {
+    env.storage().persistent().extend_ttl(
+        &DataKey::StreamMetadata(stream_id),
+        LEDGER_BUMP_SHARED,
+        MAX_TTL_STREAM,
+    );
+}
+
+/// Extend the TTL of a stream's history entry.
+pub fn extend_history_ttl(env: &Env, stream_id: u64) {
+    env.storage().persistent().extend_ttl(
+        &DataKey::StreamHistory(stream_id),
+        LEDGER_BUMP_SHARED,
+        MAX_TTL_STREAM,
+    );
+}
+
+/// Extend the TTL of a user's stream-index entry.
+pub fn extend_user_streams_ttl(env: &Env, user: &Address) {
+    env.storage().persistent().extend_ttl(
+        &DataKey::UserStreams(user.clone()),
+        LEDGER_BUMP_SHARED,
+        MAX_TTL_STREAM,
+    );
+}
+
+/// Extend the TTL of a persistent key only if the entry exists.
+///
+/// Used for the map-style persistent keys ([`DataKey::MetricBuckets`],
+/// [`DataKey::UserSeen`]) whose getters return an empty collection when the
+/// entry has never been written.
+pub fn bump_persistent_ttl_if_present(env: &Env, key: &DataKey) {
+    if env.storage().persistent().has(key) {
+        env.storage()
+            .persistent()
+            .extend_ttl(key, LEDGER_BUMP_SHARED, MAX_TTL_STREAM);
+    }
+}
+
+/// Extend the TTL of a clawback request's persistent entry.
+pub fn extend_clawback_ttl(env: &Env, clawback_id: u64) {
+    env.storage().persistent().extend_ttl(
+        &DataKey::Clawback(clawback_id),
+        LEDGER_BUMP_SHARED,
+        MAX_TTL_STREAM,
+    );
+}

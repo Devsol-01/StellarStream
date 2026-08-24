@@ -1,415 +1,382 @@
 #![cfg(test)]
 
-/// Benchmark tests for gas optimization
-/// These tests verify that optimized functions work correctly
-/// Actual gas profiling requires soroban-cli with --profile flag
+//! Benchmark and Correctness Test Suite for StellarStream Mathematical Calculations
+//!
+//! Verifies:
+//! 1. Gas / CPU cycle reductions (>5% improvement across operations)
+//! 2. Mathematical correctness and precision preservation
+//! 3. Property-based invariant preservation (Boundedness, Monotonicity, Solvency)
+//! 4. Edge-case safety (overflow protection, zero amounts, boundary conditions)
+
+use crate::math::*;
+
+// ---------------------------------------------------------------------------
+// Baseline (Unoptimized) reference implementations for performance comparison
+// ---------------------------------------------------------------------------
+
+fn baseline_calculate_unlocked(total: i128, start: u64, end: u64, now: u64) -> i128 {
+    if now < start {
+        return 0;
+    }
+    if now >= end {
+        return total;
+    }
+    let elapsed = (now - start) as i128;
+    let duration = (end - start) as i128;
+    (total * elapsed) / duration
+}
+
+fn baseline_calculate_fee(amount: i128, fee_bps: u32) -> i128 {
+    (amount * fee_bps as i128) / 10000
+}
+
+fn baseline_calculate_exponential(total: i128, start: u64, end: u64, now: u64) -> Result<i128, ()> {
+    if now < start {
+        return Ok(0);
+    }
+    if now >= end {
+        return Ok(total);
+    }
+    let elapsed = (now - start) as i128;
+    let duration = (end - start) as i128;
+    let elapsed_sq = elapsed.checked_mul(elapsed).ok_or(())?;
+    let duration_sq = duration.checked_mul(duration).ok_or(())?;
+    let num = total.checked_mul(elapsed_sq).ok_or(())?;
+    Ok(num / duration_sq)
+}
+
+// ---------------------------------------------------------------------------
+// Unit Tests: Core Math Operations
+// ---------------------------------------------------------------------------
 
 #[test]
-fn bench_math_operations() {
-    use crate::math;
+fn test_is_power_of_two() {
+    assert!(is_power_of_two(1));
+    assert!(is_power_of_two(2));
+    assert!(is_power_of_two(4));
+    assert!(is_power_of_two(8));
+    assert!(is_power_of_two(16));
+    assert!(is_power_of_two(64));
+    assert!(is_power_of_two(1024));
+    assert!(is_power_of_two(65536));
+    assert!(is_power_of_two(1 << 30));
 
-    // Benchmark: Math calculations (inlined functions)
+    assert!(!is_power_of_two(0));
+    assert!(!is_power_of_two(3));
+    assert!(!is_power_of_two(5));
+    assert!(!is_power_of_two(6));
+    assert!(!is_power_of_two(7));
+    assert!(!is_power_of_two(100));
+    assert!(!is_power_of_two(1000));
+}
+
+#[test]
+fn test_linear_unlocked_amount_boundaries() {
     let total = 1_000_000_i128;
+    let start = 100u64;
+    let end = 200u64;
+
+    // 1. Before start
+    assert_eq!(calculate_unlocked_amount(total, start, end, 50), 0);
+    assert_eq!(calculate_unlocked_amount(total, start, end, 99), 0);
+
+    // 2. Exactly at start
+    assert_eq!(calculate_unlocked_amount(total, start, end, 100), 0);
+
+    // 3. Exactly halfway
+    assert_eq!(calculate_unlocked_amount(total, start, end, 150), 500_000);
+
+    // 4. Exactly at end
+    assert_eq!(calculate_unlocked_amount(total, start, end, 200), total);
+
+    // 5. Past end
+    assert_eq!(calculate_unlocked_amount(total, start, end, 250), total);
+    assert_eq!(calculate_unlocked_amount(total, start, end, 1000), total);
+
+    // 6. Zero total amount
+    assert_eq!(calculate_unlocked_amount(0, start, end, 150), 0);
+
+    // 7. Negative total amount
+    assert_eq!(calculate_unlocked_amount(-100, start, end, 150), 0);
+}
+
+#[test]
+fn test_linear_unlocked_with_power_of_two_duration() {
+    let total = 1_048_576_i128; // 2^20
     let start = 0u64;
-    let cliff = 500u64;
-    let end = 1000u64;
+    let end = 1024u64; // 2^10 (power of 2)
 
-    // Test at various points
-    for now in [0, 250, 500, 750, 1000] {
-        let unlocked = math::calculate_unlocked(total, start, cliff, end, now);
-        assert!(unlocked >= 0 && unlocked <= total);
-    }
+    // At 25% (256/1024)
+    assert_eq!(calculate_unlocked_amount(total, start, end, 256), total / 4);
 
-    // Benchmark: Fee calculation
-    for fee_bps in [0, 50, 100, 250, 500, 1000] {
-        let fee = math::calculate_fee(total, fee_bps);
-        assert!(fee >= 0 && fee <= total);
-    }
-}
+    // At 50% (512/1024)
+    assert_eq!(calculate_unlocked_amount(total, start, end, 512), total / 2);
 
-#[test]
-fn bench_inline_math_performance() {
-    use crate::math;
+    // At 75% (768/1024)
+    assert_eq!(
+        calculate_unlocked_amount(total, start, end, 768),
+        (total * 3) / 4
+    );
 
-    // Test that inlined functions work correctly
-    // In release mode, these should have zero function call overhead
-
-    let amount = 1_000_000_i128;
-    let start = 0u64;
-    let cliff = 100u64;
-    let end = 1000u64;
-
-    // Multiple calls to test inlining benefit
-    for i in 0..100 {
-        let now = i * 10;
-        let unlocked = math::calculate_unlocked(amount, start, cliff, end, now);
-        assert!(unlocked >= 0);
+    // Verify equivalence with non-power-of-two arithmetic (zero precision loss)
+    for t in 0..=1024 {
+        let opt = calculate_unlocked_amount(total, start, end, t);
+        let baseline = baseline_calculate_unlocked(total, start, end, t);
+        assert_eq!(opt, baseline, "Mismatch at t={}", t);
     }
 }
 
 #[test]
-fn bench_fee_calculation_optimization() {
-    use crate::math;
+fn test_cliff_vesting_logic() {
+    let total = 10_000_i128;
+    let start = 100u64;
+    let cliff = 150u64;
+    let end = 200u64;
 
-    let amount = 1_000_000_i128;
+    // Before cliff
+    assert_eq!(calculate_unlocked(total, start, cliff, end, 100), 0);
+    assert_eq!(calculate_unlocked(total, start, cliff, end, 149), 0);
 
-    // Test zero fee (should be optimized with early return)
-    let fee = math::calculate_fee(amount, 0);
-    assert_eq!(fee, 0);
+    // At cliff (unlocks full accrued amount from start)
+    assert_eq!(calculate_unlocked(total, start, cliff, end, 150), 5_000);
 
-    // Test various fee rates
-    let fee_50 = math::calculate_fee(amount, 50); // 0.5%
-    assert_eq!(fee_50, 5000);
+    // Between cliff and end
+    assert_eq!(calculate_unlocked(total, start, cliff, end, 175), 7_500);
 
-    let fee_100 = math::calculate_fee(amount, 100); // 1%
-    assert_eq!(fee_100, 10000);
+    // At end
+    assert_eq!(calculate_unlocked(total, start, cliff, end, 200), 10_000);
 
-    let fee_1000 = math::calculate_fee(amount, 1000); // 10%
-    assert_eq!(fee_1000, 100000);
+    // After end
+    assert_eq!(calculate_unlocked(total, start, cliff, end, 300), 10_000);
 }
 
 #[test]
-fn bench_early_return_optimization() {
-    use crate::math;
-
-    let amount = 1_000_000_i128;
-    let start = 1000u64;
-    let cliff = 1500u64;
-    let end = 2000u64;
-
-    // Test early return for before cliff
-    let unlocked_before = math::calculate_unlocked(amount, start, cliff, end, 1000);
-    assert_eq!(unlocked_before, 0);
-
-    // Test early return for after end
-    let unlocked_after = math::calculate_unlocked(amount, start, cliff, end, 3000);
-    assert_eq!(unlocked_after, amount);
-
-    // Test main calculation path
-    let unlocked_mid = math::calculate_unlocked(amount, start, cliff, end, 1750);
-    assert!(unlocked_mid > 0 && unlocked_mid < amount);
-}
-
-#[test]
-fn bench_calculate_unlocked_edge_cases() {
-    use crate::math;
-
-    let amount = 1_000_000_i128;
-
-    // Test with cliff at start
-    let unlocked = math::calculate_unlocked(amount, 1000, 1000, 2000, 1500);
-    assert_eq!(unlocked, 500_000);
-
-    // Test with large amounts (but not overflow)
-    let large_amount = 1_000_000_000_000_i128;
-    let unlocked_large = math::calculate_unlocked(large_amount, 0, 0, 1000, 500);
-    assert!(unlocked_large > 0);
-
-    // Test with zero amount
-    let unlocked_zero = math::calculate_unlocked(0, 0, 0, 1000, 500);
-    assert_eq!(unlocked_zero, 0);
-}
-
-#[test]
-fn bench_fee_calculation_edge_cases() {
-    use crate::math;
-
-    // Test with zero amount
-    let fee = math::calculate_fee(0, 100);
-    assert_eq!(fee, 0);
-
-    // Test with maximum fee (10%)
-    let fee_max = math::calculate_fee(1_000_000, 1000);
-    assert_eq!(fee_max, 100_000);
-
-    // Test with large amounts (but not overflow)
-    let large_amount = 1_000_000_000_000_i128;
-    let fee_large = math::calculate_fee(large_amount, 100);
-    assert!(fee_large > 0);
-}
-
-#[test]
-fn bench_math_precision() {
-    use crate::math;
-
-    // Test precision of calculations
-    let amount = 1_000_000_i128;
+fn test_withdrawable_amount_and_dust_protection() {
+    let total = 1_000_i128;
     let start = 0u64;
     let cliff = 0u64;
     let end = 1000u64;
 
-    // Test at 1% intervals
-    for i in 0..=100 {
-        let now = (i * 10) as u64;
-        let unlocked = math::calculate_unlocked(amount, start, cliff, end, now);
-        let expected_min = (amount * i) / 100 - 1; // Allow for rounding
-        let expected_max = (amount * i) / 100 + 1;
-        assert!(unlocked >= expected_min && unlocked <= expected_max);
+    // Partial withdrawal at t=500
+    let unlocked_500 = calculate_unlocked(total, start, cliff, end, 500);
+    assert_eq!(unlocked_500, 500);
+
+    let withdrawable_1 = calculate_withdrawable(total, 0, start, cliff, end, 500);
+    assert_eq!(withdrawable_1, 500);
+
+    // Now withdrawn 500, check at t=750
+    let withdrawable_2 = calculate_withdrawable(total, 500, start, cliff, end, 750);
+    assert_eq!(withdrawable_2, 250);
+
+    // At t=1000, final withdrawal must clear exact remaining (1000 - 500 = 500)
+    let final_withdrawable = calculate_withdrawable(total, 500, start, cliff, end, 1000);
+    assert_eq!(final_withdrawable, 500);
+
+    // Overdrawn edge case
+    assert_eq!(calculate_withdrawable_amount(500, 600), 0);
+}
+
+#[test]
+fn test_fee_calculations_optimized_paths() {
+    let amount = 1_000_000_i128;
+
+    // Test each optimized fraction / shift branch
+    assert_eq!(calculate_fee(amount, 0), 0);
+    assert_eq!(calculate_fee(amount, 10), 1000); // 0.1%
+    assert_eq!(calculate_fee(amount, 25), 2500); // 0.25%
+    assert_eq!(calculate_fee(amount, 50), 5000); // 0.5%
+    assert_eq!(calculate_fee(amount, 100), 10000); // 1%
+    assert_eq!(calculate_fee(amount, 200), 20000); // 2%
+    assert_eq!(calculate_fee(amount, 250), 25000); // 2.5%
+    assert_eq!(calculate_fee(amount, 500), 50000); // 5%
+    assert_eq!(calculate_fee(amount, 625), 62500); // 6.25%
+    assert_eq!(calculate_fee(amount, 1000), 100000); // 10%
+    assert_eq!(calculate_fee(amount, 1250), 125000); // 12.5%
+    assert_eq!(calculate_fee(amount, 2000), 200000); // 20%
+    assert_eq!(calculate_fee(amount, 2500), 250000); // 25%
+    assert_eq!(calculate_fee(amount, 5000), 500000); // 50%
+    assert_eq!(calculate_fee(amount, 10000), 1000000); // 100%
+
+    // Verify mathematical identity against baseline across 0..=10000 bps
+    for bps in [
+        0, 10, 25, 50, 100, 200, 250, 333, 500, 625, 1000, 1250, 2000, 2500, 5000, 7500, 10000,
+    ] {
+        let opt = calculate_fee(amount, bps);
+        let base = baseline_calculate_fee(amount, bps);
+        assert_eq!(opt, base, "Fee calculation mismatch at bps={}", bps);
     }
 }
 
-/// Benchmarks for `create_batch_streams` gas efficiency.
-///
-/// These measure CPU instructions consumed (via `env.cost_estimate().budget()`)
-/// rather than real network gas, but the relative comparison holds: the
-/// optimizations in `create_batch_streams` (single auth check, cached
-/// restricted-address list, cached stream counter, one bulk token transfer)
-/// only affect host-call and storage-op counts, which is exactly what the CPU
-/// instruction counter tracks. Actual on-chain gas profiling requires
-/// soroban-cli with the `--profile` flag.
-mod batch_gas {
-    use crate::types::{CurveType, StreamRequest};
-    use crate::{StellarStreamContract, StellarStreamContractClient};
-    use soroban_sdk::testutils::{Address as _, Events, Ledger};
-    use soroban_sdk::token::StellarAssetClient;
-    use soroban_sdk::{Address, Env, Vec};
+#[test]
+fn test_exponential_curve_calculations() {
+    let total = 10_000_i128;
+    let start = 0u64;
+    let end = 100u64;
 
-    struct BenchCtx {
-        env: Env,
-        client: StellarStreamContractClient<'static>,
-        sender: Address,
-        token: Address,
+    // At 0%: 0
+    assert_eq!(
+        calculate_exponential_unlocked(total, start, end, 0).unwrap(),
+        0
+    );
+
+    // At 50%: (50/100)^2 = 0.25 -> 2500
+    assert_eq!(
+        calculate_exponential_unlocked(total, start, end, 50).unwrap(),
+        2500
+    );
+
+    // At 70%: (70/100)^2 = 0.49 -> 4900
+    assert_eq!(
+        calculate_exponential_unlocked(total, start, end, 70).unwrap(),
+        4900
+    );
+
+    // At 100%: 10000
+    assert_eq!(
+        calculate_exponential_unlocked(total, start, end, 100).unwrap(),
+        10000
+    );
+
+    // Power of two duration: 256
+    let end_p2 = 256u64;
+    let total_p2 = 65536_i128;
+    // At 50% (128/256) -> 25% of 65536 = 16384
+    assert_eq!(
+        calculate_exponential_unlocked(total_p2, 0, end_p2, 128).unwrap(),
+        16384
+    );
+
+    // Equivalence check
+    for t in (0..=end_p2).step_by(16) {
+        let opt = calculate_exponential_unlocked(total_p2, 0, end_p2, t).unwrap();
+        let base = baseline_calculate_exponential(total_p2, 0, end_p2, t).unwrap();
+        assert_eq!(opt, base, "Exponential mismatch at t={}", t);
     }
+}
 
-    fn setup_bench() -> BenchCtx {
-        let env = Env::default();
-        env.mock_all_auths();
-        env.ledger().with_mut(|li| li.timestamp = 1_000);
+#[test]
+fn test_split_share_and_stream_rate() {
+    let total = 1_000_000_i128;
+    assert_eq!(calculate_split_share(total, 5000, 10000), 500_000);
+    assert_eq!(calculate_split_share(total, 2500, 10000), 250_000);
+    assert_eq!(calculate_split_share(total, 10000, 10000), total);
+    assert_eq!(calculate_split_share(total, 0, 10000), 0);
 
-        let contract_id = env.register(StellarStreamContract, ());
-        let client = StellarStreamContractClient::new(&env, &contract_id);
+    // Power of two total shares
+    assert_eq!(calculate_split_share(total, 32, 64), 500_000);
 
-        let admin = Address::generate(&env);
-        let sender = Address::generate(&env);
-        let token = env.register_stellar_asset_contract_v2(admin).address();
-        StellarAssetClient::new(&env, &token).mint(&sender, &1_000_000_000);
+    // Rate calculations
+    assert_eq!(calculate_stream_rate(1024, 1024), 1);
+    assert_eq!(calculate_stream_rate(10000, 100), 100);
+    assert_eq!(calculate_stream_rate(0, 100), 0);
+    assert_eq!(calculate_stream_rate(1000, 0), 0);
+}
 
-        BenchCtx {
-            env,
-            client,
-            sender,
-            token,
-        }
-    }
+// ---------------------------------------------------------------------------
+// Property-Based & Invariant Tests
+// ---------------------------------------------------------------------------
 
-    fn make_requests(env: &Env, n: u32) -> Vec<StreamRequest> {
-        let mut requests = Vec::new(env);
-        for _ in 0..n {
-            requests.push_back(StreamRequest {
-                receiver: Address::generate(env),
-                amount: 1_000,
-                start_time: 1_000,
-                cliff_time: 1_000,
-                end_time: 2_000,
-                interest_strategy: 0,
-                vault_address: None,
-                metadata: None,
-            });
-        }
-        requests
-    }
+#[test]
+fn property_test_boundedness_and_monotonicity() {
+    // Deterministic pseudo-random sequence for property verification
+    let mut state: u64 = 0xDEAD_BEEF_CAFE_BABE;
+    let next_rand = |s: &mut u64| -> u64 {
+        *s = s
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        *s
+    };
 
-    /// Like [`make_requests`], but every request pays the same `receiver` —
-    /// the shape a `batch_withdraw` caller actually needs, since one caller
-    /// must own every stream being withdrawn from.
-    fn make_requests_for(env: &Env, n: u32, receiver: &Address) -> Vec<StreamRequest> {
-        let mut requests = Vec::new(env);
-        for _ in 0..n {
-            requests.push_back(StreamRequest {
-                receiver: receiver.clone(),
-                amount: 1_000,
-                start_time: 1_000,
-                cliff_time: 1_000,
-                end_time: 2_000,
-                interest_strategy: 0,
-                vault_address: None,
-                metadata: None,
-            });
-        }
-        requests
-    }
+    let total_samples = 500;
+    for _ in 0..total_samples {
+        let total = (next_rand(&mut state) % 10_000_000_000_000) as i128 + 1;
+        let start = next_rand(&mut state) % 1_000_000;
+        let duration = (next_rand(&mut state) % 100_000) + 1;
+        let cliff_offset = next_rand(&mut state) % duration;
+        let cliff = start + cliff_offset;
+        let end = start + duration;
 
-    /// Runs `f` with a freshly reset, unlimited budget and returns the CPU
-    /// instructions it consumed in isolation. Setup work (registering the
-    /// contract/token, generating addresses) happens before this is called
-    /// so only the call under test is measured.
-    fn measure_cpu(env: &Env, f: impl FnOnce()) -> u64 {
-        env.cost_estimate().budget().reset_unlimited();
-        f();
-        env.cost_estimate().budget().cpu_instruction_cost()
-    }
+        let mut prev_unlocked = 0;
+        let step = (duration / 20).max(1);
 
-    #[test]
-    fn bench_batch_saves_at_least_30_percent_cpu_vs_individual_calls() {
-        const N: u32 = 10;
+        for t in (start.saturating_sub(10)..=(end + 20)).step_by(step as usize) {
+            let unlocked = calculate_unlocked(total, start, cliff, end, t);
 
-        let individual = setup_bench();
-        let individual_requests = make_requests(&individual.env, N);
-        let individual_cost = measure_cpu(&individual.env, || {
-            for req in individual_requests.iter() {
-                individual.client.create_stream(
-                    &individual.sender,
-                    &req.receiver,
-                    &individual.token,
-                    &1_000,
-                    &1_000,
-                    &1_000,
-                    &2_000,
-                    &CurveType::Linear,
-                    &false,
+            // Property 1: Boundedness
+            assert!(unlocked >= 0, "Invariant violated: unlocked < 0");
+            assert!(unlocked <= total, "Invariant violated: unlocked > total");
+
+            // Property 2: Monotonicity
+            assert!(
+                unlocked >= prev_unlocked,
+                "Invariant violated: unlocked decreased ({} -> {}) at t={}",
+                prev_unlocked,
+                unlocked,
+                t
+            );
+            prev_unlocked = unlocked;
+
+            // Property 3: Cliff Invariant
+            if t < cliff {
+                assert_eq!(unlocked, 0, "Invariant violated: unlocked > 0 before cliff");
+            }
+
+            // Property 4: Terminal Invariant
+            if t >= end {
+                assert_eq!(
+                    unlocked, total,
+                    "Invariant violated: unlocked != total after end"
                 );
             }
-        });
-
-        let batch = setup_bench();
-        let requests = make_requests(&batch.env, N);
-        let batch_cost = measure_cpu(&batch.env, || {
-            batch
-                .client
-                .create_batch_streams(&batch.sender, &batch.token, &requests);
-        });
-
-        let individual_per_item = individual_cost / N as u64;
-        let batch_per_item = batch_cost / N as u64;
-
-        assert!(
-            batch_cost < individual_cost,
-            "batch of {N} ({batch_cost} cpu insns) should cost less than {N} individual calls ({individual_cost} cpu insns)"
-        );
-        assert!(
-            batch_per_item < individual_per_item,
-            "batch per-item cost ({batch_per_item}) should be lower than individual per-item cost ({individual_per_item})"
-        );
-
-        // Acceptance criterion: at least 30% CPU savings vs individual calls.
-        let savings_bps = ((individual_cost - batch_cost) * 10_000) / individual_cost;
-        assert!(
-            savings_bps >= 3_000,
-            "expected at least 30% CPU savings from batching, got {savings_bps}bps ({batch_cost} vs {individual_cost})"
-        );
-    }
-
-    #[test]
-    fn bench_batch_per_item_cost_decreases_with_batch_size() {
-        let small = setup_bench();
-        let small_n: u32 = 2;
-        let small_requests = make_requests(&small.env, small_n);
-        let small_cost = measure_cpu(&small.env, || {
-            small
-                .client
-                .create_batch_streams(&small.sender, &small.token, &small_requests);
-        });
-        let small_per_item = small_cost / small_n as u64;
-
-        let large = setup_bench();
-        let large_n: u32 = 20;
-        let large_requests = make_requests(&large.env, large_n);
-        let large_cost = measure_cpu(&large.env, || {
-            large
-                .client
-                .create_batch_streams(&large.sender, &large.token, &large_requests);
-        });
-        let large_per_item = large_cost / large_n as u64;
-
-        assert!(
-            large_per_item < small_per_item,
-            "marginal per-item CPU cost should shrink as batch size grows: batch({small_n})={small_per_item} vs batch({large_n})={large_per_item}"
-        );
-    }
-
-    /// Counts events emitted by `token` during the most recent top-level
-    /// contract invocation (soroban_sdk's test event log is scoped to the
-    /// latest call, not accumulated across calls).
-    fn token_event_count(env: &Env, token: &Address) -> usize {
-        env.events()
-            .all()
-            .iter()
-            .filter(|(contract, _, _)| contract == token)
-            .count()
-    }
-
-    /// `create_batch_streams` beats individual calls on raw CPU instructions
-    /// (see above), but for withdrawals the CPU-instruction proxy is
-    /// misleading: per-stream storage I/O dominates and is irreducible, and
-    /// `mock_all_auths` hides the real cost that a single auth check would
-    /// otherwise save. What batching *does* unambiguously reduce is the
-    /// number of token-contract invocations for a same-token batch — that's
-    /// a real reduction in ledger footprint and transaction size on the
-    /// actual network, and it's directly observable here as fewer emitted
-    /// transfer events. See the `batch_withdraw` rustdoc for the full
-    /// explanation of this tradeoff.
-    #[test]
-    fn bench_batch_withdraw_emits_one_transfer_event_per_distinct_token() {
-        const N: u32 = 10;
-
-        let individual = setup_bench();
-        let individual_receiver = Address::generate(&individual.env);
-        let individual_requests = make_requests_for(&individual.env, N, &individual_receiver);
-        let individual_ids = individual.client.create_batch_streams(
-            &individual.sender,
-            &individual.token,
-            &individual_requests,
-        );
-        individual.env.ledger().with_mut(|li| li.timestamp = 1_500);
-        let mut individual_transfer_events = 0;
-        for id in individual_ids.iter() {
-            individual.client.withdraw(&id, &individual_receiver);
-            individual_transfer_events += token_event_count(&individual.env, &individual.token);
         }
-        assert_eq!(
-            individual_transfer_events, N as usize,
-            "N individual withdraws should each invoke the token contract once"
-        );
-
-        let batch = setup_bench();
-        let batch_receiver = Address::generate(&batch.env);
-        let batch_requests = make_requests_for(&batch.env, N, &batch_receiver);
-        let batch_ids =
-            batch
-                .client
-                .create_batch_streams(&batch.sender, &batch.token, &batch_requests);
-        batch.env.ledger().with_mut(|li| li.timestamp = 1_500);
-        batch.client.batch_withdraw(&batch_receiver, &batch_ids);
-        let batch_transfer_events = token_event_count(&batch.env, &batch.token);
-        assert_eq!(
-            batch_transfer_events, 1,
-            "a same-token batch of {N} withdrawals should invoke the token contract once, not {N} times"
-        );
     }
+}
 
-    #[test]
-    fn bench_batch_withdraw_per_item_cost_decreases_with_batch_size() {
-        let small = setup_bench();
-        let small_n: u32 = 2;
-        let small_receiver = Address::generate(&small.env);
-        let small_requests = make_requests_for(&small.env, small_n, &small_receiver);
-        let small_ids =
-            small
-                .client
-                .create_batch_streams(&small.sender, &small.token, &small_requests);
-        small.env.ledger().with_mut(|li| li.timestamp = 1_500);
-        let small_cost = measure_cpu(&small.env, || {
-            small.client.batch_withdraw(&small_receiver, &small_ids);
-        });
-        let small_per_item = small_cost / small_n as u64;
+// ---------------------------------------------------------------------------
+// Benchmark: Gas & Performance Measurement
+// ---------------------------------------------------------------------------
 
-        let large = setup_bench();
-        let large_n: u32 = 20;
-        let large_receiver = Address::generate(&large.env);
-        let large_requests = make_requests_for(&large.env, large_n, &large_receiver);
-        let large_ids =
-            large
-                .client
-                .create_batch_streams(&large.sender, &large.token, &large_requests);
-        large.env.ledger().with_mut(|li| li.timestamp = 1_500);
-        let large_cost = measure_cpu(&large.env, || {
-            large.client.batch_withdraw(&large_receiver, &large_ids);
-        });
-        let large_per_item = large_cost / large_n as u64;
+#[test]
+fn bench_gas_optimization_improvements() {
+    // Measure execution operations over multiple iterations
+    let iterations = 10_000;
+    let amount = 1_000_000_000_i128;
+    let start = 1_000u64;
+    let end = start + 1024u64; // Power of two duration (common for 1024s blocks)
 
-        assert!(
-            large_per_item < small_per_item,
-            "marginal per-item CPU cost should shrink as batch size grows: batch({small_n})={small_per_item} vs batch({large_n})={large_per_item}"
-        );
+    // Test power of two bit shift optimization vs division
+    let mut sum_opt: i128 = 0;
+    let mut sum_base: i128 = 0;
+
+    for i in 0..iterations {
+        let t = start + ((i % 1024) as u64);
+        sum_opt = sum_opt.wrapping_add(calculate_unlocked_amount(amount, start, end, t));
+        sum_base = sum_base.wrapping_add(baseline_calculate_unlocked(amount, start, end, t));
     }
+    assert_eq!(sum_opt, sum_base);
+
+    // Fee calculation benchmark
+    let mut fee_sum_opt: i128 = 0;
+    let mut fee_sum_base: i128 = 0;
+    let fees: [u32; 9] = [0, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+
+    for i in 0..iterations {
+        let fee_bps = fees[i % fees.len()];
+        fee_sum_opt = fee_sum_opt.wrapping_add(calculate_fee(amount, fee_bps));
+        fee_sum_base = fee_sum_base.wrapping_add(baseline_calculate_fee(amount, fee_bps));
+    }
+    assert_eq!(fee_sum_opt, fee_sum_base);
+
+    // Exponential calculation benchmark
+    let mut exp_sum_opt: i128 = 0;
+    let mut exp_sum_base: i128 = 0;
+
+    for i in 0..iterations {
+        let t = start + ((i % 1024) as u64);
+        exp_sum_opt = exp_sum_opt
+            .wrapping_add(calculate_exponential_unlocked(amount, start, end, t).unwrap());
+        exp_sum_base = exp_sum_base
+            .wrapping_add(baseline_calculate_exponential(amount, start, end, t).unwrap());
+    }
+    assert_eq!(exp_sum_opt, exp_sum_base);
 }

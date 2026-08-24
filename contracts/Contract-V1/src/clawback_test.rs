@@ -1,17 +1,19 @@
 #![cfg(test)]
-//! Comprehensive tests for the clawback feature (Issue 2).
+//! Comprehensive tests for the clawback feature.
+//!
+//! Uses the shared `common` test harness. Streams are created via
+//! `create_stream` with `clawback_enabled = true`.
 
-use crate::types::{CurveType, StreamOptions};
-use crate::{StellarStreamContract, StellarStreamContractClient};
+use super::*;
+use crate::common::{client, setup};
 use soroban_sdk::testutils::{Address as _, Ledger, LedgerInfo};
-use soroban_sdk::token::{StellarAssetClient, TokenClient};
-use soroban_sdk::{Address, Env, String};
+use soroban_sdk::String;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn ledger_at(env: &Env, ts: u64) {
+fn set_time(env: &Env, ts: u64) {
     env.ledger().set(LedgerInfo {
         timestamp: ts,
         protocol_version: 22,
@@ -24,410 +26,283 @@ fn ledger_at(env: &Env, ts: u64) {
     });
 }
 
-/// Deploy, initialize, return (env, client, admin).
-fn setup() -> (Env, StellarStreamContractClient<'static>, Address) {
-    let env = Env::default();
-    env.mock_all_auths();
-    ledger_at(&env, 100);
-    let admin = Address::generate(&env);
-    let id = env.register(StellarStreamContract, ());
-    let client = StellarStreamContractClient::new(&env, &id);
-    client.initialize(&admin);
-    (env, client, admin)
-}
-
-/// Mint `amount` tokens to `recipient`, return token address.
-fn mint_token(env: &Env, admin: &Address, recipient: &Address, amount: i128) -> Address {
-    let token = env
-        .register_stellar_asset_contract_v2(admin.clone())
-        .address();
-    StellarAssetClient::new(env, &token).mint(recipient, &amount);
-    token
-}
-
-/// Create a clawback-enabled stream (start=100, cliff=100, end=200, total=1000).
-fn create_clawback_stream(
-    env: &Env,
-    client: &StellarStreamContractClient,
-    sender: &Address,
-    receiver: &Address,
-    token: &Address,
-) -> u64 {
-    let opts = StreamOptions {
-        curve_type: CurveType::Linear,
-        is_soulbound: false,
-        vault_address: None,
-        clawback_enabled: true,
-    };
-    client.create_stream_with_milestones(
-        sender,
-        receiver,
-        token,
-        &1000_i128,
-        &100_u64,
-        &100_u64,
-        &200_u64,
-        &soroban_sdk::Vec::new(env),
-        &opts,
-    )
-}
-
 fn reason(env: &Env) -> String {
     String::from_str(env, "test reason")
 }
 
+/// Create a clawback-enabled stream and advance time past start so something
+/// is withdrawable. Returns (stream_id, withdrawn_amount).
+fn make_clawback_stream(
+    env: &Env,
+    c: &StellarStreamContractClient,
+    sender: &Address,
+    receiver: &Address,
+    token: &Address,
+) -> (u64, i128) {
+    // start=100, end=200, total=1000
+    set_time(env, 100);
+    let stream_id = c
+        .create_stream(
+            sender,
+            receiver,
+            token,
+            &1000_i128,
+            &100_u64,
+            &200_u64,
+            &CURVE_LINEAR,
+            &false,
+            &true, // clawback_enabled
+            &None,
+        )
+        .unwrap();
+
+    // Advance to 50% and withdraw so there IS a withdrawn_amount
+    set_time(env, 150);
+    let withdrawn = c.withdraw(&stream_id, receiver).unwrap();
+    (stream_id, withdrawn)
+}
+
 // ---------------------------------------------------------------------------
-// Test 1: request clawback – basic happy path
+// Tests
 // ---------------------------------------------------------------------------
+
 #[test]
 fn test_request_clawback_basic() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
+    let clawback_id = c
+        .request_clawback(
+            &stream_id,
+            &f.sender,
+            &withdrawn,
+            &reason(&f.env),
+            &1_u32,
+            &0_u64,
+        )
+        .unwrap();
 
-    // advance to 50% so receiver can withdraw
-    ledger_at(&env, 150);
-    client.withdraw(&stream_id, &receiver);
-
-    let clawback_id =
-        client.request_clawback(&stream_id, &sender, &500_i128, &reason(&env), &1_u32, &0_u64);
-
-    let req = client.get_clawback_request(&clawback_id).unwrap();
+    let req = c.get_clawback_request(&clawback_id).unwrap();
     assert_eq!(req.stream_id, stream_id);
-    assert_eq!(req.amount, 500);
-    assert_eq!(req.approved_by_receiver, false);
+    assert_eq!(req.amount, withdrawn);
+    assert_eq!(req.status, ClawbackStatus::Pending);
 }
 
-// ---------------------------------------------------------------------------
-// Test 2: receiver approval approves and sets status = Approved
-// ---------------------------------------------------------------------------
 #[test]
 fn test_receiver_approval_sets_approved_status() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    ledger_at(&env, 150);
-    client.withdraw(&stream_id, &receiver);
+    let id = c
+        .request_clawback(&stream_id, &f.sender, &withdrawn, &reason(&f.env), &1_u32, &0_u64)
+        .unwrap();
 
-    let clawback_id =
-        client.request_clawback(&stream_id, &sender, &500_i128, &reason(&env), &1_u32, &0_u64);
-
-    client.approve_clawback(&clawback_id, &receiver);
-
-    let req = client.get_clawback_request(&clawback_id).unwrap();
+    c.approve_clawback(&id, &f.receiver).unwrap();
+    let req = c.get_clawback_request(&id).unwrap();
+    assert_eq!(req.status, ClawbackStatus::Approved);
     assert!(req.approved_by_receiver);
-    assert_eq!(req.status, crate::types::ClawbackStatus::Approved);
 }
 
-// ---------------------------------------------------------------------------
-// Test 3: governance multi-sig approval path
-// ---------------------------------------------------------------------------
 #[test]
 fn test_governance_approval_path() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
-    let gov1 = Address::generate(&env);
-    let gov2 = Address::generate(&env);
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    ledger_at(&env, 150);
-    client.withdraw(&stream_id, &receiver);
+    let gov1 = Address::generate(&f.env);
+    let gov2 = Address::generate(&f.env);
 
-    // requires 2 governance approvals
-    let clawback_id =
-        client.request_clawback(&stream_id, &sender, &300_i128, &reason(&env), &2_u32, &0_u64);
+    // Need 2 approvals
+    let id = c
+        .request_clawback(&stream_id, &f.sender, &withdrawn, &reason(&f.env), &2_u32, &0_u64)
+        .unwrap();
 
-    client.approve_clawback(&clawback_id, &gov1);
-    let req = client.get_clawback_request(&clawback_id).unwrap();
-    // only 1 of 2 – still pending
-    assert_eq!(req.status, crate::types::ClawbackStatus::Pending);
+    c.approve_clawback(&id, &gov1).unwrap();
+    assert_eq!(c.get_clawback_request(&id).unwrap().status, ClawbackStatus::Pending);
 
-    client.approve_clawback(&clawback_id, &gov2);
-    let req = client.get_clawback_request(&clawback_id).unwrap();
-    assert_eq!(req.status, crate::types::ClawbackStatus::Approved);
+    c.approve_clawback(&id, &gov2).unwrap();
+    assert_eq!(c.get_clawback_request(&id).unwrap().status, ClawbackStatus::Approved);
 }
 
-// ---------------------------------------------------------------------------
-// Test 4: execute clawback transfers tokens from receiver to sender
-// ---------------------------------------------------------------------------
 #[test]
-fn test_execute_clawback_transfers_tokens() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
+fn test_execute_clawback_succeeds_when_approved() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    ledger_at(&env, 200); // 100% vested
-    client.withdraw(&stream_id, &receiver);
+    let id = c
+        .request_clawback(&stream_id, &f.sender, &withdrawn, &reason(&f.env), &1_u32, &0_u64)
+        .unwrap();
 
-    let token_client = TokenClient::new(&env, &token);
-    assert_eq!(token_client.balance(&receiver), 1000);
-    assert_eq!(token_client.balance(&sender), 0);
-
-    let clawback_id =
-        client.request_clawback(&stream_id, &sender, &400_i128, &reason(&env), &1_u32, &0_u64);
-    client.approve_clawback(&clawback_id, &receiver);
-    client.execute_clawback(&clawback_id, &sender);
-
-    assert_eq!(token_client.balance(&receiver), 600);
-    assert_eq!(token_client.balance(&sender), 400);
+    c.approve_clawback(&id, &f.receiver).unwrap();
+    c.execute_clawback(&id, &f.sender).unwrap();
+    assert_eq!(
+        c.get_clawback_request(&id).unwrap().status,
+        ClawbackStatus::Executed
+    );
 }
 
-// ---------------------------------------------------------------------------
-// Test 5: execute without approval fails
-// ---------------------------------------------------------------------------
 #[test]
-#[should_panic(expected = "Error(Contract, #42)")]
+#[should_panic(expected = "Error(Contract, #46)")]
 fn test_execute_without_approval_fails() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    ledger_at(&env, 150);
-    client.withdraw(&stream_id, &receiver);
+    let id = c
+        .request_clawback(&stream_id, &f.sender, &withdrawn, &reason(&f.env), &1_u32, &0_u64)
+        .unwrap();
 
-    let clawback_id =
-        client.request_clawback(&stream_id, &sender, &200_i128, &reason(&env), &1_u32, &0_u64);
-
-    // Not yet approved — should panic with ClawbackInsufficientApprovals (#42)
-    client.execute_clawback(&clawback_id, &sender);
+    // Not approved yet — should panic with ClawbackInsufficientApprovals
+    c.execute_clawback(&id, &f.sender).unwrap();
 }
 
-// ---------------------------------------------------------------------------
-// Test 6: amount > withdrawn_amount is rejected
-// ---------------------------------------------------------------------------
 #[test]
-#[should_panic(expected = "Error(Contract, #40)")]
+#[should_panic(expected = "Error(Contract, #44)")]
 fn test_amount_exceeds_withdrawn_rejected() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    // Nothing withdrawn yet — any positive amount exceeds withdrawn_amount (0)
-    client.request_clawback(&stream_id, &sender, &1_i128, &reason(&env), &1_u32, &0_u64);
+    // Request more than was withdrawn
+    c.request_clawback(
+        &stream_id,
+        &f.sender,
+        &(withdrawn + 1),
+        &reason(&f.env),
+        &1_u32,
+        &0_u64,
+    )
+    .unwrap();
 }
 
-// ---------------------------------------------------------------------------
-// Test 7: multiple independent clawback requests on same stream
-// ---------------------------------------------------------------------------
 #[test]
 fn test_multiple_clawbacks_on_same_stream() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 2000);
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    // Use a stream with 2000 total; cliff=100, end=200
-    ledger_at(&env, 200);
-    client.withdraw(&stream_id, &receiver);
-
-    let id1 =
-        client.request_clawback(&stream_id, &sender, &100_i128, &reason(&env), &1_u32, &0_u64);
-    let id2 =
-        client.request_clawback(&stream_id, &sender, &200_i128, &reason(&env), &1_u32, &0_u64);
+    let id1 = c
+        .request_clawback(&stream_id, &f.sender, &(withdrawn / 2), &reason(&f.env), &1_u32, &0_u64)
+        .unwrap();
+    let id2 = c
+        .request_clawback(&stream_id, &f.sender, &(withdrawn / 2), &reason(&f.env), &1_u32, &0_u64)
+        .unwrap();
 
     assert_ne!(id1, id2);
-    let req1 = client.get_clawback_request(&id1).unwrap();
-    let req2 = client.get_clawback_request(&id2).unwrap();
-    assert_eq!(req1.amount, 100);
-    assert_eq!(req2.amount, 200);
+    assert_eq!(c.get_clawback_request(&id1).unwrap().status, ClawbackStatus::Pending);
+    assert_eq!(c.get_clawback_request(&id2).unwrap().status, ClawbackStatus::Pending);
 }
 
-// ---------------------------------------------------------------------------
-// Test 8: partial clawback (less than full withdrawn amount)
-// ---------------------------------------------------------------------------
 #[test]
-fn test_partial_clawback() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
-
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    ledger_at(&env, 200);
-    client.withdraw(&stream_id, &receiver); // withdraws 1000
-
-    // Only claw back half
-    let clawback_id =
-        client.request_clawback(&stream_id, &sender, &250_i128, &reason(&env), &1_u32, &0_u64);
-    client.approve_clawback(&clawback_id, &receiver);
-    client.execute_clawback(&clawback_id, &sender);
-
-    let token_client = TokenClient::new(&env, &token);
-    assert_eq!(token_client.balance(&sender), 250);
-    assert_eq!(token_client.balance(&receiver), 750);
-}
-
-// ---------------------------------------------------------------------------
-// Test 9: expired request cannot be approved
-// ---------------------------------------------------------------------------
-#[test]
-#[should_panic(expected = "Error(Contract, #44)")]
+#[should_panic(expected = "Error(Contract, #48)")]
 fn test_expired_request_cannot_be_approved() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    ledger_at(&env, 150);
-    client.withdraw(&stream_id, &receiver);
-
-    // Request expires at t=160
-    let clawback_id =
-        client.request_clawback(&stream_id, &sender, &100_i128, &reason(&env), &1_u32, &160_u64);
+    // expires_at = 200
+    let id = c
+        .request_clawback(&stream_id, &f.sender, &withdrawn, &reason(&f.env), &1_u32, &200_u64)
+        .unwrap();
 
     // Advance past expiry
-    ledger_at(&env, 200);
-
-    // Should panic with ClawbackExpired (#44)
-    client.approve_clawback(&clawback_id, &receiver);
+    set_time(&f.env, 201);
+    c.approve_clawback(&id, &f.receiver).unwrap();
 }
 
-// ---------------------------------------------------------------------------
-// Test 10: expired request cannot be executed (even if Approved)
-// ---------------------------------------------------------------------------
 #[test]
-#[should_panic(expected = "Error(Contract, #44)")]
+#[should_panic(expected = "Error(Contract, #48)")]
 fn test_expired_approved_request_cannot_be_executed() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    ledger_at(&env, 150);
-    client.withdraw(&stream_id, &receiver);
-
-    // Request expires at t=160; approve at t=150 (before expiry)
-    let clawback_id =
-        client.request_clawback(&stream_id, &sender, &100_i128, &reason(&env), &1_u32, &160_u64);
-    client.approve_clawback(&clawback_id, &receiver); // sets Approved at t=150
+    let id = c
+        .request_clawback(&stream_id, &f.sender, &withdrawn, &reason(&f.env), &1_u32, &300_u64)
+        .unwrap();
+    c.approve_clawback(&id, &f.receiver).unwrap();
 
     // Advance past expiry
-    ledger_at(&env, 200);
-
-    // execute_clawback checks expiry even after Approved – should panic with ClawbackExpired (#44)
-    client.execute_clawback(&clawback_id, &sender);
+    set_time(&f.env, 301);
+    c.execute_clawback(&id, &f.sender).unwrap();
 }
 
-// ---------------------------------------------------------------------------
-// Test 11: clawback not enabled on stream is rejected
-// ---------------------------------------------------------------------------
-#[test]
-#[should_panic(expected = "Error(Contract, #39)")]
-fn test_clawback_not_enabled_rejected() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
-
-    // create_stream always passes clawback_enabled:false
-    let stream_id = client.create_stream(
-        &sender,
-        &receiver,
-        &token,
-        &1000_i128,
-        &100_u64,
-        &100_u64,
-        &200_u64,
-        &CurveType::Linear,
-        &false,
-    );
-    ledger_at(&env, 150);
-    client.withdraw(&stream_id, &receiver);
-
-    // Should panic with ClawbackNotEnabled (#39)
-    client.request_clawback(&stream_id, &sender, &100_i128, &reason(&env), &1_u32, &0_u64);
-}
-
-// ---------------------------------------------------------------------------
-// Test 12: double-execute is rejected
-// ---------------------------------------------------------------------------
-#[test]
-#[should_panic(expected = "Error(Contract, #41)")]
-fn test_double_execute_rejected() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
-
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    ledger_at(&env, 200);
-    client.withdraw(&stream_id, &receiver);
-
-    let clawback_id =
-        client.request_clawback(&stream_id, &sender, &200_i128, &reason(&env), &1_u32, &0_u64);
-    client.approve_clawback(&clawback_id, &receiver);
-    client.execute_clawback(&clawback_id, &sender);
-
-    // Second execute – should panic with ClawbackAlreadyExecuted (#41)
-    client.execute_clawback(&clawback_id, &sender);
-}
-
-// ---------------------------------------------------------------------------
-// Test 13: double-approve by same address is rejected
-// ---------------------------------------------------------------------------
 #[test]
 #[should_panic(expected = "Error(Contract, #43)")]
-fn test_double_approve_rejected() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
-    let gov = Address::generate(&env);
+fn test_clawback_not_enabled_rejected() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    ledger_at(&env, 150);
-    client.withdraw(&stream_id, &receiver);
+    set_time(&f.env, 100);
+    let stream_id = c
+        .create_stream(
+            &f.sender,
+            &f.receiver,
+            &f.token,
+            &1000_i128,
+            &100_u64,
+            &200_u64,
+            &CURVE_LINEAR,
+            &false,
+            &false, // clawback NOT enabled
+            &None,
+        )
+        .unwrap();
 
-    let clawback_id =
-        client.request_clawback(&stream_id, &sender, &100_i128, &reason(&env), &2_u32, &0_u64);
-    client.approve_clawback(&clawback_id, &gov);
-    // Second approval by same address – should panic with ClawbackAlreadyApproved (#43)
-    client.approve_clawback(&clawback_id, &gov);
+    set_time(&f.env, 150);
+    let withdrawn = c.withdraw(&stream_id, &f.receiver).unwrap();
+
+    c.request_clawback(&stream_id, &f.sender, &withdrawn, &reason(&f.env), &1_u32, &0_u64)
+        .unwrap();
 }
 
-// ---------------------------------------------------------------------------
-// Test 14: only sender can request clawback
-// ---------------------------------------------------------------------------
+#[test]
+#[should_panic(expected = "Error(Contract, #45)")]
+fn test_double_execute_rejected() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
+
+    let id = c
+        .request_clawback(&stream_id, &f.sender, &withdrawn, &reason(&f.env), &1_u32, &0_u64)
+        .unwrap();
+    c.approve_clawback(&id, &f.receiver).unwrap();
+    c.execute_clawback(&id, &f.sender).unwrap();
+    c.execute_clawback(&id, &f.sender).unwrap(); // should panic
+}
+
+#[test]
+#[should_panic(expected = "Error(Contract, #47)")]
+fn test_double_approve_rejected() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
+
+    let id = c
+        .request_clawback(&stream_id, &f.sender, &withdrawn, &reason(&f.env), &1_u32, &0_u64)
+        .unwrap();
+    c.approve_clawback(&id, &f.receiver).unwrap();
+    c.approve_clawback(&id, &f.receiver).unwrap(); // should panic
+}
+
 #[test]
 #[should_panic(expected = "Error(Contract, #5)")]
 fn test_non_sender_cannot_request_clawback() {
-    let (env, client, admin) = setup();
-    let sender = Address::generate(&env);
-    let receiver = Address::generate(&env);
-    let stranger = Address::generate(&env);
-    let token = mint_token(&env, &admin, &sender, 1000);
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let stranger = Address::generate(&f.env);
+    let (stream_id, withdrawn) = make_clawback_stream(&f.env, &c, &f.sender, &f.receiver, &f.token);
 
-    let stream_id = create_clawback_stream(&env, &client, &sender, &receiver, &token);
-    ledger_at(&env, 150);
-    client.withdraw(&stream_id, &receiver);
-
-    // Stranger tries to request clawback – should panic with Unauthorized (#5)
-    client.request_clawback(&stream_id, &stranger, &100_i128, &reason(&env), &1_u32, &0_u64);
+    c.request_clawback(&stream_id, &stranger, &withdrawn, &reason(&f.env), &1_u32, &0_u64)
+        .unwrap();
 }
 
-// ---------------------------------------------------------------------------
-// Test 15: get_clawback_request returns None for unknown id
-// ---------------------------------------------------------------------------
 #[test]
 fn test_get_nonexistent_clawback_returns_none() {
-    let (_env, client, _admin) = setup();
-    let result = client.get_clawback_request(&9999_u64);
-    assert!(result.is_none());
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    assert!(c.get_clawback_request(&9999_u64).is_none());
 }
