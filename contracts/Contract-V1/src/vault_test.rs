@@ -105,6 +105,7 @@ fn options_with_vault(vault: Address) -> StreamOptions {
         curve_type: CurveType::Linear,
         is_soulbound: false,
         vault_address: Some(vault),
+        clawback_enabled: false,
     }
 }
 

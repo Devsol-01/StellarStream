@@ -81,4 +81,22 @@ pub enum Error {
     DisputeExpired = 36,
     /// The proposed resolution is invalid for the given dispute.
     InvalidResolution = 37,
+
+    // ===== Clawback errors =====
+    /// No clawback request exists for the given ID.
+    ClawbackNotFound = 38,
+    /// The stream was not created with clawback enabled.
+    ClawbackNotEnabled = 39,
+    /// The requested clawback amount exceeds the amount already withdrawn.
+    ClawbackExceedsWithdrawn = 40,
+    /// The clawback request has already been executed.
+    ClawbackAlreadyExecuted = 41,
+    /// The clawback request has not yet received sufficient approvals.
+    ClawbackInsufficientApprovals = 42,
+    /// The approver has already approved this clawback request.
+    ClawbackAlreadyApproved = 43,
+    /// The clawback request has expired and can no longer be approved or executed.
+    ClawbackExpired = 44,
+    /// The clawback request was rejected.
+    ClawbackRejected = 45,
 }

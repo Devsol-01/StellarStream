@@ -1,6 +1,7 @@
 #![no_std]
 #![allow(clippy::too_many_arguments)]
 
+pub mod compliance;
 pub mod errors;
 mod flash_loan;
 pub mod interest;
@@ -12,6 +13,7 @@ pub mod types;
 mod upgrade;
 mod vault;
 mod voting;
+pub mod clawback;
 
 #[cfg(test)]
 mod remaining_time_test;
@@ -28,7 +30,7 @@ mod cliff_test;
 #[cfg(test)]
 #[cfg(all(test, feature = "allowlist_tests"))]
 mod allowlist_test;
-#[cfg(all(test, feature = "clawback_tests"))]
+#[cfg(test)]
 mod clawback_test;
 #[cfg(test)]
 mod dispute_test;
@@ -80,11 +82,11 @@ use storage::{
     STREAM_COUNT,
 };
 use types::{
-    ContributorRequest, CurveType, DataKey, Dispute, DisputeRaisedEvent, DisputeResolution,
-    DisputeResolvedEvent, DisputeVotedEvent, Milestone, ProposalApprovedEvent, ProposalCreatedEvent,
-    ReceiptMetadata, RequestCreatedEvent, RequestExecutedEvent, RequestKey, RequestStatus, Role,
-    Stream, StreamCreatedEvent, StreamOptions, StreamProposal, StreamReceipt, StreamRequest,
-    StreamResumedEvent, StreamState,
+    ClawbackRequest, ContributorRequest, CurveType, DataKey, Dispute, DisputeRaisedEvent,
+    DisputeResolution, DisputeResolvedEvent, DisputeVotedEvent, Milestone, ProposalApprovedEvent,
+    ProposalCreatedEvent, ReceiptMetadata, RequestCreatedEvent, RequestExecutedEvent, RequestKey,
+    RequestStatus, Role, Stream, StreamCreatedEvent, StreamOptions, StreamProposal, StreamReceipt,
+    StreamRequest, StreamResumedEvent, StreamState,
 };
 
 /// The StellarStream token-streaming contract.
@@ -152,9 +154,7 @@ impl StellarStreamContract {
         if deadline <= env.ledger().timestamp() {
             return Err(Error::ProposalExpired);
         }
-        if Self::is_address_restricted(env.clone(), receiver.clone()) {
-            soroban_sdk::panic_with_error!(&env, Error::AddressRestricted);
-        }
+        compliance::require_not_restricted(&env, &receiver);
 
         let proposal_id: u64 = env.storage().instance().get(&PROPOSAL_COUNT).unwrap_or(0);
         let next_id = proposal_id + 1;
@@ -397,6 +397,7 @@ impl StellarStreamContract {
             curve_type,
             is_soulbound,
             vault_address: None,
+            clawback_enabled: false, // use create_stream_with_milestones + StreamOptions to enable
         };
         Self::create_stream_internal(
             env,
@@ -489,6 +490,7 @@ impl StellarStreamContract {
             curve_type,
             is_soulbound,
             vault_address,
+            clawback_enabled,
         } = options;
 
         // Validate time range
@@ -498,9 +500,9 @@ impl StellarStreamContract {
         if total_amount <= 0 {
             return Err(Error::InvalidAmount);
         }
-        if Self::is_address_restricted(env.clone(), receiver.clone()) {
-            soroban_sdk::panic_with_error!(&env, Error::AddressRestricted);
-        }
+        // OFAC compliance: block restricted senders and receivers
+        compliance::require_not_restricted(&env, &sender);
+        compliance::require_not_restricted(&env, &receiver);
 
         // Validate cliff period
         if cliff_time < start_time || cliff_time > end_time {
@@ -552,7 +554,7 @@ impl StellarStreamContract {
             price_min: 0,
             price_max: 0,
             is_soulbound,
-            clawback_enabled: false, // TODO: Check token flags
+            clawback_enabled, // set from StreamOptions (opt-in at creation)
             arbiter: None,
             is_frozen: false,
             state: StreamState::Active,
@@ -696,6 +698,10 @@ impl StellarStreamContract {
                 soroban_sdk::panic_with_error!(&env, Error::AddressRestricted);
             }
             total_amount += req.amount;
+        }
+        // Check the batch sender once
+        if restricted.contains(&sender) {
+            soroban_sdk::panic_with_error!(&env, Error::AddressRestricted);
         }
 
         // One transfer covers every request's principal instead of one per item.
@@ -931,101 +937,72 @@ impl StellarStreamContract {
             .expect("Admin not set")
     }
 
-    /// Adds an address to the restricted-address list, blocking it from being used as
-    /// a stream receiver or receipt transfer target. Caller must hold [`Role::SuperAdmin`].
-    ///
-    /// # Arguments
-    /// * `env` - The contract execution environment
-    /// * `admin` - Caller; must authenticate this call and hold [`Role::SuperAdmin`]
-    /// * `address` - Address to restrict; a no-op if already restricted
-    ///
-    /// # Panics
-    /// Panics with [`Error::Unauthorized`] if `admin` does not hold [`Role::SuperAdmin`].
-    pub fn restrict_address(env: Env, admin: Address, address: Address) {
-        admin.require_auth();
-        let has_admin: bool = env
-            .storage()
-            .instance()
-            .get(&DataKey::Role(admin, Role::SuperAdmin))
-            .unwrap_or(false);
-        if !has_admin {
-            soroban_sdk::panic_with_error!(&env, Error::Unauthorized);
-        }
-        let mut list: Vec<Address> = env
-            .storage()
-            .instance()
-            .get(&RESTRICTED_ADDRESSES)
-            .unwrap_or(Vec::new(&env));
-        if !list.contains(address.clone()) {
-            list.push_back(address);
-            env.storage().instance().set(&RESTRICTED_ADDRESSES, &list);
-        }
-    }
+    // ========== OFAC Compliance entry points (delegate to compliance.rs) ==========
 
-    /// Checks whether an address is on the restricted-address list.
+    /// Adds `address` to the persistent restricted-address denylist, preventing it
+    /// from creating streams, receiving streams, or withdrawing funds.
     ///
-    /// # Arguments
-    /// * `env` - The contract execution environment
-    /// * `address` - Address to check
-    ///
-    /// # Returns
-    /// `true` if `address` is restricted.
-    pub fn is_address_restricted(env: Env, address: Address) -> bool {
-        Self::restricted_addresses(&env).contains(&address)
-    }
-
-    /// Load the restricted-address list once. Callers that need to check
-    /// several addresses (e.g. batch validation) should reuse the returned
-    /// `Vec` instead of re-reading storage per address.
-    fn restricted_addresses(env: &Env) -> Vec<Address> {
-        env.storage()
-            .instance()
-            .get(&RESTRICTED_ADDRESSES)
-            .unwrap_or(Vec::new(env))
-    }
-
-    /// Removes an address from the restricted-address list. Caller must hold
+    /// This is the primary OFAC enforcement tool. Caller must hold
     /// [`Role::SuperAdmin`].
     ///
     /// # Arguments
     /// * `env` - The contract execution environment
     /// * `admin` - Caller; must authenticate this call and hold [`Role::SuperAdmin`]
-    /// * `address` - Address to unrestrict
+    /// * `address` - Address to restrict; idempotent if already restricted
     ///
     /// # Panics
     /// Panics with [`Error::Unauthorized`] if `admin` does not hold [`Role::SuperAdmin`].
+    ///
+    /// # Events
+    /// Emits `("complnc", "restrict")` → `address`.
+    pub fn restrict_address(env: Env, admin: Address, address: Address) {
+        admin.require_auth();
+        // Delegate to the compliance module (persistent storage + events)
+        compliance::restrict_address(&env, &admin, &address)
+            .unwrap_or_else(|e| soroban_sdk::panic_with_error!(&env, e));
+    }
+
+    /// Removes `address` from the persistent restricted-address denylist,
+    /// re-enabling it to interact with the protocol.
+    ///
+    /// Caller must hold [`Role::SuperAdmin`].
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `admin` - Caller; must authenticate this call and hold [`Role::SuperAdmin`]
+    /// * `address` - Address to unrestrict; idempotent if not currently restricted
+    ///
+    /// # Panics
+    /// Panics with [`Error::Unauthorized`] if `admin` does not hold [`Role::SuperAdmin`].
+    ///
+    /// # Events
+    /// Emits `("complnc", "unrestct")` → `address`.
     pub fn unrestrict_address(env: Env, admin: Address, address: Address) {
         admin.require_auth();
-        let has_admin: bool = env
-            .storage()
-            .instance()
-            .get(&DataKey::Role(admin, Role::SuperAdmin))
-            .unwrap_or(false);
-        if !has_admin {
-            soroban_sdk::panic_with_error!(&env, Error::Unauthorized);
-        }
-        let list: Vec<Address> = env
-            .storage()
-            .instance()
-            .get(&RESTRICTED_ADDRESSES)
-            .unwrap_or(Vec::new(&env));
-        let mut new_list = Vec::new(&env);
-        for a in list.iter() {
-            if a != address {
-                new_list.push_back(a.clone());
-            }
-        }
-        env.storage()
-            .instance()
-            .set(&RESTRICTED_ADDRESSES, &new_list);
+        // Delegate to the compliance module (persistent storage + events)
+        compliance::unrestrict_address(&env, &admin, &address)
+            .unwrap_or_else(|e| soroban_sdk::panic_with_error!(&env, e));
+    }
+
+    /// Returns `true` if `address` is currently on the restricted-address list.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `address` - Address to check
+    pub fn is_address_restricted(env: Env, address: Address) -> bool {
+        compliance::is_restricted(&env, &address)
+    }
+
+    /// Load the restricted-address list once. Internal callers that need to check
+    /// several addresses in a loop (e.g. batch validation) should call this once and
+    /// reuse the `Vec` instead of hitting persistent storage per address.
+    fn restricted_addresses(env: &Env) -> Vec<Address> {
+        compliance::load_restricted(env)
     }
 
     /// Returns every address currently on the restricted-address list.
     pub fn get_restricted_addresses(env: Env) -> Vec<Address> {
-        env.storage()
-            .instance()
-            .get(&RESTRICTED_ADDRESSES)
-            .unwrap_or(Vec::new(&env))
+        compliance::load_restricted(&env)
     }
 
     /// Checks whether a vault address is in the approved-vaults list.
@@ -1437,6 +1414,9 @@ impl StellarStreamContract {
         if stream.state == StreamState::Paused {
             return Err(Error::StreamPaused);
         }
+
+        // OFAC compliance: block withdrawals to restricted receivers
+        compliance::require_not_restricted(&env, &stream.receiver);
 
         let current_time = env.ledger().timestamp();
         let unlocked = Self::calculate_unlocked(&stream, current_time);
@@ -1917,6 +1897,7 @@ impl StellarStreamContract {
             curve_type: CurveType::Linear,
             is_soulbound: false,
             vault_address: None,
+            clawback_enabled: false,
         };
         let stream_id = Self::create_stream_internal(
             env.clone(),
@@ -2054,9 +2035,7 @@ impl StellarStreamContract {
         new_owner: Address,
     ) -> Result<(), Error> {
         caller.require_auth();
-        if Self::is_address_restricted(env.clone(), new_owner.clone()) {
-            soroban_sdk::panic_with_error!(&env, Error::AddressRestricted);
-        }
+        compliance::require_not_restricted(&env, &new_owner);
         let key = (RECEIPT, stream_id);
         let mut receipt: StreamReceipt = env
             .storage()
@@ -2573,6 +2552,93 @@ impl StellarStreamContract {
         );
 
         Ok(())
+    }
+
+    // ========== Clawback entry points (delegate to clawback.rs) ==========
+
+    /// Creates a new clawback request, asking the receiver (or governance) to approve
+    /// returning `amount` previously-withdrawn tokens to the sender.
+    ///
+    /// The stream must have been created with `clawback_enabled = true`.
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `stream_id` - Stream to claw back from
+    /// * `sender` - Stream's sender; must authenticate this call
+    /// * `amount` - Tokens to claw back; must be > 0 and ≤ `withdrawn_amount`
+    /// * `reason` - Human-readable reason for the clawback
+    /// * `required_approvals` - Governance approvals needed if receiver does not approve
+    /// * `expires_at` - Optional expiry timestamp (`0` = no expiry)
+    ///
+    /// # Returns
+    /// The new clawback request ID.
+    ///
+    /// # Errors
+    /// * [`Error::StreamNotFound`], [`Error::Unauthorized`], [`Error::ClawbackNotEnabled`],
+    ///   [`Error::InvalidAmount`], [`Error::ClawbackExceedsWithdrawn`]
+    pub fn request_clawback(
+        env: Env,
+        stream_id: u64,
+        sender: Address,
+        amount: i128,
+        reason: String,
+        required_approvals: u32,
+        expires_at: u64,
+    ) -> Result<u64, Error> {
+        sender.require_auth();
+        clawback::request_clawback(&env, stream_id, &sender, amount, reason, required_approvals, expires_at)
+    }
+
+    /// Approves a pending clawback request.
+    ///
+    /// The approver may be:
+    /// - The stream's **receiver** (receiver consent path — immediately satisfies approval)
+    /// - A **governance address** (multi-sig path — satisfies when count ≥ `required_approvals`)
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `clawback_id` - ID of the request to approve
+    /// * `approver` - Must authenticate; must be the receiver or a governance address
+    ///
+    /// # Errors
+    /// * [`Error::ClawbackNotFound`], [`Error::ClawbackAlreadyExecuted`],
+    ///   [`Error::ClawbackExpired`], [`Error::ClawbackAlreadyApproved`], [`Error::Unauthorized`]
+    pub fn approve_clawback(
+        env: Env,
+        clawback_id: u64,
+        approver: Address,
+    ) -> Result<(), Error> {
+        approver.require_auth();
+        clawback::approve_clawback(&env, clawback_id, &approver)
+    }
+
+    /// Executes an approved clawback, transferring tokens from the receiver back to
+    /// the sender. The request must be in [`ClawbackStatus::Approved`] state.
+    ///
+    /// May be called by anyone once approved (no specific role required).
+    ///
+    /// # Arguments
+    /// * `env` - The contract execution environment
+    /// * `clawback_id` - ID of the approved clawback to execute
+    /// * `executor` - Caller; must authenticate (any address)
+    ///
+    /// # Errors
+    /// * [`Error::ClawbackNotFound`], [`Error::ClawbackAlreadyExecuted`],
+    ///   [`Error::ClawbackInsufficientApprovals`], [`Error::ClawbackExpired`]
+    pub fn execute_clawback(
+        env: Env,
+        clawback_id: u64,
+        executor: Address,
+    ) -> Result<(), Error> {
+        executor.require_auth();
+        clawback::execute_clawback(&env, clawback_id)
+    }
+
+    /// Fetches a clawback request by ID.
+    ///
+    /// Returns `None` if no request exists for `clawback_id`.
+    pub fn get_clawback_request(env: Env, clawback_id: u64) -> Option<ClawbackRequest> {
+        clawback::get_clawback_request(&env, clawback_id)
     }
 }
 

@@ -425,6 +425,7 @@ mod stream_creation {
             curve_type: CurveType::Linear,
             is_soulbound: false,
             vault_address: None,
+            clawback_enabled: false,
         };
         let id = ctx.client.create_stream_with_milestones(
             &ctx.sender,
@@ -1439,6 +1440,7 @@ mod integration {
             curve_type: CurveType::Linear,
             is_soulbound: false,
             vault_address: None,
+            clawback_enabled: false,
         };
         let id = ctx.client.create_stream_with_milestones(
             &ctx.sender,

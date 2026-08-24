@@ -35,3 +35,7 @@ pub const DISPUTE_COUNT: Symbol = symbol_short!("DISP_CNT");
 pub const DISPUTE: Symbol = symbol_short!("DISPUTE");
 /// Key prefix for the list of authorized arbitrators.
 pub const ARBITRATORS: Symbol = symbol_short!("ARB_LST");
+/// Key prefix for clawback request records, keyed by clawback ID.
+pub const CLAWBACK: Symbol = symbol_short!("CLAWBACK");
+/// Key for the counter tracking the total number of clawback requests ever created.
+pub const CLAWBACK_COUNT: Symbol = symbol_short!("CLBK_CNT");

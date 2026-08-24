@@ -213,7 +213,7 @@ pub struct StreamRequest {
 /// `create_stream_with_milestones` entry point within Soroban's
 /// maximum contract function parameter limit.
 ///
-/// Bundling these three optional knobs into a single struct allows the
+/// Bundling these optional knobs into a single struct allows the
 /// milestone-aware creation entry point to stay under the 10-parameter cap
 /// while preserving the full set of configuration options.
 #[contracttype]
@@ -222,6 +222,10 @@ pub struct StreamOptions {
     pub curve_type: CurveType,
     pub is_soulbound: bool,
     pub vault_address: Option<Address>,
+    /// If true, the stream supports clawback requests. Senders may call
+    /// `request_clawback` to recover previously withdrawn tokens subject
+    /// to receiver or governance approval.
+    pub clawback_enabled: bool,
 }
 
 /// Result of splitting vault-earned interest among a stream's sender, receiver, and
@@ -802,6 +806,127 @@ pub struct DisputeResolvedEvent {
     pub stream_id: u64,
     /// The resolution that was executed.
     pub resolution: DisputeResolution,
+    /// Unix timestamp when the event was emitted.
+    pub timestamp: u64,
+}
+
+// ========== Clawback Types ==========
+
+/// Status of a clawback request.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ClawbackStatus {
+    /// Awaiting sufficient approvals.
+    Pending,
+    /// Has enough approvals and can be executed.
+    Approved,
+    /// Has been executed; tokens returned to sender.
+    Executed,
+    /// Rejected or expired without execution.
+    Rejected,
+}
+
+/// A request to claw back previously-withdrawn tokens from the receiver back
+/// to the sender.
+///
+/// Clawback is an opt-in feature: streams must be created with
+/// `clawback_enabled = true` to support clawback requests. Once requested, the
+/// clawback requires approval from either:
+/// - the receiver (`approved_by_receiver = true`), or
+/// - a governance multi-sig (`approvals.len() >= required_approvals`).
+///
+/// Only after sufficient approval has been collected may the clawback be
+/// executed, which transfers `amount` tokens from the receiver back to the
+/// sender.
+///
+/// # Risks
+/// The receiver must hold sufficient token balance when `execute_clawback` is
+/// called; if they have already spent the tokens, execution will fail at the
+/// token-transfer level. Senders should only use clawback for reversible
+/// payments (e.g. contractor milestone payments pending approval).
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ClawbackRequest {
+    /// Unique clawback request ID.
+    pub clawback_id: u64,
+    /// ID of the stream this clawback is associated with.
+    pub stream_id: u64,
+    /// Amount of tokens to claw back; must be ≤ `stream.withdrawn_amount`.
+    pub amount: i128,
+    /// Human-readable reason for the clawback.
+    pub reason: soroban_sdk::String,
+    /// Whether the stream's receiver has approved this clawback.
+    pub approved_by_receiver: bool,
+    /// Governance addresses that have approved this clawback.
+    pub approvals: soroban_sdk::Vec<Address>,
+    /// Number of governance approvals required (in addition to or instead of
+    /// receiver approval) before the clawback may be executed.
+    pub required_approvals: u32,
+    /// Current lifecycle status.
+    pub status: ClawbackStatus,
+    /// Unix timestamp when the request was created.
+    pub created_at: u64,
+    /// Optional expiry: if non-zero, the request cannot be approved or executed
+    /// after this timestamp.
+    pub expires_at: u64,
+}
+
+/// Storage key space for [`ClawbackRequest`] records.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ClawbackKey {
+    /// A single clawback request, keyed by clawback ID.
+    Request(u64),
+    /// Counter for the next clawback ID to assign.
+    Count,
+}
+
+/// Event emitted when a clawback request is created.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ClawbackRequestedEvent {
+    /// ID of the newly created clawback request.
+    pub clawback_id: u64,
+    /// ID of the stream the clawback targets.
+    pub stream_id: u64,
+    /// Address of the stream's sender (who will receive the tokens back).
+    pub sender: Address,
+    /// Amount to claw back.
+    pub amount: i128,
+    /// Human-readable reason.
+    pub reason: soroban_sdk::String,
+    /// Unix timestamp when the event was emitted.
+    pub timestamp: u64,
+}
+
+/// Event emitted when a clawback request receives an approval.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ClawbackApprovedEvent {
+    /// ID of the clawback request that was approved.
+    pub clawback_id: u64,
+    /// Address that approved the clawback.
+    pub approver: Address,
+    /// Whether the approver was the receiver.
+    pub by_receiver: bool,
+    /// Current total governance approval count.
+    pub approval_count: u32,
+    /// Unix timestamp when the event was emitted.
+    pub timestamp: u64,
+}
+
+/// Event emitted when an approved clawback is executed.
+#[contracttype]
+#[derive(Clone, Debug)]
+pub struct ClawbackExecutedEvent {
+    /// ID of the executed clawback request.
+    pub clawback_id: u64,
+    /// ID of the stream the clawback targeted.
+    pub stream_id: u64,
+    /// Amount of tokens transferred from receiver back to sender.
+    pub amount: i128,
+    /// Address of the sender who received the tokens.
+    pub sender: Address,
     /// Unix timestamp when the event was emitted.
     pub timestamp: u64,
 }

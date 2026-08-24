@@ -35,6 +35,7 @@ fn test_top_up_extends_duration() {
         curve_type: crate::types::CurveType::Linear,
         is_soulbound: false,
         vault_address: None,
+        clawback_enabled: false,
     };
     let stream_id = client.create_stream_with_milestones(
         &sender,
@@ -84,6 +85,7 @@ fn test_only_sender_can_top_up() {
         curve_type: crate::types::CurveType::Linear,
         is_soulbound: false,
         vault_address: None,
+        clawback_enabled: false,
     };
     let stream_id = client.create_stream_with_milestones(
         &sender,
@@ -123,6 +125,7 @@ fn test_cannot_top_up_cancelled_stream() {
         curve_type: crate::types::CurveType::Linear,
         is_soulbound: false,
         vault_address: None,
+        clawback_enabled: false,
     };
     let stream_id = client.create_stream_with_milestones(
         &sender,
@@ -162,6 +165,7 @@ fn test_top_up_multiple_times() {
         curve_type: crate::types::CurveType::Linear,
         is_soulbound: false,
         vault_address: None,
+        clawback_enabled: false,
     };
     let stream_id = client.create_stream_with_milestones(
         &sender,
