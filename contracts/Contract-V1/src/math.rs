@@ -347,3 +347,80 @@ pub fn calculate_stream_rate(total_amount: i128, duration: u64) -> i128 {
         total_amount / duration as i128
     }
 }
+
+/// Seconds in one day (24 hours).
+pub const SECONDS_PER_DAY: u64 = 86_400;
+
+/// Seconds in one standard month (30 days).
+pub const SECONDS_PER_MONTH: u64 = 2_592_000;
+
+/// Calculate the effective streaming duration accounting for paused time.
+///
+/// Returns `None` if the stream is closed (state == 2) or if the computed
+/// duration would underflow.
+#[inline(always)]
+pub fn effective_duration(
+    start_time: u64,
+    end_time: u64,
+    paused_duration: u64,
+    state: u32,
+) -> Option<u64> {
+    // Closed streams have zero streaming time.
+    if state == 2 {
+        return None;
+    }
+    let base_duration = end_time.checked_sub(start_time)?;
+    base_duration.checked_sub(paused_duration)
+}
+
+/// Calculate streaming rate per second, accounting for paused duration.
+///
+/// Returns `0` if the stream is closed, paused, or has zero effective duration.
+#[inline(always)]
+pub fn rate_per_second(
+    total_amount: i128,
+    start_time: u64,
+    end_time: u64,
+    paused_duration: u64,
+    state: u32,
+) -> i128 {
+    if total_amount <= 0 {
+        return 0;
+    }
+    let dur = match effective_duration(start_time, end_time, paused_duration, state) {
+        Some(d) => d,
+        None => return 0,
+    };
+    if dur == 0 {
+        return 0;
+    }
+    calculate_stream_rate(total_amount, dur)
+}
+
+/// Calculate streaming rate per day (rate_per_second × SECONDS_PER_DAY).
+#[inline(always)]
+pub fn rate_per_day(
+    total_amount: i128,
+    start_time: u64,
+    end_time: u64,
+    paused_duration: u64,
+    state: u32,
+) -> i128 {
+    rate_per_second(total_amount, start_time, end_time, paused_duration, state)
+        .checked_mul(SECONDS_PER_DAY as i128)
+        .unwrap_or(0)
+}
+
+/// Calculate streaming rate per month (rate_per_second × SECONDS_PER_MONTH).
+#[inline(always)]
+pub fn rate_per_month(
+    total_amount: i128,
+    start_time: u64,
+    end_time: u64,
+    paused_duration: u64,
+    state: u32,
+) -> i128 {
+    rate_per_second(total_amount, start_time, end_time, paused_duration, state)
+        .checked_mul(SECONDS_PER_MONTH as i128)
+        .unwrap_or(0)
+}

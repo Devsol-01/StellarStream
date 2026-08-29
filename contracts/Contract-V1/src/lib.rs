@@ -114,7 +114,8 @@ use soroban_sdk::{
 };
 use storage::{
     bump_persistent_ttl_if_present, extend_history_ttl, extend_instance_ttl, extend_metadata_ttl,
-    extend_proposal_ttl, extend_stream_ttl, extend_user_streams_ttl, DataKey,
+    extend_proposal_ttl, extend_stream_ttl, extend_template_ttl, extend_user_streams_ttl,
+    extend_user_templates_ttl, DataKey,
 };
 
 // Stream state
@@ -143,6 +144,12 @@ pub const SECONDS_PER_HOUR: u64 = 3_600;
 /// Ceiling on addresses tracked for `unique_users_24h`, so that both the
 /// bookkeeping and the read stay bounded regardless of traffic.
 pub const MAX_TRACKED_USERS: u32 = 64;
+
+// Template limits
+/// Maximum template name length in characters.
+pub const MAX_TEMPLATE_NAME_LEN: u32 = 32;
+/// Maximum templates a single user may store.
+pub const MAX_TEMPLATES_PER_USER: u32 = 20;
 
 // Roles
 pub const ROLE_ADMIN: u32 = 0;
@@ -209,6 +216,16 @@ pub enum Error {
     ClawbackExpired = 48,
     /// The clawback request was rejected.
     ClawbackRejected = 49,
+
+    // ===== Template errors =====
+    /// No template exists for the given ID.
+    TemplateNotFound = 50,
+    /// Template name exceeds the maximum length (32 chars).
+    TemplateNameTooLong = 51,
+    /// User has reached the maximum number of templates (20).
+    TooManyTemplates = 52,
+    /// Caller is not the owner of this template.
+    NotTemplateOwner = 53,
 }
 
 // ---------------------------------------------------------------------------
@@ -281,6 +298,7 @@ pub struct StreamMetadata {
 
 #[contracttype]
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct StreamMetadataUpdatedEvent {
     pub stream_id: u64,
     pub sender: Address,
@@ -342,6 +360,7 @@ pub struct MetricBucket {
 /// Emitted when a protocol fee is collected while creating a stream.
 #[contracttype]
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct ProtocolFeeCollectedEvent {
     /// Stream the fee was charged for.
     pub stream_id: u64,
@@ -560,6 +579,31 @@ pub struct ClawbackExecutedEvent {
     pub sender: Address,
     pub timestamp: u64,
 }
+/// A saved stream template that users can reuse to quickly create similar streams.
+///
+/// Templates store configuration, not actual tokens. They simplify recurring
+/// operations like monthly payroll or subscription payments.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StreamTemplate {
+    /// Unique template id.
+    pub id: u64,
+    /// Owner of this template.
+    pub owner: Address,
+    /// Human-readable name (max 32 chars).
+    pub name: String,
+    /// Token contract address.
+    pub token: Address,
+    /// Default stream duration in seconds.
+    pub duration: u64,
+    /// Vesting curve type (CURVE_LINEAR, CURVE_EXP, CURVE_MILESTONE).
+    pub curve_type: u32,
+    /// Whether streams created from this template are soulbound.
+    pub is_soulbound: bool,
+    /// Optional cliff duration in seconds.
+    pub cliff_duration: Option<u64>,
+}
+
 // ---------------------------------------------------------------------------
 // Contract
 // ---------------------------------------------------------------------------
@@ -918,6 +962,46 @@ impl StellarStreamContract {
         get_user_streams(&env, &user)
     }
 
+    // ------------------------- Rate Queries (issue #1477) -------------------------
+
+    /// Calculate streaming rate per second, accounting for paused duration.
+    ///
+    /// Returns `0` for closed, paused, or zero-duration streams.
+    pub fn get_stream_rate_per_second(env: Env, stream_id: u64) -> Result<i128, Error> {
+        let stream = get_stream(&env, stream_id)?;
+        Ok(math::rate_per_second(
+            stream.total_amount,
+            stream.start_time,
+            stream.end_time,
+            stream.paused_duration,
+            stream.state,
+        ))
+    }
+
+    /// Calculate streaming rate per day (per_second × 86,400).
+    pub fn get_stream_rate_per_day(env: Env, stream_id: u64) -> Result<i128, Error> {
+        let stream = get_stream(&env, stream_id)?;
+        Ok(math::rate_per_day(
+            stream.total_amount,
+            stream.start_time,
+            stream.end_time,
+            stream.paused_duration,
+            stream.state,
+        ))
+    }
+
+    /// Calculate streaming rate per month (per_second × 2,592,000 = 30 days).
+    pub fn get_stream_rate_per_month(env: Env, stream_id: u64) -> Result<i128, Error> {
+        let stream = get_stream(&env, stream_id)?;
+        Ok(math::rate_per_month(
+            stream.total_amount,
+            stream.start_time,
+            stream.end_time,
+            stream.paused_duration,
+            stream.state,
+        ))
+    }
+
     // ------------------------- Monitoring -------------------------
 
     /// Point-in-time health of the contract.
@@ -1178,9 +1262,10 @@ impl StellarStreamContract {
             },
         );
         extend_metadata_ttl(&env, stream_id);
+        // Optimized event: sender is a topic, body is just (stream_id, timestamp).
         env.events().publish(
-            (symbol_short!("meta_upd"), sender.clone()),
-            StreamMetadataUpdatedEvent { stream_id, sender, timestamp: env.ledger().timestamp() },
+            (symbol_short!("meta_upd"), sender.clone(), stream_id),
+            env.ledger().timestamp(),
         );
         Ok(())
     }
@@ -1293,6 +1378,187 @@ impl StellarStreamContract {
             }
         }
         count
+    }
+
+    // ===== Template entry points (issue #1473) =====
+
+    /// Save a new stream template for the caller.
+    ///
+    /// Returns the newly allocated template id. The caller must provide a
+    /// name (≤ 32 chars), token address, duration, and curve type. A user
+    /// may store at most [`MAX_TEMPLATES_PER_USER`] templates.
+    pub fn save_template(
+        env: Env,
+        user: Address,
+        name: String,
+        token: Address,
+        duration: u64,
+        curve_type: u32,
+        is_soulbound: bool,
+        cliff_duration: Option<u64>,
+    ) -> Result<u64, Error> {
+        user.require_auth();
+        extend_instance_ttl(&env);
+        if is_contract_paused(&env) {
+            return Err(Error::ContractPaused);
+        }
+        if name.len() > MAX_TEMPLATE_NAME_LEN {
+            return Err(Error::TemplateNameTooLong);
+        }
+        if curve_type != CURVE_LINEAR && curve_type != CURVE_EXP {
+            return Err(Error::InvalidCurve);
+        }
+
+        let user_templates = get_user_template_ids(&env, &user);
+        if user_templates.len() >= MAX_TEMPLATES_PER_USER {
+            return Err(Error::TooManyTemplates);
+        }
+
+        let mut next = env
+            .storage()
+            .instance()
+            .get::<_, u64>(&DataKey::TemplateCounter)
+            .unwrap_or(1);
+        let id = next;
+        next = next.checked_add(1).ok_or(Error::Overflow)?;
+
+        let template = StreamTemplate {
+            id,
+            owner: user.clone(),
+            name,
+            token,
+            duration,
+            curve_type,
+            is_soulbound,
+            cliff_duration,
+        };
+
+        env.storage().persistent().set(&DataKey::Template(id), &template);
+        extend_template_ttl(&env, id);
+        add_user_template(&env, &user, id);
+        env.storage().instance().set(&DataKey::TemplateCounter, &next);
+
+        env.events()
+            .publish((symbol_short!("tpl_save"), user), id);
+        Ok(id)
+    }
+
+    /// Create a stream from a saved template.
+    ///
+    /// The caller must be the template owner. The template provides token,
+    /// duration, curve, and soulbound settings; the caller specifies
+    /// receiver, total_amount, and start_time. end_time is computed as
+    /// start_time + template.duration.
+    pub fn create_stream_from_template(
+        env: Env,
+        sender: Address,
+        template_id: u64,
+        receiver: Address,
+        total_amount: i128,
+        start_time: u64,
+    ) -> Result<u64, Error> {
+        sender.require_auth();
+        extend_instance_ttl(&env);
+        let template = get_template(&env, template_id)?;
+        if template.owner != sender {
+            return Err(Error::NotTemplateOwner);
+        }
+
+        let end_time = start_time
+            .checked_add(template.duration)
+            .ok_or(Error::Overflow)?;
+
+        let stream_id = create_stream_internal(
+            &env,
+            &sender,
+            &receiver,
+            &template.token,
+            total_amount,
+            start_time,
+            end_time,
+            template.curve_type,
+            template.is_soulbound,
+            false, // clawback_enabled defaults to false
+            None,  // milestones not supported from templates
+        )?;
+        collect_protocol_fee(&env, &sender, &template.token, stream_id, total_amount)?;
+
+        env.events().publish(
+            (symbol_short!("tpl_use"), sender),
+            (template_id, stream_id),
+        );
+        Ok(stream_id)
+    }
+
+    /// Update an existing template. Only the owner may update.
+    pub fn update_template(
+        env: Env,
+        user: Address,
+        template_id: u64,
+        name: String,
+        token: Address,
+        duration: u64,
+        curve_type: u32,
+        is_soulbound: bool,
+        cliff_duration: Option<u64>,
+    ) -> Result<(), Error> {
+        user.require_auth();
+        extend_instance_ttl(&env);
+        let mut template = get_template(&env, template_id)?;
+        if template.owner != user {
+            return Err(Error::NotTemplateOwner);
+        }
+        if name.len() > MAX_TEMPLATE_NAME_LEN {
+            return Err(Error::TemplateNameTooLong);
+        }
+        if curve_type != CURVE_LINEAR && curve_type != CURVE_EXP {
+            return Err(Error::InvalidCurve);
+        }
+
+        template.name = name;
+        template.token = token;
+        template.duration = duration;
+        template.curve_type = curve_type;
+        template.is_soulbound = is_soulbound;
+        template.cliff_duration = cliff_duration;
+
+        env.storage().persistent().set(&DataKey::Template(template_id), &template);
+        extend_template_ttl(&env, template_id);
+
+        env.events()
+            .publish((symbol_short!("tpl_upd"), user), template_id);
+        Ok(())
+    }
+
+    /// Delete a template. Only the owner may delete.
+    pub fn delete_template(
+        env: Env,
+        user: Address,
+        template_id: u64,
+    ) -> Result<(), Error> {
+        user.require_auth();
+        extend_instance_ttl(&env);
+        let template = get_template(&env, template_id)?;
+        if template.owner != user {
+            return Err(Error::NotTemplateOwner);
+        }
+
+        env.storage().persistent().remove(&DataKey::Template(template_id));
+        remove_user_template(&env, &user, template_id);
+
+        env.events()
+            .publish((symbol_short!("tpl_del"), user), template_id);
+        Ok(())
+    }
+
+    /// Return all template ids owned by a user.
+    pub fn get_user_templates(env: Env, user: Address) -> Vec<u64> {
+        get_user_template_ids(&env, &user)
+    }
+
+    /// Query a template by id.
+    pub fn get_template(env: Env, template_id: u64) -> Result<StreamTemplate, Error> {
+        get_template(&env, template_id)
     }
 
     // ===== Clawback entry points =====
@@ -1867,16 +2133,11 @@ fn collect_protocol_fee(
 
     TokenClient::new(env, token).transfer(sender, &treasury, &fee);
 
+    // Optimized event: stream_id and payer are topics, body is (fee_amount, fee_bps).
+    // Indexers can derive treasury and token from the stream itself.
     env.events().publish(
-        (symbol_short!("fee"), sender.clone()),
-        ProtocolFeeCollectedEvent {
-            stream_id,
-            payer: sender.clone(),
-            treasury,
-            token: token.clone(),
-            fee_amount: fee,
-            fee_bps: fee_bps(env),
-        },
+        (symbol_short!("fee"), sender.clone(), stream_id),
+        (fee, fee_bps(env)),
     );
     Ok(fee)
 }
@@ -1908,6 +2169,61 @@ fn add_history(env: &Env, stream_id: u64, action: StreamAction) {
     });
     env.storage().persistent().set(&key, &events);
     extend_history_ttl(env, stream_id);
+}
+
+// ---------------------------------------------------------------------------
+// Template helpers (issue #1473)
+// ---------------------------------------------------------------------------
+
+fn get_template(env: &Env, template_id: u64) -> Result<StreamTemplate, Error> {
+    let key = DataKey::Template(template_id);
+    let template = env
+        .storage()
+        .persistent()
+        .get::<_, StreamTemplate>(&key)
+        .ok_or(Error::TemplateNotFound)?;
+    extend_template_ttl(env, template_id);
+    Ok(template)
+}
+
+fn get_user_template_ids(env: &Env, user: &Address) -> Vec<u64> {
+    let key = DataKey::UserTemplates(user.clone());
+    let ids = env.storage().persistent().get::<_, Vec<u64>>(&key);
+    if ids.is_some() {
+        extend_user_templates_ttl(env, user);
+    }
+    ids.unwrap_or(Vec::new(env))
+}
+
+fn add_user_template(env: &Env, user: &Address, id: u64) {
+    let key = DataKey::UserTemplates(user.clone());
+    let mut list = env
+        .storage()
+        .persistent()
+        .get::<_, Vec<u64>>(&key)
+        .unwrap_or(Vec::new(env));
+    list.push_back(id);
+    env.storage().persistent().set(&key, &list);
+    extend_user_templates_ttl(env, user);
+}
+
+fn remove_user_template(env: &Env, user: &Address, template_id: u64) {
+    let key = DataKey::UserTemplates(user.clone());
+    let list = env
+        .storage()
+        .persistent()
+        .get::<_, Vec<u64>>(&key)
+        .unwrap_or(Vec::new(env));
+    let mut filtered = Vec::new(env);
+    for i in 0..list.len() {
+        if let Some(id) = list.get(i) {
+            if id != template_id {
+                filtered.push_back(id);
+            }
+        }
+    }
+    env.storage().persistent().set(&key, &filtered);
+    extend_user_templates_ttl(env, user);
 }
 
 fn is_restricted(env: &Env, target: &Address) -> bool {
