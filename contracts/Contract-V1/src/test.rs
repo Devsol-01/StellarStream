@@ -1459,7 +1459,7 @@ fn test_template_not_found() {
 fn test_max_templates_limit() {
     let f = setup();
     let c = client(&f.env, &f.contract);
-    for i in 0..20u32 {
+    for _i in 0..20u32 {
         let name = soroban_sdk::String::from_str(&f.env, "T");
         c.save_template(
             &f.sender,
