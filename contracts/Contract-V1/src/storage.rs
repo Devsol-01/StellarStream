@@ -90,6 +90,16 @@ pub enum DataKey {
     UserSeen,
 
     // -----------------------------------------------------------------------
+    // Persistent storage: templates (long-term, TTL-extended on access).
+    // -----------------------------------------------------------------------
+    /// A stream template by id.
+    Template(u64),
+    /// Template ids associated with a user: `Vec<u64>`.
+    UserTemplates(Address),
+    /// Next template id to allocate.
+    TemplateCounter,
+
+    // -----------------------------------------------------------------------
     // Persistent storage: clawback records (long-term, TTL-extended on access).
     // -----------------------------------------------------------------------
     /// A clawback request by id.
@@ -195,6 +205,24 @@ pub fn bump_persistent_ttl_if_present(env: &Env, key: &DataKey) {
 pub fn extend_clawback_ttl(env: &Env, clawback_id: u64) {
     env.storage().persistent().extend_ttl(
         &DataKey::Clawback(clawback_id),
+        LEDGER_BUMP_SHARED,
+        MAX_TTL_STREAM,
+    );
+}
+
+/// Extend the TTL of a template's persistent entry.
+pub fn extend_template_ttl(env: &Env, template_id: u64) {
+    env.storage().persistent().extend_ttl(
+        &DataKey::Template(template_id),
+        LEDGER_BUMP_SHARED,
+        MAX_TTL_STREAM,
+    );
+}
+
+/// Extend the TTL of a user's template-index entry.
+pub fn extend_user_templates_ttl(env: &Env, user: &Address) {
+    env.storage().persistent().extend_ttl(
+        &DataKey::UserTemplates(user.clone()),
         LEDGER_BUMP_SHARED,
         MAX_TTL_STREAM,
     );

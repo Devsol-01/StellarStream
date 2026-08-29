@@ -1204,3 +1204,352 @@ fn test_stream_history_nonexistent_stream() {
     let history = c.get_stream_history(&999);
     assert_eq!(history.len(), 0);
 }
+
+// ===========================================================================
+// Rate calculator tests (issue #1477)
+// ===========================================================================
+
+#[test]
+fn test_rate_per_second_linear_stream() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &false,
+        &None,
+    );
+    assert_eq!(c.get_stream_rate_per_second(&id), 1_000i128);
+}
+
+#[test]
+fn test_rate_per_day() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &86_400i128,
+        &0u64,
+        &86_400u64,
+        &CURVE_LINEAR,
+        &false,
+        &false,
+        &None,
+    );
+    assert_eq!(c.get_stream_rate_per_second(&id), 1i128);
+    assert_eq!(c.get_stream_rate_per_day(&id), 86_400i128);
+}
+
+#[test]
+fn test_rate_per_month() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &2_592_000i128,
+        &0u64,
+        &2_592_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &false,
+        &None,
+    );
+    assert_eq!(c.get_stream_rate_per_second(&id), 1i128);
+    assert_eq!(c.get_stream_rate_per_day(&id), 86_400i128);
+    assert_eq!(c.get_stream_rate_per_month(&id), 2_592_000i128);
+}
+
+#[test]
+fn test_rate_with_paused_duration() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &false,
+        &None,
+    );
+    f.env.ledger().with_mut(|li| { li.timestamp = 100; });
+    c.pause_stream(&id, &f.sender);
+    f.env.ledger().with_mut(|li| { li.timestamp = 300; });
+    c.resume_stream(&id, &f.sender);
+    let stream = c.get_stream(&id);
+    assert_eq!(stream.paused_duration, 200);
+    assert_eq!(c.get_stream_rate_per_second(&id), 1_250i128);
+}
+
+#[test]
+fn test_rate_closed_stream() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &1_000_000i128,
+        &0u64,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &false,
+        &None,
+    );
+    c.cancel_stream(&id, &f.sender);
+    assert_eq!(c.get_stream_rate_per_second(&id), 0);
+    assert_eq!(c.get_stream_rate_per_day(&id), 0);
+    assert_eq!(c.get_stream_rate_per_month(&id), 0);
+}
+
+#[test]
+fn test_rate_not_found() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    assert!(c.try_get_stream_rate_per_second(&999).is_err());
+}
+
+#[test]
+fn test_rate_consistency_across_units() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &10_000i128,
+        &0u64,
+        &100u64,
+        &CURVE_LINEAR,
+        &false,
+        &false,
+        &None,
+    );
+    let per_sec = c.get_stream_rate_per_second(&id);
+    let per_day = c.get_stream_rate_per_day(&id);
+    let per_month = c.get_stream_rate_per_month(&id);
+    assert_eq!(per_day, per_sec * 86_400);
+    assert_eq!(per_month, per_sec * 2_592_000);
+}
+
+#[test]
+fn test_rate_short_stream() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.create_stream(
+        &f.sender,
+        &f.receiver,
+        &f.token,
+        &100i128,
+        &0u64,
+        &1u64,
+        &CURVE_LINEAR,
+        &false,
+        &false,
+        &None,
+    );
+    assert_eq!(c.get_stream_rate_per_second(&id), 100i128);
+}
+
+// ===========================================================================
+// Stream template tests (issue #1473)
+// ===========================================================================
+
+#[test]
+fn test_save_and_get_template() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.save_template(
+        &f.sender,
+        &String::from_str(&f.env, "Monthly Payroll"),
+        &f.token,
+        &2_592_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+    assert_eq!(id, 1);
+    let tpl = c.get_template(&id);
+    assert_eq!(tpl.name, String::from_str(&f.env, "Monthly Payroll"));
+    assert_eq!(tpl.token, f.token);
+    assert_eq!(tpl.duration, 2_592_000);
+    assert_eq!(tpl.curve_type, CURVE_LINEAR);
+    assert_eq!(tpl.is_soulbound, false);
+}
+
+#[test]
+fn test_create_stream_from_template() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let tpl_id = c.save_template(
+        &f.sender,
+        &String::from_str(&f.env, "Quick Stream"),
+        &f.token,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+    f.env.ledger().with_mut(|li| { li.timestamp = 100; });
+    let stream_id = c.create_stream_from_template(
+        &f.sender,
+        &tpl_id,
+        &f.receiver,
+        &500_000i128,
+        &100u64,
+    );
+    assert_eq!(stream_id, 1);
+    let stream = c.get_stream(&stream_id);
+    assert_eq!(stream.total_amount, 500_000i128);
+    assert_eq!(stream.start_time, 100);
+    assert_eq!(stream.end_time, 1100);
+    assert_eq!(stream.state, STATE_ACTIVE);
+}
+
+#[test]
+fn test_multiple_templates() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id1 = c.save_template(
+        &f.sender,
+        &String::from_str(&f.env, "Template A"),
+        &f.token,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+    let id2 = c.save_template(
+        &f.sender,
+        &String::from_str(&f.env, "Template B"),
+        &f.token,
+        &2_000u64,
+        &CURVE_EXP,
+        &true,
+        &None,
+    );
+    assert_eq!(id1, 1);
+    assert_eq!(id2, 2);
+    let ids = c.get_user_templates(&f.sender);
+    assert_eq!(ids.len(), 2);
+}
+
+#[test]
+fn test_template_not_found() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    assert!(c.try_get_template(&999).is_err());
+}
+
+#[test]
+fn test_max_templates_limit() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    for i in 0..20u32 {
+        let name = soroban_sdk::String::from_str(&f.env, "T");
+        c.save_template(
+            &f.sender,
+            &name,
+            &f.token,
+            &1_000u64,
+            &CURVE_LINEAR,
+            &false,
+            &None,
+        );
+    }
+    let too_many = soroban_sdk::String::from_str(&f.env, "X");
+    assert!(c.try_save_template(
+        &f.sender,
+        &too_many,
+        &f.token,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    ).is_err());
+}
+
+#[test]
+fn test_update_template() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.save_template(
+        &f.sender,
+        &String::from_str(&f.env, "Old Name"),
+        &f.token,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+    c.update_template(
+        &f.sender,
+        &id,
+        &String::from_str(&f.env, "New Name"),
+        &f.token,
+        &2_000u64,
+        &CURVE_EXP,
+        &true,
+        &None,
+    );
+    let tpl = c.get_template(&id);
+    assert_eq!(tpl.name, String::from_str(&f.env, "New Name"));
+    assert_eq!(tpl.duration, 2_000);
+    assert_eq!(tpl.curve_type, CURVE_EXP);
+    assert!(tpl.is_soulbound);
+}
+
+#[test]
+fn test_delete_template() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.save_template(
+        &f.sender,
+        &String::from_str(&f.env, "Delete Me"),
+        &f.token,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+    c.delete_template(&f.sender, &id);
+    assert!(c.try_get_template(&id).is_err());
+    let ids = c.get_user_templates(&f.sender);
+    assert_eq!(ids.len(), 0);
+}
+
+#[test]
+fn test_not_template_owner() {
+    let f = setup();
+    let c = client(&f.env, &f.contract);
+    let id = c.save_template(
+        &f.sender,
+        &String::from_str(&f.env, "My Template"),
+        &f.token,
+        &1_000u64,
+        &CURVE_LINEAR,
+        &false,
+        &None,
+    );
+    assert!(c.try_create_stream_from_template(
+        &f.receiver,
+        &id,
+        &f.sender,
+        &100i128,
+        &0u64,
+    ).is_err());
+}
