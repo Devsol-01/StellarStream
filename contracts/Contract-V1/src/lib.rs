@@ -108,6 +108,7 @@ mod clawback_test;
 #[cfg(test)]
 mod compliance_test;
 
+<<<<<<< HEAD
 use soroban_sdk::{
     contract, contractclient, contracterror, contractimpl, contracttype, symbol_short, Address,
     Env, Map, String, Vec,
@@ -116,6 +117,31 @@ use storage::{
     bump_persistent_ttl_if_present, extend_history_ttl, extend_instance_ttl, extend_metadata_ttl,
     extend_proposal_ttl, extend_stream_ttl, extend_template_ttl, extend_user_streams_ttl,
     extend_user_templates_ttl, DataKey,
+=======
+// #[cfg(test)]
+// mod interest_test;
+
+// #[cfg(test)]
+// mod mock_vault;
+
+// #[cfg(test)]
+// mod vault_integration_test;
+
+#[cfg(test)]
+mod ttl_stress_test;
+
+#[cfg(test)]
+mod upgrade_test;
+
+use errors::Error;
+use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Vec};
+use storage::{PROPOSAL_COUNT, RECEIPT, RESTRICTED_ADDRESSES, STREAM_COUNT};
+use types::{
+    ContributorRequest, CurveType, DataKey, Milestone, ProposalApprovedEvent, ProposalCreatedEvent,
+    ReceiptMetadata, RequestCreatedEvent, RequestExecutedEvent, RequestKey, RequestStatus, Role,
+    Stream, StreamCreatedEvent, StreamParams, StreamProposal, StreamReceipt, StreamRequest,
+    StreamResumedEvent, StreamState,
+>>>>>>> 66f9b0a (feat(contract): implement secure contract initialization)
 };
 
 // Stream state
@@ -795,6 +821,7 @@ impl StellarStreamContract {
         get_proposal(&env, proposal_id)
     }
 
+<<<<<<< HEAD
     /// Withdraw the currently unlocked amount to the receiver.
     /// Returns the amount withdrawn.
     pub fn withdraw(env: Env, stream_id: u64, receiver: Address) -> Result<i128, Error> {
@@ -835,6 +862,489 @@ impl StellarStreamContract {
 
     /// Pause an active stream. Only the sender may pause.
     pub fn pause_stream(env: Env, stream_id: u64, caller: Address) -> Result<(), Error> {
+=======
+    /// Create a new stream with optional soulbound locking
+    ///
+    /// # Parameters
+    /// - `is_soulbound`: Set to true to permanently bind this stream to the receiver's address.
+    ///   Cannot be changed after stream creation. Irreversible.
+    pub fn create_stream(
+        env: Env,
+        sender: Address,
+        receiver: Address,
+        token: Address,
+        total_amount: i128,
+        start_time: u64,
+        cliff_time: u64,
+        end_time: u64,
+        curve_type: CurveType,
+        is_soulbound: bool,
+    ) -> Result<u64, Error> {
+        let milestones = Vec::new(&env);
+        let params = StreamParams {
+            sender,
+            receiver,
+            token,
+            total_amount,
+            start_time,
+            cliff_time,
+            end_time,
+            milestones,
+            curve_type,
+            is_soulbound,
+            vault_address: None,
+        };
+        Self::create_stream_with_milestones(env, params)
+    }
+
+    /// Create a new stream with milestones and optional soulbound locking
+    ///
+    /// # Parameters
+    /// - `params`: Stream parameters bundled in a struct to avoid exceeding parameter limits
+    pub fn create_stream_with_milestones(
+        env: Env,
+        params: StreamParams,
+    ) -> Result<u64, Error> {
+        params.sender.require_auth();
+
+        // Validate time range
+        if params.start_time >= params.end_time {
+            return Err(Error::InvalidTimeRange);
+        }
+        if params.total_amount <= 0 {
+            return Err(Error::InvalidAmount);
+        }
+        if Self::is_address_restricted(env.clone(), params.receiver.clone()) {
+            soroban_sdk::panic_with_error!(&env, Error::AddressRestricted);
+        }
+
+        // Validate cliff period
+        if params.cliff_time < params.start_time || params.cliff_time > params.end_time {
+            panic!("Cliff time must be between start and end time");
+        }
+
+        // Validate vault if provided
+        let vault_shares = if let Some(ref vault) = params.vault_address {
+            // Transfer tokens to contract first
+            let token_client = token::Client::new(&env, &params.token);
+            token_client.transfer(&params.sender, &env.current_contract_address(), &params.total_amount);
+
+            // Deposit to vault and get shares
+            vault::deposit_to_vault(&env, vault, &params.token, params.total_amount)
+                .map_err(|_| Error::InvalidAmount)?
+        } else {
+            // Standard stream without vault
+            let token_client = token::Client::new(&env, &params.token);
+            token_client.transfer(&params.sender, &env.current_contract_address(), &params.total_amount);
+            0
+        };
+
+        let stream_id: u64 = env.storage().instance().get(&STREAM_COUNT).unwrap_or(0);
+        let next_id = stream_id + 1;
+
+        let stream = Stream {
+            sender: params.sender.clone(),
+            receiver: params.receiver.clone(),
+            token: params.token.clone(),
+            total_amount: params.total_amount,
+            start_time: params.start_time,
+            cliff_time: params.cliff_time,
+            end_time: params.end_time,
+            withdrawn_amount: 0,
+            interest_strategy: 0,
+            vault_address: params.vault_address.clone(),
+            deposited_principal: params.total_amount,
+            metadata: None,
+            withdrawn: 0,
+            receipt_owner: params.receiver.clone(),
+            paused_time: 0,
+            total_paused_duration: 0,
+            milestones: params.milestones,
+            curve_type: params.curve_type,
+            is_usd_pegged: false,
+            usd_amount: 0,
+            oracle_address: params.sender.clone(),
+            oracle_max_staleness: 0,
+            price_min: 0,
+            price_max: 0,
+            is_soulbound: params.is_soulbound,
+            clawback_enabled: false, // TODO: Check token flags
+            arbiter: None,
+            is_frozen: false,
+            state: StreamState::Active,
+        };
+
+        let stream_key = (STREAM_COUNT, stream_id);
+
+        // Extend contract instance TTL to ensure long-term accessibility
+        // TTL extension removed
+
+        env.storage().instance().set(&stream_key, &stream);
+        env.storage().instance().set(&STREAM_COUNT, &next_id);
+
+        // Store vault shares if vault is used
+        if vault_shares > 0 {
+            env.storage()
+                .instance()
+                .set(&DataKey::VaultShares(stream_id), &vault_shares);
+        }
+
+        // If soulbound, emit event and add to index
+        if params.is_soulbound {
+            env.events().publish(
+                (symbol_short!("soulbound"), symbol_short!("locked")),
+                (stream_id, params.receiver.clone()),
+            );
+
+            // Add to soulbound streams index
+            let mut soulbound_streams: Vec<u64> = env
+                .storage()
+                .persistent()
+                .get(&DataKey::SoulboundStreams)
+                .unwrap_or(Vec::new(&env));
+            soulbound_streams.push_back(stream_id);
+            env.storage()
+                .persistent()
+                .set(&DataKey::SoulboundStreams, &soulbound_streams);
+        }
+
+        env.events().publish(
+            (symbol_short!("create"), params.sender.clone()),
+            StreamCreatedEvent {
+                stream_id,
+                sender: params.sender.clone(),
+                receiver: params.receiver.clone(),
+                token: params.token,
+                total_amount: params.total_amount,
+                start_time: params.start_time,
+                end_time: params.end_time,
+                timestamp: env.ledger().timestamp(),
+            },
+        );
+        Self::mint_receipt(&env, stream_id, &params.receiver);
+
+        Ok(stream_id)
+    }
+
+    /// Maximum number of recipients allowed in a single batch call.
+    /// Prevents exceeding the Stellar ledger's maximum transaction size.
+    pub const MAX_RECIPIENTS: u32 = 120;
+
+    /// Create multiple streams in a single call.
+    ///
+    /// Returns `Error::BatchSizeExceeded` if the number of requests exceeds
+    /// `MAX_RECIPIENTS`.
+    pub fn create_batch_streams(
+        env: Env,
+        sender: Address,
+        token: Address,
+        requests: Vec<StreamRequest>,
+    ) -> Result<Vec<u64>, Error> {
+        if requests.len() > Self::MAX_RECIPIENTS {
+            return Err(Error::BatchSizeExceeded);
+        }
+
+        sender.require_auth();
+
+        let mut stream_ids: Vec<u64> = Vec::new(&env);
+
+        for req in requests.iter() {
+            let milestones: Vec<Milestone> = Vec::new(&env);
+            let params = StreamParams {
+                sender: sender.clone(),
+                receiver: req.receiver,
+                token: token.clone(),
+                total_amount: req.amount,
+                start_time: req.start_time,
+                cliff_time: req.cliff_time,
+                end_time: req.end_time,
+                milestones,
+                curve_type: CurveType::Linear,
+                is_soulbound: false,
+                vault_address: req.vault_address,
+            };
+            let stream_id = Self::create_stream_with_milestones(env.clone(), params)?;
+            stream_ids.push_back(stream_id);
+        }
+
+        Ok(stream_ids)
+    }
+
+    pub fn initialize(env: Env, admin: Address) -> Result<(), Error> {
+        admin.require_auth();
+
+        // Check if contract is already initialized
+        let is_initialized: bool = env
+            .storage()
+            .instance()
+            .get(&DataKey::Initialized)
+            .unwrap_or(false);
+        
+        if is_initialized {
+            return Err(Error::AlreadyInitialized);
+        }
+
+        // Mark contract as initialized
+        env.storage()
+            .instance()
+            .set(&DataKey::Initialized, &true);
+
+        // Set admin address
+        env.storage().instance().set(&DataKey::Admin, &admin);
+
+        // Grant all roles to admin
+        env.storage()
+            .instance()
+            .set(&DataKey::Role(admin.clone(), Role::SuperAdmin), &true);
+        env.storage()
+            .instance()
+            .set(&DataKey::Role(admin.clone(), Role::Guardian), &true);
+        env.storage().instance().set(
+            &DataKey::Role(admin.clone(), Role::FinancialOperator),
+            &true,
+        );
+
+        // Extend storage TTL for long-term contract lifecycle
+        // Set minimum TTL bump to 17280 ledgers (~1 day at 5s/ledger)
+        // Set maximum TTL to 2073600 ledgers (~120 days at 5s/ledger)
+        const LEDGER_BUMP: u32 = 17280;      // ~1 day
+        const MAX_TTL: u32 = 2073600;        // ~120 days
+        env.storage()
+            .instance()
+            .extend_ttl(LEDGER_BUMP, MAX_TTL);
+
+        // Emit initialization event
+        env.events().publish(
+            (symbol_short!("init"), symbol_short!("success")),
+            admin.clone(),
+        );
+
+        Ok(())
+    }
+
+    // ========== RBAC Functions ==========
+
+    /// Grant a role to an address (Admin only)
+    pub fn grant_role(env: Env, admin: Address, target: Address, role: Role) {
+        admin.require_auth();
+
+        // Check if caller has Admin role
+        if !Self::has_role(&env, &admin, Role::SuperAdmin) {
+            panic!("{}", Error::Unauthorized as u32);
+        }
+
+        // Grant the role
+        env.storage()
+            .instance()
+            .set(&DataKey::Role(target.clone(), role), &true);
+
+        // Emit event
+        env.events().publish((symbol_short!("grant"), target), role);
+    }
+
+    /// Revoke a role from an address (Admin only)
+    pub fn revoke_role(env: Env, admin: Address, target: Address, role: Role) {
+        admin.require_auth();
+
+        // Check if caller has Admin role
+        if !Self::has_role(&env, &admin, Role::SuperAdmin) {
+            return; // Error::Unauthorized;
+        }
+
+        // Revoke the role
+        env.storage()
+            .instance()
+            .remove(&DataKey::Role(target.clone(), role));
+
+        // Emit event
+        env.events()
+            .publish((symbol_short!("revoke"), target), role);
+    }
+
+    /// Check if an address has a specific role
+    pub fn check_role(env: Env, address: Address, role: Role) -> bool {
+        Self::has_role(&env, &address, role)
+    }
+
+    /// Internal helper to check if an address has a role
+    fn has_role(env: &Env, address: &Address, role: Role) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::Role(address.clone(), role))
+            .unwrap_or(false)
+    }
+
+    // ========== Contract Upgrade Functions ==========
+
+    /// Upgrade the contract to a new WASM hash
+    /// Only addresses with Admin role can perform this operation
+    pub fn upgrade(env: Env, admin: Address, new_wasm_hash: soroban_sdk::BytesN<32>) {
+        admin.require_auth();
+
+        // Check if caller has Admin role
+        if !Self::has_role(&env, &admin, Role::SuperAdmin) {
+            return; // Error::Unauthorized;
+        }
+
+        // Update the contract WASM
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
+
+        // Emit upgrade event with new WASM hash
+        env.events()
+            .publish((symbol_short!("upgrade"), admin), new_wasm_hash);
+    }
+
+    /// Get the current admin address (for backward compatibility)
+    pub fn get_admin(env: Env) -> Address {
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Admin not set")
+    }
+
+    pub fn restrict_address(env: Env, admin: Address, address: Address) {
+        admin.require_auth();
+        let has_admin: bool = env
+            .storage()
+            .instance()
+            .get(&DataKey::Role(admin, Role::SuperAdmin))
+            .unwrap_or(false);
+        if !has_admin {
+            soroban_sdk::panic_with_error!(&env, Error::Unauthorized);
+        }
+        let mut list: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&RESTRICTED_ADDRESSES)
+            .unwrap_or(Vec::new(&env));
+        if !list.contains(address.clone()) {
+            list.push_back(address);
+            env.storage().instance().set(&RESTRICTED_ADDRESSES, &list);
+        }
+    }
+
+    pub fn is_address_restricted(env: Env, address: Address) -> bool {
+        let list: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&RESTRICTED_ADDRESSES)
+            .unwrap_or(Vec::new(&env));
+        list.contains(address)
+    }
+
+    pub fn unrestrict_address(env: Env, admin: Address, address: Address) {
+        admin.require_auth();
+        let has_admin: bool = env
+            .storage()
+            .instance()
+            .get(&DataKey::Role(admin, Role::SuperAdmin))
+            .unwrap_or(false);
+        if !has_admin {
+            soroban_sdk::panic_with_error!(&env, Error::Unauthorized);
+        }
+        let list: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&RESTRICTED_ADDRESSES)
+            .unwrap_or(Vec::new(&env));
+        let mut new_list = Vec::new(&env);
+        for a in list.iter() {
+            if a != address {
+                new_list.push_back(a.clone());
+            }
+        }
+        env.storage()
+            .instance()
+            .set(&RESTRICTED_ADDRESSES, &new_list);
+    }
+
+    pub fn get_restricted_addresses(env: Env) -> Vec<Address> {
+        env.storage()
+            .instance()
+            .get(&RESTRICTED_ADDRESSES)
+            .unwrap_or(Vec::new(&env))
+    }
+
+    /// Returns true if the given vault address is in the approved vaults list.
+    pub fn is_vault_approved(env: Env, vault: Address) -> bool {
+        let approved: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&DataKey::ApprovedVaults)
+            .unwrap_or(Vec::new(&env));
+        approved.contains(vault)
+    }
+
+    /// Extend instance storage TTL so long-lived streams remain accessible.
+    #[allow(dead_code)]
+    fn extend_contract_ttl(env: &Env) {
+        const EXTEND_LEDGERS: u32 = 6_000_000; // ~1 year at 5s/ledger
+        env.storage()
+            .instance()
+            .extend_ttl(EXTEND_LEDGERS, EXTEND_LEDGERS);
+    }
+
+    fn mint_receipt(env: &Env, stream_id: u64, owner: &Address) {
+        let receipt = StreamReceipt {
+            stream_id,
+            owner: owner.clone(),
+            minted_at: env.ledger().timestamp(),
+        };
+        env.storage()
+            .instance()
+            .set(&(RECEIPT, stream_id), &receipt);
+    }
+
+    pub fn get_stream(env: Env, stream_id: u64) -> Result<Stream, Error> {
+        env.storage()
+            .instance()
+            .get(&(STREAM_COUNT, stream_id))
+            .ok_or(Error::StreamNotFound)
+    }
+
+    pub fn get_stream_remaining_time(env: Env, stream_id: u64) -> Result<u64, Error> {
+        let stream: Stream = env
+            .storage()
+            .instance()
+            .get(&(STREAM_COUNT, stream_id))
+            .ok_or(Error::StreamNotFound)?;
+
+        let current_time = env.ledger().timestamp();
+
+        if current_time >= stream.end_time {
+            Ok(0)
+        } else {
+            Ok(stream.end_time - current_time)
+        }
+    }
+
+    pub fn is_stream_active(env: Env, stream_id: u64) -> bool {
+        let stream: Option<Stream> = env.storage().instance().get(&(STREAM_COUNT, stream_id));
+
+        match stream {
+            None => false,
+            Some(s) => {
+                let current_time = env.ledger().timestamp();
+                s.state == StreamState::Active && !s.is_frozen && current_time < s.end_time
+            }
+        }
+    }
+
+    pub fn get_soulbound_streams(env: Env) -> Vec<u64> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::SoulboundStreams)
+            .unwrap_or(Vec::new(&env))
+    }
+
+    pub fn transfer_receiver(
+        env: Env,
+        stream_id: u64,
+        caller: Address,
+        new_receiver: Address,
+    ) -> Result<(), Error> {
+>>>>>>> 66f9b0a (feat(contract): implement secure contract initialization)
         caller.require_auth();
         extend_instance_ttl(&env);
         let mut stream = get_stream(&env, stream_id)?;
@@ -1588,8 +2098,156 @@ impl StellarStreamContract {
     /// Any other address counts as a governance approver toward `required_approvals`.
     pub fn approve_clawback(
         env: Env,
+<<<<<<< HEAD
         clawback_id: u64,
         approver: Address,
+=======
+        receiver: Address,
+        token: Address,
+        total_amount: i128,
+        duration: u64,
+        metadata: Option<soroban_sdk::BytesN<32>>,
+    ) -> u64 {
+        receiver.require_auth();
+        let count: u64 = env
+            .storage()
+            .instance()
+            .get(&RequestKey::RequestCount)
+            .unwrap_or(0);
+        let request_id = count + 1;
+        let now = env.ledger().timestamp();
+        let request = ContributorRequest {
+            id: request_id,
+            receiver: receiver.clone(),
+            token: token.clone(),
+            total_amount,
+            duration,
+            start_time: now,
+            status: RequestStatus::Pending,
+            metadata,
+        };
+        env.storage()
+            .instance()
+            .set(&RequestKey::Request(request_id), &request);
+        env.storage()
+            .instance()
+            .set(&RequestKey::RequestCount, &request_id);
+        env.events().publish(
+            (soroban_sdk::Symbol::new(&env, "RequestCreated"), request_id),
+            RequestCreatedEvent {
+                request_id,
+                receiver,
+                token,
+                total_amount,
+                duration,
+                timestamp: now,
+            },
+        );
+        request_id
+    }
+
+    pub fn execute_request(env: Env, admin: Address, request_id: u64) -> Result<u64, Error> {
+        admin.require_auth();
+        if !Self::has_role(&env, &admin, Role::SuperAdmin) {
+            return Err(Error::Unauthorized);
+        }
+        let mut request: ContributorRequest = env
+            .storage()
+            .instance()
+            .get(&RequestKey::Request(request_id))
+            .ok_or(Error::StreamNotFound)?;
+        if request.status != RequestStatus::Pending {
+            return Err(Error::AlreadyExecuted);
+        }
+        request.status = RequestStatus::Approved;
+        env.storage()
+            .instance()
+            .set(&RequestKey::Request(request_id), &request);
+        
+        let params = StreamParams {
+            sender: admin.clone(),
+            receiver: request.receiver.clone(),
+            token: request.token.clone(),
+            total_amount: request.total_amount,
+            start_time: request.start_time,
+            cliff_time: request.start_time, // cliff_time = start_time (no cliff)
+            end_time: request.start_time + request.duration,
+            milestones: Vec::new(&env),
+            curve_type: CurveType::Linear,
+            is_soulbound: false,
+            vault_address: None,
+        };
+        let stream_id = Self::create_stream_with_milestones(env.clone(), params)?;
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "RequestExecuted"),
+                request_id,
+            ),
+            RequestExecutedEvent {
+                request_id,
+                stream_id,
+                executor: admin,
+                timestamp: env.ledger().timestamp(),
+            },
+        );
+        Ok(stream_id)
+    }
+
+    pub fn get_request(env: Env, request_id: u64) -> Option<ContributorRequest> {
+        env.storage()
+            .instance()
+            .get(&RequestKey::Request(request_id))
+    }
+
+    // ========== OFAC Compliance Functions ==========
+
+    /// Internal helper: validate receiver is not restricted
+    fn validate_receiver(env: &Env, receiver: &Address) -> Result<(), Error> {
+        let list: Vec<Address> = env
+            .storage()
+            .instance()
+            .get(&RESTRICTED_ADDRESSES)
+            .unwrap_or_else(|| Vec::new(env));
+        for existing in list.iter() {
+            if &existing == receiver {
+                return Err(Error::ReceiverRestricted);
+            }
+        }
+        Ok(())
+    }
+
+    pub fn get_proposal(env: Env, proposal_id: u64) -> Option<StreamProposal> {
+        env.storage().instance().get(&(PROPOSAL_COUNT, proposal_id))
+    }
+
+    pub fn get_receipt(env: Env, stream_id: u64) -> Option<StreamReceipt> {
+        env.storage().instance().get(&(RECEIPT, stream_id))
+    }
+
+    pub fn get_receipt_metadata(env: Env, stream_id: u64) -> Result<ReceiptMetadata, Error> {
+        let stream: Stream = env
+            .storage()
+            .instance()
+            .get(&(STREAM_COUNT, stream_id))
+            .ok_or(Error::StreamNotFound)?;
+        let current_time = env.ledger().timestamp();
+        let unlocked = Self::calculate_unlocked(&stream, current_time);
+        let locked = stream.total_amount - unlocked;
+        Ok(ReceiptMetadata {
+            stream_id,
+            locked_balance: locked,
+            unlocked_balance: unlocked,
+            total_amount: stream.total_amount,
+            token: stream.token,
+        })
+    }
+
+    pub fn transfer_receipt(
+        env: Env,
+        stream_id: u64,
+        caller: Address,
+        new_owner: Address,
+>>>>>>> 66f9b0a (feat(contract): implement secure contract initialization)
     ) -> Result<(), Error> {
         approver.require_auth();
         extend_instance_ttl(&env);

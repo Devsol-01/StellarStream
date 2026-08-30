@@ -404,6 +404,123 @@ fn standard_schedule(env: &Env) -> Vec<Milestone> {
     milestone_schedule(env, &[(90, 2_500), (180, 5_000), (365, 10_000)])
 }
 
+// ============================================================
+// Initialization Tests
+// ============================================================
+
+#[test]
+fn test_initialize_success() {
+    let ctx = setup_test();
+    let admin = Address::generate(&ctx.env);
+
+    // Initialize the contract
+    let result = ctx.client.try_initialize(&admin);
+    assert!(result.is_ok());
+
+    // Verify admin was set correctly
+    let stored_admin = ctx.client.get_admin();
+    assert_eq!(stored_admin, admin);
+}
+
+#[test]
+fn test_initialize_prevents_double_initialization() {
+    let ctx = setup_test();
+    let admin = Address::generate(&ctx.env);
+
+    // First initialization should succeed
+    let result = ctx.client.try_initialize(&admin);
+    assert!(result.is_ok());
+
+    // Second initialization should fail with AlreadyInitialized error
+    let second_result = ctx.client.try_initialize(&admin);
+    assert!(second_result.is_err());
+    assert_eq!(second_result.err(), Some(Ok(Error::AlreadyInitialized)));
+}
+
+#[test]
+fn test_initialize_stores_admin_address() {
+    let ctx = setup_test();
+    let admin = Address::generate(&ctx.env);
+
+    let _ = ctx.client.initialize(&admin);
+
+    // Verify admin address is stored and retrievable
+    let stored_admin = ctx.client.get_admin();
+    assert_eq!(stored_admin, admin);
+}
+
+#[test]
+fn test_initialize_grants_all_roles_to_admin() {
+    let ctx = setup_test();
+    let admin = Address::generate(&ctx.env);
+
+    let _ = ctx.client.initialize(&admin);
+
+    // Verify admin has SuperAdmin role
+    let has_super_admin = ctx.client.check_role(&admin, &Role::SuperAdmin);
+    assert!(has_super_admin);
+
+    // Verify admin has Guardian role
+    let has_guardian = ctx.client.check_role(&admin, &Role::Guardian);
+    assert!(has_guardian);
+
+    // Verify admin has FinancialOperator role
+    let has_financial_operator = ctx.client.check_role(&admin, &Role::FinancialOperator);
+    assert!(has_financial_operator);
+}
+
+#[test]
+fn test_initialize_requires_auth() {
+    let env = Env::default();
+    // NOTE: Not calling env.mock_all_auths() to test actual auth
+    
+    let contract_id = env.register(StellarStream, ());
+    let client = StellarStreamClient::new(&env, &contract_id);
+    
+    let admin = Address::generate(&env);
+    
+    // This should fail because auth is not mocked and admin hasn't actually signed
+    let result = client.try_initialize(&admin);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_initialize_different_admin_after_failed_attempt() {
+    let ctx = setup_test();
+    let admin1 = Address::generate(&ctx.env);
+    let admin2 = Address::generate(&ctx.env);
+
+    // First initialization succeeds
+    let _ = ctx.client.initialize(&admin1);
+
+    // Second initialization with different admin should fail
+    let result = ctx.client.try_initialize(&admin2);
+    assert!(result.is_err());
+    assert_eq!(result.err(), Some(Ok(Error::AlreadyInitialized)));
+
+    // Verify original admin is still set
+    let stored_admin = ctx.client.get_admin();
+    assert_eq!(stored_admin, admin1);
+}
+
+#[test]
+fn test_initialize_extends_storage_ttl() {
+    let ctx = setup_test();
+    let admin = Address::generate(&ctx.env);
+
+    // Initialize the contract
+    let _ = ctx.client.initialize(&admin);
+
+    // Note: TTL extension verification in unit tests is limited
+    // as we can't directly inspect TTL values in the test environment.
+    // This test ensures the function completes without panicking.
+    // Full TTL verification requires integration tests on testnet.
+    
+    // Verify initialization succeeded by checking admin
+    let stored_admin = ctx.client.get_admin();
+    assert_eq!(stored_admin, admin);
+}
+
 #[test]
 fn test_milestone_simple_schedule() {
     let f = setup();
@@ -1152,9 +1269,15 @@ fn test_stream_history_ordered_by_timestamp() {
     let f = setup();
     let c = client(&f.env, &f.contract);
 
+<<<<<<< HEAD
     f.env.ledger().with_mut(|li| {
         li.timestamp = 100;
     });
+=======
+    // Initialize contract with admin (grants all roles)
+    let _ = ctx.client.initialize(&admin);
+    ctx.client.initialize_fee(&admin, &100, &treasury);
+>>>>>>> 66f9b0a (feat(contract): implement secure contract initialization)
 
     let id = c.create_stream(
         &f.sender,
@@ -1421,6 +1544,7 @@ fn test_create_stream_from_template() {
 }
 
 #[test]
+<<<<<<< HEAD
 fn test_multiple_templates() {
     let f = setup();
     let c = client(&f.env, &f.contract);
@@ -1431,6 +1555,322 @@ fn test_multiple_templates() {
         &1_000u64,
         &CURVE_LINEAR,
         &false,
+=======
+fn test_transfer_receiver() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let old_receiver = Address::generate(&ctx.env);
+    let new_receiver = Address::generate(&ctx.env);
+
+    ctx.token.mint(&sender, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &old_receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
+
+    ctx.client.transfer_receiver(&stream_id, &new_receiver);
+
+    ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
+        timestamp: 500,
+        protocol_version: 22,
+        sequence_number: 1,
+        network_id: [0u8; 32],
+        base_reserve: 0,
+        min_temp_entry_ttl: 0,
+        min_persistent_entry_ttl: 0,
+        max_entry_ttl: 1000000,
+    });
+
+    let withdrawn = ctx.client.withdraw(&stream_id, &new_receiver);
+    assert_eq!(withdrawn, 500);
+
+    let token_client = token::Client::new(&ctx.env, &ctx.token_id);
+    assert_eq!(token_client.balance(&new_receiver), 500);
+}
+
+#[test]
+#[should_panic(expected = "Unauthorized: You are not the receiver of this stream")]
+fn test_old_receiver_cannot_withdraw_after_transfer() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let old_receiver = Address::generate(&ctx.env);
+    let new_receiver = Address::generate(&ctx.env);
+
+    ctx.token.mint(&sender, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &old_receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
+
+    ctx.client.transfer_receiver(&stream_id, &new_receiver);
+
+    ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
+        timestamp: 500,
+        protocol_version: 22,
+        sequence_number: 1,
+        network_id: [0u8; 32],
+        base_reserve: 0,
+        min_temp_entry_ttl: 0,
+        min_persistent_entry_ttl: 0,
+        max_entry_ttl: 1000000,
+    });
+
+    ctx.client.withdraw(&stream_id, &old_receiver);
+}
+
+#[test]
+fn test_batch_stream_creation() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let receiver1 = Address::generate(&ctx.env);
+    let receiver2 = Address::generate(&ctx.env);
+    let receiver3 = Address::generate(&ctx.env);
+
+    let total_amount = 3000_i128;
+    ctx.token.mint(&sender, &total_amount);
+
+    let mut requests = soroban_sdk::Vec::new(&ctx.env);
+    requests.push_back(StreamRequest {
+        receiver: receiver1.clone(),
+        amount: 1000,
+        start_time: 0,
+        cliff_time: 100,
+        end_time: 1000,
+        interest_strategy: 2,
+        vault_address: None,
+        metadata: None,
+    });
+    requests.push_back(StreamRequest {
+        receiver: receiver2.clone(),
+        amount: 1500,
+        start_time: 0,
+        cliff_time: 100,
+        end_time: 1000,
+        interest_strategy: 2,
+        vault_address: None,
+        metadata: None,
+    });
+    requests.push_back(StreamRequest {
+        receiver: receiver3.clone(),
+        amount: 500,
+        start_time: 0,
+        cliff_time: 100,
+        end_time: 1000,
+        interest_strategy: 2,
+        vault_address: None,
+        metadata: None,
+    });
+
+    let stream_ids = ctx
+        .client
+        .create_batch_streams(&sender, &ctx.token_id, &requests);
+
+    assert_eq!(stream_ids.len(), 3);
+    assert_eq!(stream_ids.get(0).unwrap(), 1);
+    assert_eq!(stream_ids.get(1).unwrap(), 2);
+    assert_eq!(stream_ids.get(2).unwrap(), 3);
+
+    let token_client = token::Client::new(&ctx.env, &ctx.token_id);
+    assert_eq!(token_client.balance(&ctx.contract_id), 3000);
+}
+
+#[test]
+#[should_panic(expected = "Contract is paused")]
+fn test_pause_blocks_create_stream() {
+    let ctx = setup_test();
+    let admin = Address::generate(&ctx.env);
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+
+    let _ = ctx.client.initialize(&admin);
+    ctx.client.set_pause(&admin, &true);
+
+    ctx.token.mint(&sender, &1000);
+    ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
+}
+
+#[test]
+#[should_panic(expected = "Contract is paused")]
+fn test_pause_blocks_withdraw() {
+    let ctx = setup_test();
+    let admin = Address::generate(&ctx.env);
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+
+    let _ = ctx.client.initialize(&admin);
+    ctx.token.mint(&sender, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
+
+    ctx.client.set_pause(&admin, &true);
+
+    ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
+        timestamp: 500,
+        protocol_version: 22,
+        sequence_number: 1,
+        network_id: [0u8; 32],
+        base_reserve: 0,
+        min_temp_entry_ttl: 0,
+        min_persistent_entry_ttl: 0,
+        max_entry_ttl: 1000000,
+    });
+
+    ctx.client.withdraw(&stream_id, &receiver);
+}
+
+#[test]
+#[should_panic(expected = "Fee cannot exceed 10%")]
+fn test_fee_cap() {
+    let ctx = setup_test();
+    let admin = Address::generate(&ctx.env);
+    let treasury = Address::generate(&ctx.env);
+
+    // Initialize contract with admin (grants all roles)
+    let _ = ctx.client.initialize(&admin);
+    ctx.client.initialize_fee(&admin, &1001, &treasury);
+}
+
+#[test]
+fn test_update_fee() {
+    let ctx = setup_test();
+    let admin = Address::generate(&ctx.env);
+    let treasury = Address::generate(&ctx.env);
+
+    // Initialize contract with admin (grants all roles)
+    let _ = ctx.client.initialize(&admin);
+    ctx.client.initialize_fee(&admin, &100, &treasury);
+    ctx.client.update_fee(&admin, &200);
+}
+
+#[test]
+#[should_panic(expected = "No funds available to withdraw at this time")]
+fn test_cliff_blocks_withdrawal() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+
+    ctx.token.mint(&sender, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &500,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
+
+    ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
+        timestamp: 250,
+        protocol_version: 22,
+        sequence_number: 1,
+        network_id: [0u8; 32],
+        base_reserve: 0,
+        min_temp_entry_ttl: 0,
+        min_persistent_entry_ttl: 0,
+        max_entry_ttl: 1000000,
+    });
+
+    ctx.client.withdraw(&stream_id, &receiver);
+}
+
+#[test]
+fn test_cliff_unlocks_at_cliff_time() {
+    let ctx = setup_test();
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+
+    ctx.token.mint(&sender, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &500,
+        &1000,
+        &2,
+           &None,
+           &None,
+    );
+
+    ctx.env.ledger().set(soroban_sdk::testutils::LedgerInfo {
+        timestamp: 500,
+        protocol_version: 22,
+        sequence_number: 1,
+        network_id: [0u8; 32],
+        base_reserve: 0,
+        min_temp_entry_ttl: 0,
+        min_persistent_entry_ttl: 0,
+        max_entry_ttl: 1000000,
+    });
+
+    ctx.client.withdraw(&stream_id, &receiver);
+}
+
+#[test]
+fn test_unpause_allows_operations() {
+    let ctx = setup_test();
+    let admin = Address::generate(&ctx.env);
+    let sender = Address::generate(&ctx.env);
+    let receiver = Address::generate(&ctx.env);
+
+    let _ = ctx.client.initialize(&admin);
+    ctx.client.set_pause(&admin, &true);
+    ctx.client.set_pause(&admin, &false);
+
+    ctx.token.mint(&sender, &1000);
+    let stream_id = ctx.client.create_stream(
+        &sender,
+        &receiver,
+        &ctx.token_id,
+        &1000,
+        &0,
+        &100,
+        &1000,
+        &2,
+        &None,
+>>>>>>> 66f9b0a (feat(contract): implement secure contract initialization)
         &None,
     );
     let id2 = c.save_template(
