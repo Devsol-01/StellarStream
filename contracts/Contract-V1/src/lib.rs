@@ -100,6 +100,7 @@ pub mod math;
 pub mod storage;
 pub mod clawback;
 pub mod compliance;
+pub mod types;
 
 #[cfg(test)]
 mod bench_test;
@@ -107,17 +108,9 @@ mod bench_test;
 mod clawback_test;
 #[cfg(test)]
 mod compliance_test;
+#[cfg(test)]
+mod types_test;
 
-<<<<<<< HEAD
-use soroban_sdk::{
-    contract, contractclient, contracterror, contractimpl, contracttype, symbol_short, Address,
-    Env, Map, String, Vec,
-};
-use storage::{
-    bump_persistent_ttl_if_present, extend_history_ttl, extend_instance_ttl, extend_metadata_ttl,
-    extend_proposal_ttl, extend_stream_ttl, extend_template_ttl, extend_user_streams_ttl,
-    extend_user_templates_ttl, DataKey,
-=======
 // #[cfg(test)]
 // mod interest_test;
 
@@ -141,7 +134,6 @@ use types::{
     ReceiptMetadata, RequestCreatedEvent, RequestExecutedEvent, RequestKey, RequestStatus, Role,
     Stream, StreamCreatedEvent, StreamParams, StreamProposal, StreamReceipt, StreamRequest,
     StreamResumedEvent, StreamState,
->>>>>>> 66f9b0a (feat(contract): implement secure contract initialization)
 };
 
 // Stream state

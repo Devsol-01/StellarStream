@@ -17,8 +17,13 @@ pub const INTEREST_SPLIT_SENDER_RECEIVER: u32 = 0b011; // 3: 50/50 sender/receiv
 pub const INTEREST_SPLIT_ALL: u32 = 0b111; // 7: 33/33/33 split
 
 // Stream states
+/// Represents the current operational state of a payment stream.
+///
+/// Valid states are intentionally stored as explicit `u32` discriminants to keep
+/// the data compact in Soroban storage while remaining easy to inspect in code.
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u32)]
 pub enum StreamState {
     Active = 0,
     Paused = 1,
@@ -26,78 +31,46 @@ pub enum StreamState {
 }
 
 // Curve types for vesting schedules
+/// Defines the vesting curve type that determines how funds unlock over time.
 #[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u32)]
 pub enum CurveType {
     Linear = 0,
     Exponential = 1,
 }
 
+/// Represents a single payment stream between two addresses.
+///
+/// A stream encodes the sender, receiver, token, amount, timing, and ongoing
+/// state required to calculate how much of the total has been unlocked and/or
+/// already withdrawn.
 #[contracttype]
-#[derive(Clone)]
-pub struct PriceOracle {
-    pub oracle_address: Address,
-    pub max_staleness: u64, // Maximum age of price data in seconds
-}
-
-#[contracttype]
-#[derive(Clone)]
-pub struct UsdPegConfig {
-    pub usd_amount: i128, // USD amount in 7 decimals (e.g., 5000000000 = $500)
-    pub min_price: i128,  // Minimum acceptable price (slippage protection)
-    pub max_price: i128,  // Maximum acceptable price (slippage protection)
-    pub oracle: PriceOracle,
-}
-
-#[contracttype]
-#[derive(Clone, Debug)]
-pub struct Milestone {
-    pub timestamp: u64,
-    pub percentage: u32,
-}
-
-#[contracttype]
-#[derive(Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Stream {
     pub sender: Address,
     pub receiver: Address,
     pub token: Address,
     pub total_amount: i128,
     pub start_time: u64,
-    pub cliff_time: u64,
     pub end_time: u64,
-    pub withdrawn: i128,
     pub withdrawn_amount: i128,
-    pub receipt_owner: Address,
-    pub paused_time: u64,
-    pub total_paused_duration: u64,
-    pub milestones: Vec<Milestone>,
-    pub curve_type: CurveType,
-    pub interest_strategy: u32,
-    pub vault_address: Option<Address>,
-    pub deposited_principal: i128,
-    pub metadata: Option<BytesN<32>>,
-    pub is_usd_pegged: bool,
-    pub usd_amount: i128,
-    pub oracle_address: Address,
-    pub oracle_max_staleness: u64,
-    pub price_min: i128,
-    pub price_max: i128,
-    /// If true, this stream is permanently locked to the original receiver.
-    /// The receiver cannot be transferred for any reason. Used for identity-based
-    /// rewards, grants, or compliance-locked distributions.
-    /// Default: false (for backward compatibility with existing streams)
-    /// Note: We use bool instead of Option<bool> to avoid storage overhead and
-    /// ensure explicit default behavior. All existing streams default to false.
-    pub is_soulbound: bool,
-    /// If true, asset has clawback enabled and can be revoked by issuer
-    pub clawback_enabled: bool,
-    /// Optional arbiter for dispute resolution
-    pub arbiter: Option<Address>,
-    /// If true, stream is frozen pending dispute resolution
-    pub is_frozen: bool,
-    /// Stream state: Active, Paused, or Closed
     pub state: StreamState,
+    pub curve_type: CurveType,
+    pub is_soulbound: bool,
+    pub cliff_time: Option<u64>,
+    pub paused_duration: u64,
+}
+
+/// User profile tracking all incoming and outgoing payment streams.
+///
+/// This record makes it efficient to look up the stream IDs associated with a
+/// given account without scanning every stream in storage.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UserProfile {
+    pub outgoing_streams: Vec<u64>,
+    pub incoming_streams: Vec<u64>,
 }
 
 // Legacy Stream struct (v1) - for migration example
@@ -176,6 +149,22 @@ pub struct StreamParams {
     pub curve_type: CurveType,
     pub is_soulbound: bool,
     pub vault_address: Option<Address>,
+}
+
+/// User profile tracking all incoming and outgoing payment streams.
+/// Enables efficient lookup of all streams associated with a user address.
+/// Used for dashboard views and stream management interfaces.
+/// 
+/// # Storage Considerations
+/// This structure grows linearly with the number of streams per user.
+/// For users with many streams, consider pagination in query functions.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UserProfile {
+    /// List of stream IDs where this user is the sender/payer
+    pub outgoing_streams: Vec<u64>,
+    /// List of stream IDs where this user is the receiver/beneficiary
+    pub incoming_streams: Vec<u64>,
 }
 
 #[contracttype]
